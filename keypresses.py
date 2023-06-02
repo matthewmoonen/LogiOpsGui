@@ -4,7 +4,8 @@ selected_box = None
 
 def on_keypress(event):
     if event.keysym == 'Escape':
-        root.quit()
+        if selected_box is not None:
+            print("Box {} - ESC key pressed".format(selected_box))
     else:
         if selected_box is not None:
             print("Box {} - Key pressed: {}".format(selected_box, event.keysym))
@@ -20,7 +21,6 @@ def on_box2_click():
     print("Box 2 selected")
 
 def create_window():
-    global root
     root = tk.Tk()
     root.geometry("300x200")
     root.title("Click and Keypress Logger")
