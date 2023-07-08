@@ -1,4 +1,4 @@
-
+import sqlite3
 
 device_dict = {
     "MX Master 3": "Wireless Mouse MX Master 3",
@@ -18,10 +18,6 @@ device_dict = {
 }
 
 
-# print(device_dict["MX Master"])
-
-import sqlite3
-
 # Connect to the database
 conn = sqlite3.connect('user_settings.db')
 cursor = conn.cursor()
@@ -33,7 +29,7 @@ rows = cursor.fetchall()
 # Generate the .cfg file
 with open("logid.cfg", "w") as cfg_file:
     for row in rows:
-        id_, selected_device, on_state, threshold_value, torque_value, hires_state, invert_state, target_state = row
+        id_, selected_device, on_state, threshold_value, torque_value, hires_state, invert_state, target_state, dpi = row
         cfg_file.write(f"devices: (\n")
         cfg_file.write(f"{{\n")
         cfg_file.write(f'    name: "{device_dict[selected_device]}";\n')
@@ -50,6 +46,9 @@ with open("logid.cfg", "w") as cfg_file:
         cfg_file.write(f"        hires: {'true' if hires_state else 'false'};\n")
         cfg_file.write(f"        invert: {'true' if invert_state else 'false'}\n")
         cfg_file.write(f"        target: {'true' if target_state else 'false'}\n")
+        cfg_file.write(f"    }};\n")
+        cfg_file.write(f"    dpi: {dpi};\n\n")
+        cfg_file.write(f"    buttons: (\n")
         cfg_file.write(f"}}\n")
         cfg_file.write(f");")
 

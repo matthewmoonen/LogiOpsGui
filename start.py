@@ -41,17 +41,17 @@ def save_user_settings():
         # Insert a new entry
         cursor.execute("""
             INSERT INTO user_settings (
-                selected_device, on_state, threshold_value, torque_value, hires_state, invert_state, target_state
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (selected, on, threshold, torque, hires, invert, target))
+                selected_device, on_state, threshold_value, torque_value, hires_state, invert_state, target_state, dpi
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (selected, on, threshold, torque, hires, invert, target, dpi))
     else:
         # Update the existing entry
         cursor.execute("""
             UPDATE user_settings SET
             selected_device = ?, on_state = ?, threshold_value = ?, torque_value = ?,
-            hires_state = ?, invert_state = ?, target_state = ?
+            hires_state = ?, invert_state = ?, target_state = ?, dpi = ?
             WHERE id = 1
-        """, (selected, on, threshold, torque, hires, invert, target))
+        """, (selected, on, threshold, torque, hires, invert, target, dpi))
     
     conn.commit()
 
@@ -67,6 +67,7 @@ def load_user_settings():
         hires_var.set(row[5])
         invert_var.set(row[6])
         target_var.set(row[7])
+        dpi_value.set(row[8])
         
         # Update the state of the spinboxes based on the value of on_state
         if row[2]:
