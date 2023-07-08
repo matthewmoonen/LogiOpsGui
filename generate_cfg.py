@@ -1,11 +1,22 @@
 
 
 device_dict = {
-    "MX Master 3" : "Wireless Mouse MX Master 3",
-    "MX Master 3 for Mac" : "MX Master 3 for Mac",
-    "MX Master 2S" : "Wireless Mouse MX Master 2S",
-    "MX Master" : "Wireless Mouse MX Master"
+    "MX Master 3": "Wireless Mouse MX Master 3",
+    "MX Master 3 for Mac": "MX Master 3 for Mac",
+    "MX Master 2S": "Wireless Mouse MX Master 2S",
+    "MX Master": "Wireless Mouse MX Master",
+    "MX Anywhere S2": "Wireless Mobile Mouse MX Anywhere 2S",
+    "MX Anywhere 3": "MX Anywhere 3",
+    "MX Vertical": "MX Vertical Advanced Ergonomic Mouse",
+    "MX Ergo": "MX Ergo Multi-Device Trackball",
+    "MX Ergo M575": "ERGO M575 Trackball",
+    "M720": "M720 Triathlon Multi-Device Mouse",
+    "M590": "M585/M590 Multi-Device Mouse",
+    "T400": "Zone Touch Mouse T400",
+    "MX Keys": "MX Keys Wireless Keyboard",
+    "M500s": "Advanced Corded Mouse M500s"
 }
+
 
 # print(device_dict["MX Master"])
 

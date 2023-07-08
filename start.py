@@ -16,7 +16,8 @@ cursor.execute("""
         torque_value INTEGER,
         hires_state INTEGER,
         invert_state INTEGER,
-        target_state INTEGER
+        target_state INTEGER,
+        dpi INTEGER
     )
 """)
 conn.commit()
@@ -30,6 +31,7 @@ def save_user_settings():
     hires = int(hires_var.get())
     invert = int(invert_var.get())
     target = int(target_var.get())
+    dpi = int(dpi_value.get())
     
     # Check if an entry already exists in the database
     cursor.execute("SELECT COUNT(*) FROM user_settings")
@@ -205,6 +207,26 @@ invert_checkbox.grid(row=0, column=1, padx=5, pady=5)
 target_var = tk.BooleanVar(value=False)
 target_checkbox = ttk.Checkbutton(master=hires_frame, text="Target", variable=target_var)
 target_checkbox.grid(row=0, column=2, padx=5, pady=5)
+
+
+
+
+# Create dpi input
+dpi_value = tk.StringVar(value="1000")  # Default value for dpi
+dpi_label = ttk.Label(master=window, text="DPI")
+dpi_label.pack()
+dpi_entry = ttk.Entry(master=window, textvariable=dpi_value)
+dpi_entry.pack()
+
+# Validate input in dpi entry to allow only numeric values or empty string
+def validate_integer(value):
+    if value == "" or value.isdigit():
+        return True
+    return False
+
+validate_command = (window.register(validate_integer), "%P")
+dpi_entry.configure(validate="key", validatecommand=validate_command)
+
 
 
 
