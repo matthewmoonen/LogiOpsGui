@@ -21,36 +21,38 @@ config = configparser.ConfigParser()
 
 # Process custom_objects data
 for row in custom_objects_data:
-    cid = str(row[0])
+    cid = hex(row[0])  # Convert CID to hexadecimal representation
     action_type = row[1]
     data = row[2]
 
     # Add custom object section to the config
     config[cid] = {
-        'type': action_type,
-        'data': data
+        'action': {  # Use "action" instead of "data"
+            'type': action_type,
+            'keys': json.loads(data)  # Load JSON data as Python object
+        }
     }
 
 # Process gestures data
 for row in gestures_data:
     gesture_id = str(row[0])
-    custom_object_cid = str(row[1])
+    custom_object_cid = hex(row[1])  # Convert CID to hexadecimal representation
     direction = row[2]
     mode = row[3]
     action_type = row[4]
     data = row[5]
 
-    # Create a nested subsection data as a string
-    gesture_data = {
+    # Add gesture as an option within the custom object section
+    option_key = gesture_id
+    option_value = {
         'direction': direction,
         'mode': mode,
-        'type': action_type,
-        'data': data
+        'action': {  # Use "action" instead of "data"
+            'type': action_type,
+            'keys': json.loads(data)  # Load JSON data as Python object
+        }
     }
-    gesture_data_str = json.dumps(gesture_data)
-
-    # Add the nested subsection data as a string within the main section
-    config.set(custom_object_cid, gesture_id, gesture_data_str)
+    config.set(custom_object_cid, option_key, json.dumps(option_value))  # Store option value as JSON string
 
 # Write the config data to the file
 with open('logidtest.cfg', 'w') as configfile:
