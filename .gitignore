@@ -1,5 +1,6 @@
-# Ignore my notes
-
-notes.md
-
+/notes
 /venv
+notes.md
+logid.cfg
+user_settings.db
+logid_mine.cfg

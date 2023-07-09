@@ -22,6 +22,35 @@ cursor.execute("""
 """)
 conn.commit()
 
+
+
+
+class LogitechDevice:
+    def __init__(self, name, min_dpi, max_dpi, default_dpi):
+        self.name = name
+        self.min_dpi = min_dpi
+        self.max_dpi = max_dpi
+        self.default_dpi = default_dpi
+
+# Creating instances of LogitechDevice for each device
+devices = [
+    LogitechDevice("MX Master 3", 200, 4000, 1000),
+    LogitechDevice("MX Master 3 for Mac", 200, 4000, 1000),
+    LogitechDevice("MX Master 2S", 200, 4000, 1000),
+    LogitechDevice("MX Master", 400, 1600, 1000),
+    LogitechDevice("MX Anywhere 2S", 200, 4000, 1000),
+    LogitechDevice("MX Anywhere 3", 200, 4000, 1000),
+    LogitechDevice("MX Vertical", 400, 4000, 1000),
+    LogitechDevice("MX Ergo", 512, 2048, 1000),
+    LogitechDevice("MX Ergo M575", 400, 2000, 1000),
+    LogitechDevice("M720 Triathlon", 200, 3200, 1000),
+    LogitechDevice("M590 Multi-Device Silent", 1000, 2000, 1000),
+    LogitechDevice("M500s Advanced Corded Mouse", 200, 4000, 1000),
+]
+
+
+
+
 # Function to save user settings to the database
 def save_user_settings():
     selected = selected_device.get()
@@ -98,7 +127,7 @@ label = ttk.Label(master=window, text="Select your device")
 label.pack()
 
 # Create dropdown menu
-options = ['MX Master 3', 'MX Master 3 for Mac', 'MX Master 2S', 'MX Master']  # List of options for the dropdown menu
+options = [device.name for device in devices]
 selected_device = tk.StringVar()  # Variable to store the selected option
 dropdown = ttk.Combobox(master=window, textvariable=selected_device, values=options, state="readonly")
 dropdown.pack()
@@ -220,13 +249,44 @@ dpi_entry = ttk.Entry(master=window, textvariable=dpi_value)
 dpi_entry.pack()
 
 # Validate input in dpi entry to allow only numeric values or empty string
-def validate_integer(value):
-    if value == "" or value.isdigit():
+# def validate_integer(value):
+#     if value == "" or value.isdigit():
+#         return True
+#     return False
+
+
+def validate_dpi(value):
+    if value.isdigit() or value == "":
         return True
     return False
 
-validate_command = (window.register(validate_integer), "%P")
+def update_dpi_value(event):
+    selected_device_index = dropdown.current()
+    selected_device = devices[selected_device_index]
+    value = dpi_value.get()
+    if value != "":
+        int_value = int(value)
+        if int_value < selected_device.min_dpi:
+            dpi_value.set(str(selected_device.min_dpi))
+        elif int_value > selected_device.max_dpi:
+            dpi_value.set(str(selected_device.max_dpi))
+
+validate_command = (window.register(validate_dpi), "%P")
 dpi_entry.configure(validate="key", validatecommand=validate_command)
+dpi_entry.bind("<FocusOut>", update_dpi_value)
+
+
+
+def update_dpi_on_selection(event):
+    selected_device_index = dropdown.current()
+    selected_device = devices[selected_device_index]
+    dpi_value.set(str(selected_device.default_dpi))
+
+# Bind the function to the <<ComboboxSelected>> event
+dropdown.bind("<<ComboboxSelected>>", update_dpi_on_selection)
+
+
+
 
 
 
