@@ -23,8 +23,6 @@ cursor.execute("""
 conn.commit()
 
 
-
-
 class LogitechDevice:
     def __init__(self, name, min_dpi, max_dpi, default_dpi):
         self.name = name
@@ -47,9 +45,6 @@ devices = [
     LogitechDevice("M590 Multi-Device Silent", 1000, 2000, 1000),
     LogitechDevice("M500s Advanced Corded Mouse", 200, 4000, 1000),
 ]
-
-
-
 
 # Function to save user settings to the database
 def save_user_settings():
@@ -111,9 +106,6 @@ window = tk.Tk()
 window.title('LogiOpsGUI')  # Define app title
 window.geometry('800x800')  # Define window size
 
-
-
-
 # Load the user settings from the database and set the corresponding variables
 cursor.execute("SELECT * FROM user_settings ORDER BY id DESC LIMIT 1")
 row = cursor.fetchone()
@@ -134,8 +126,6 @@ dropdown.pack()
 
 if row:
     selected_device.set(row[1])
-
-
 
 
 # Create container for SmartShift widgets
@@ -248,11 +238,7 @@ dpi_label.pack()
 dpi_entry = ttk.Entry(master=window, textvariable=dpi_value)
 dpi_entry.pack()
 
-# Validate input in dpi entry to allow only numeric values or empty string
-# def validate_integer(value):
-#     if value == "" or value.isdigit():
-#         return True
-#     return False
+
 
 
 def validate_dpi(value):
@@ -262,34 +248,33 @@ def validate_dpi(value):
 
 def update_dpi_value(event):
     selected_device_index = dropdown.current()
-    selected_device = devices[selected_device_index]
-    value = dpi_value.get()
-    if value != "":
-        int_value = int(value)
-        if int_value < selected_device.min_dpi:
+    if selected_device_index != -1:
+        selected_device = devices[selected_device_index]
+        dpi_input = dpi_value.get()
+        if dpi_input == "":
             dpi_value.set(str(selected_device.min_dpi))
-        elif int_value > selected_device.max_dpi:
-            dpi_value.set(str(selected_device.max_dpi))
+        else:
+            dpi = int(dpi_input)
+            if dpi < selected_device.min_dpi:
+                dpi_value.set(str(selected_device.min_dpi))
+            elif dpi > selected_device.max_dpi:
+                dpi_value.set(str(selected_device.max_dpi))
+
 
 validate_command = (window.register(validate_dpi), "%P")
 dpi_entry.configure(validate="key", validatecommand=validate_command)
 dpi_entry.bind("<FocusOut>", update_dpi_value)
 
 
-
+# Updates the DPI in the DPI box to match the device default when the user selects a new device from the dropdown list
 def update_dpi_on_selection(event):
     selected_device_index = dropdown.current()
     selected_device = devices[selected_device_index]
     dpi_value.set(str(selected_device.default_dpi))
 
+
 # Bind the function to the <<ComboboxSelected>> event
 dropdown.bind("<<ComboboxSelected>>", update_dpi_on_selection)
-
-
-
-
-
-
 
 
 # Load the user settings from the database
