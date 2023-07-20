@@ -2,17 +2,59 @@ import tkinter as tk
 
 selected_box = None
 
+
 def on_keypress(event):
-    if event.keysym == 'Escape':
-        if selected_box is not None:
-            print("Box {} - ESC key pressed".format(selected_box))
-            box_text = box_text_map[selected_box] + " ESC"
-            update_box_text(selected_box, box_text)
-    else:
-        if selected_box is not None:
-            box_text = box_text_map[selected_box] + " " + event.keysym
-            print("Box {} - Key pressed: {}".format(selected_box, event.keysym))
-            update_box_text(selected_box, box_text)
+    if selected_box is not None:
+        key = event.keysym
+        keymate = get_keymate(key, 'en_US')
+        box_text = box_text_map[selected_box] + " " + keymate
+
+        print(keymate)
+        update_box_text(selected_box, box_text)
+
+def get_keymate(key, layout):
+
+    keymates_en_us = {
+        'asciitilde': 'KEY_GRAVE',
+        'exclam': 'KEY_1',
+        'at': 'KEY_2',
+        'numbersign': 'KEY_3',
+        'dollar': 'KEY_4',
+        'percent': 'KEY_5',
+        'asciicircum': 'KEY_6',
+        'ampersand': 'KEY_7',
+        'asterisk': 'KEY_8',
+        'parenleft': 'KEY_9',
+        'parenright': 'KEY_0',
+        'underscore': 'KEY_MINUS',
+        'plus': 'KEY_EQUAL',
+        'braceleft': 'KEY_LEFTBRACE',
+        'bracketleft': 'KEY_LEFTBRACE',
+        'braceright': 'KEY_RIGHTBRACE',
+        'bracketright': 'KEY_RIGHTBRACE',
+        'bar': 'KEY_BACKSLASH',
+        'colon': 'KEY_SEMICOLON',
+        'quotedbl': 'KEY_APOSTROPHE',
+        'less': 'KEY_COMMA',
+        'greater': 'KEY_DOT',
+        'period': 'KEY_DOT',
+        'question': 'KEY_SLASH',
+        'Prior': 'KEY_PAGEUP',
+        'Next': 'KEY_PAGEDOWN',
+        'Control_L': 'KEY_LEFTCTRL',
+        'Control_R': 'KEY_RIGHTCTRL',
+        'Shift_L': 'KEY_LEFTSHIFT',
+        'Shift_R': 'KEY_RIGHTSHIFT',
+        'Alt_L': 'KEY_LEFTALT',
+        'Alt_R': 'KEY_RIGHTALT',
+        'Return': 'KEY_ENTER',
+        'Super_L': 'KEY_LEFTMETA',
+        'Escape': 'KEY_ESC',
+        'Caps_Lock': 'KEY_CAPSLOCK'
+    }
+
+    if layout == 'en_US' or None:
+        return keymates_en_us.get(key, f'KEY_{key.upper()}')
 
 def on_box_click(box_number):
     global selected_box

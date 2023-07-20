@@ -176,7 +176,7 @@ def load_user_settings():
 # Create main window
 window = tk.Tk()
 window.title('LogiOpsGUI')  # Define app title
-window.geometry('800x800')  # Define window size
+window.geometry('1000x800')  # Define window size
 window.resizable(True, True)
 
 
@@ -381,10 +381,17 @@ canvas.pack(side="left", fill="both", expand=True)
 container_frame = ttk.Frame(canvas)
 canvas.create_window((0, 0), window=container_frame, anchor="nw")
 
+
+# Create a custom style for the scrollbar below
+scrollbar_style = ttk.Style()
+scrollbar_style.configure("CustomScrollbar.Vertical.TScrollbar", width=20, arrowborder=20, arrowsize=20)
+
 # Create the vertical scrollbar and associate it with the Canvas
-scrollbar = ttk.Scrollbar(window, orient="vertical", command=canvas.yview)
+# scrollbar = ttk.Scrollbar(window, orient="vertical", command=canvas.yview)
+scrollbar = ttk.Scrollbar(window, orient="vertical", command=canvas.yview, style="CustomScrollbar.Vertical.TScrollbar")
 canvas.configure(yscrollcommand=scrollbar.set)
 scrollbar.pack(side="right", fill="y")
+
 
 # Function to update the button containers based on the selected device
 def update_button_containers():
@@ -424,14 +431,6 @@ def on_mousewheel(event):
 
 # Bind the MouseWheel event to the Canvas
 canvas.bind_all("<MouseWheel>", on_mousewheel)
-
-
-
-
-
-
-
-
 
 
 
