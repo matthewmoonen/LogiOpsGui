@@ -369,45 +369,61 @@ dropdown.bind("<<ComboboxSelected>>", update_dpi_on_selection)
 
 
 
+
 # Create a dictionary to store the button containers
 button_containers = {}
+
+# Create a Canvas with a vertical scrollbar
+canvas = tk.Canvas(window, height=400, width=400)
+canvas.pack(side="left", fill="both", expand=True)
+
+# Create a frame to contain the button containers
+container_frame = ttk.Frame(canvas)
+canvas.create_window((0, 0), window=container_frame, anchor="nw")
+
+# Create the vertical scrollbar and associate it with the Canvas
+scrollbar = ttk.Scrollbar(window, orient="vertical", command=canvas.yview)
+canvas.configure(yscrollcommand=scrollbar.set)
+scrollbar.pack(side="right", fill="y")
 
 # Function to update the button containers based on the selected device
 def update_button_containers():
     selected_device_now = selected_device.get()
 
-    # Remove existing button containers
-    for container in button_containers.values():
-        container.destroy()
-
-    button_containers.clear()
+    # Clear the existing button containers
+    for widget in container_frame.winfo_children():
+        widget.destroy()
 
     # Create button containers for the selected device
     for device in devices:
         if device.name == selected_device_now:
             for button in device.buttons:
-                container = ttk.LabelFrame(master=window, text=button)
+                container = ttk.LabelFrame(master=container_frame, text=button)
                 container.pack(pady=5)
-                button_containers[button] = container
 
+                # Create and pack buttons within the container (adjust as needed)
                 button1 = ttk.Button(master=container, text="Button 1")
                 button1.pack(padx=5, pady=5)
 
                 button2 = ttk.Button(master=container, text="Button 2")
                 button2.pack(padx=5, pady=5)
 
+                # Add the button container to the dictionary
+                button_containers[button] = container
+
+    # Update the scrollable region of the Canvas
+    canvas.update_idletasks()
+    canvas.config(scrollregion=canvas.bbox("all"))
 
 # Update the button containers initially
 update_button_containers()
 
+# Function to handle mouse wheel scrolling
+def on_mousewheel(event):
+    canvas.yview_scroll(-1 * (event.delta // 120), "units")
 
-
-
-
-
-
-
-
+# Bind the MouseWheel event to the Canvas
+canvas.bind_all("<MouseWheel>", on_mousewheel)
 
 
 
