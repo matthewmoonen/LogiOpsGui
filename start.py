@@ -312,6 +312,53 @@ target_checkbox.grid(row=0, column=2, padx=5, pady=5)
 
 
 
+# Create dpi input
+dpi_value = tk.StringVar(value="1000")  # Default value for dpi
+dpi_label = ttk.Label(master=window, text="DPI")
+dpi_label.pack()
+dpi_entry = ttk.Entry(master=window, textvariable=dpi_value)
+dpi_entry.pack()
+
+
+
+
+def validate_dpi(value):
+    if value.isdigit() or value == "":
+        return True
+    return False
+
+def update_dpi_value(event):
+    selected_device_index = dropdown.current()
+    if selected_device_index != -1:
+        selected_device = devices[selected_device_index]
+        dpi_input = dpi_value.get()
+        if dpi_input == "":
+            dpi_value.set(str(selected_device.min_dpi))
+        else:
+            dpi = int(dpi_input)
+            if dpi < selected_device.min_dpi:
+                dpi_value.set(str(selected_device.min_dpi))
+            elif dpi > selected_device.max_dpi:
+                dpi_value.set(str(selected_device.max_dpi))
+
+
+validate_command = (window.register(validate_dpi), "%P")
+dpi_entry.configure(validate="key", validatecommand=validate_command)
+dpi_entry.bind("<FocusOut>", update_dpi_value)
+
+
+# Updates the DPI in the DPI box to match the device default when the user selects a new device from the dropdown list
+def update_dpi_on_selection(event):
+    selected_device_index = dropdown.current()
+    selected_device = devices[selected_device_index]
+    dpi_value.set(str(selected_device.default_dpi))
+    update_button_containers()
+
+
+# Bind the function to the <<ComboboxSelected>> event
+dropdown.bind("<<ComboboxSelected>>", update_dpi_on_selection)
+
+
 
 
 
@@ -386,51 +433,6 @@ update_button_containers()
 
 
 
-# Create dpi input
-dpi_value = tk.StringVar(value="1000")  # Default value for dpi
-dpi_label = ttk.Label(master=window, text="DPI")
-dpi_label.pack()
-dpi_entry = ttk.Entry(master=window, textvariable=dpi_value)
-dpi_entry.pack()
-
-
-
-
-def validate_dpi(value):
-    if value.isdigit() or value == "":
-        return True
-    return False
-
-def update_dpi_value(event):
-    selected_device_index = dropdown.current()
-    if selected_device_index != -1:
-        selected_device = devices[selected_device_index]
-        dpi_input = dpi_value.get()
-        if dpi_input == "":
-            dpi_value.set(str(selected_device.min_dpi))
-        else:
-            dpi = int(dpi_input)
-            if dpi < selected_device.min_dpi:
-                dpi_value.set(str(selected_device.min_dpi))
-            elif dpi > selected_device.max_dpi:
-                dpi_value.set(str(selected_device.max_dpi))
-
-
-validate_command = (window.register(validate_dpi), "%P")
-dpi_entry.configure(validate="key", validatecommand=validate_command)
-dpi_entry.bind("<FocusOut>", update_dpi_value)
-
-
-# Updates the DPI in the DPI box to match the device default when the user selects a new device from the dropdown list
-def update_dpi_on_selection(event):
-    selected_device_index = dropdown.current()
-    selected_device = devices[selected_device_index]
-    dpi_value.set(str(selected_device.default_dpi))
-    update_button_containers()
-
-
-# Bind the function to the <<ComboboxSelected>> event
-dropdown.bind("<<ComboboxSelected>>", update_dpi_on_selection)
 
 
 
@@ -472,9 +474,6 @@ dropdown.bind("<<ComboboxSelected>>", update_dpi_on_selection)
 
 
 
-
-# Load the user settings from the database
-load_user_settings()
 
 # Save user settings to the database when the window is closed
 def save_and_close():
@@ -482,6 +481,9 @@ def save_and_close():
     window.destroy()
 
 window.protocol("WM_DELETE_WINDOW", save_and_close)
+
+# Load the user settings from the database
+load_user_settings()
 
 # Run the main window
 window.mainloop()
