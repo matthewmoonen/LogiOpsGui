@@ -177,6 +177,9 @@ def load_user_settings():
 window = tk.Tk()
 window.title('LogiOpsGUI')  # Define app title
 window.geometry('800x800')  # Define window size
+window.resizable(True, True)
+
+
 
 # Load the user settings from the database and set the corresponding variables
 cursor.execute("SELECT * FROM user_settings ORDER BY id DESC LIMIT 1")
