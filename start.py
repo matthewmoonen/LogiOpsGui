@@ -443,53 +443,6 @@ canvas.bind_all("<MouseWheel>", on_mousewheel)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # Save user settings to the database when the window is closed
 def save_and_close():
     save_user_settings()

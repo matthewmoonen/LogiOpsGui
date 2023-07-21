@@ -1,26 +1,62 @@
 import tkinter as tk
 
 selected_box = None
-
-
+box_buttons = {}
 
 
 def on_keypress(event):
     if selected_box is not None:
         key = event.keysym
-        keymate = get_keymate(key, 'en_US')
+        keymate = get_db_keymate(key, 'en_US')
         box_text = box_text_map[selected_box] + " " + keymate
 
         print(keymate)
+        keymategui = get_gui_keymate(keymate, 'en_US')
+        print(keymategui)
         update_box_text(selected_box, box_text)
 
 
+def get_gui_keymate(key, layout):
+    gui_keymates_en_us = {
+        'GRAVE': '`',
+        'MINUS': '-',
+        'EQUAL': '=',
+        'BACKSPACE': 'Backspace',
+        'LEFTBRACE': '[',
+        'RIGHTBRACE': ']',
+        'BACKSLASH': '\\',
+        'TAB': 'Tab',
+        'CAPS_LOCK': 'CapsLock',
+        'LEFTSHIFT': 'Shift',
+        'RIGHTSHIFT': 'Shift',
+        'LEFTCTRL': 'Ctrl',
+        'RIGHTCTRL': 'Ctrl',
+        'LEFTALT': 'Alt',
+        'RIGHTALT': 'Alt',
+        'APOSTROPHE': "'",
+        'SEMICOLON': ';',
+        'SLASH': '/',
+        'DOT': '.',
+        'COMMA': ',',
+        'PAGEUP': 'PgUp',
+        'PAGEDOWN': 'PgDn',
+        'HOME': 'Home',
+        'END': 'End',
+        'DELETE': 'Delete',
+        'ESC': 'Esc',
+        'LEFTMETA': 'Super',
+        'ENTER': 'Enter',
+        'UP': '↑',
+        'DOWN': '↓',
+        'LEFT': '←',
+        'RIGHT': '→'
+    }
 
-def get_gui_keymate():
+    if layout == 'en_US' or layout == None:
+        return gui_keymates_en_us.get(key, key)
 
-
-def get_keymate(key, layout):
-    keymates_en_us = {
+def get_db_keymate(key, layout):
+    db_keymates_en_us = {
         'asciitilde': 'GRAVE',
         'exclam': '1',
         'at': '2',
@@ -58,8 +94,8 @@ def get_keymate(key, layout):
         'Escape': 'ESC'
     }
 
-    if layout == 'en_US' or None:
-        return keymates_en_us.get(key, key.upper())
+    if layout == 'en_US' or layout == None:
+        return db_keymates_en_us.get(key, key.upper())
 
 def on_box_click(box_number):
     global selected_box
@@ -79,8 +115,8 @@ def create_window():
     label = tk.Label(root, text="Click a box and press a key:")
     label.pack(pady=10)
 
-    global box_buttons
-    box_buttons = {}
+    # global box_buttons
+    # box_buttons = {}
 
     box_names = {
         1: "Wheel Button",
