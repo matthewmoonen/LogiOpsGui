@@ -121,7 +121,7 @@ table_data = [
 # Function to save user settings to the database
 def save_user_settings():
     selected = selected_device.get()
-    on = int(on_var.get())
+    smartshift_on = int(smartshift_on_var.get())
     threshold = int(threshold_value.get())
     torque = int(torque_value.get())
     hires = int(hires_var.get())
@@ -139,7 +139,7 @@ def save_user_settings():
             INSERT INTO user_settings (
                 selected_device, smartshift_on_state, threshold_value, torque_value, hires_state, invert_state, target_state, dpi
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (selected, on, threshold, torque, hires, invert, target, dpi))
+        """, (selected, smartshift_on, threshold, torque, hires, invert, target, dpi))
     else:
         # Update the existing entry
         cursor.execute("""
@@ -147,7 +147,7 @@ def save_user_settings():
             selected_device = ?, smartshift_on_state = ?, threshold_value = ?, torque_value = ?,
             hires_state = ?, invert_state = ?, target_state = ?, dpi = ?
             WHERE id = 1
-        """, (selected, on, threshold, torque, hires, invert, target, dpi))
+        """, (selected, smartshift_on, threshold, torque, hires, invert, target, dpi))
     
     conn.commit()
 
@@ -157,7 +157,7 @@ def load_user_settings():
     row = cursor.fetchone()
     if row:
         selected_device.set(row[1])
-        on_var.set(row[2])
+        smartshift_on_var.set(row[2])
         threshold_value.set(row[3])
         torque_value.set(row[4])
         hires_var.set(row[5])
@@ -208,8 +208,8 @@ smartshift_frame = ttk.LabelFrame(master=window, text="SmartShift")
 smartshift_frame.pack(pady=10)
 
 # Create boolean selection box
-on_var = tk.BooleanVar()
-on_checkbox = ttk.Checkbutton(master=smartshift_frame, text="On", variable=on_var)
+smartshift_on_var = tk.BooleanVar()
+on_checkbox = ttk.Checkbutton(master=smartshift_frame, text="On", variable=smartshift_on_var)
 on_checkbox.grid(row=0, column=0, padx=5, pady=5)
 
 # Create threshold input
@@ -232,7 +232,7 @@ torque_spinbox.configure(state="disabled")  # Disable torque spinbox by default
 
 # Function to enable/disable threshold and torque spinboxes based on the state of the "on" checkbox
 def toggle_spinboxes():
-    if on_var.get():
+    if smartshift_on_var.get():
         threshold_spinbox.configure(state="normal")
         torque_spinbox.configure(state="normal")
     else:

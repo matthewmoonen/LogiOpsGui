@@ -15,7 +15,8 @@ cursor = conn.cursor()
 cursor.execute("""
     CREATE TABLE IF NOT EXISTS user_devices (
         id INTEGER PRIMARY KEY,
-        selected_device TEXT,
+        is_saved INTEGER,
+        device_name TEXT,
         smartshift_on_state INTEGER,
         threshold_value INTEGER,
         torque_value INTEGER,
@@ -134,32 +135,104 @@ table_data = [
 
 
 
+def get_user_devices():
+    cursor.execute("""
+        SELECT
+            device_name,
+            GROUP_CONCAT(id) AS id_array
+        FROM
+            user_devices
+        GROUP BY
+            device_name;
+    """)
+
+    user_devices = cursor.fetchall()
+
+    # Print the results - TODO - get rid of this
+    for row in user_devices:
+        device_name = row[0]
+        id_array = row[1].split(",")  # Convert the comma-separated string to a list of IDs
+        print(f"Device Name: {device_name}, ID Array: {id_array}")
 
 
 
-
-
-# Function to load user settings from the database
-def load_user_settings():
-    cursor.execute("SELECT * FROM user_settings ORDER BY id DESC LIMIT 1")
+# Function to load currently edited device from the database
+def load_current_device():
+    cursor.execute("SELECT * FROM user_devices WHERE is_saved = 0 ORDER BY id DESC LIMIT 1;")
     row = cursor.fetchone()
     if row:
-        selected_device.set(row[1])
-        on_var.set(row[2])
-        threshold_value.set(row[3])
-        torque_value.set(row[4])
-        hires_var.set(row[5])
-        invert_var.set(row[6])
-        target_var.set(row[7])
-        dpi_value.set(row[8])
+        selected_device.set(row[2])
+        smartshift_on_var.set(row[3])
+        threshold_value.set(row[4])
+        torque_value.set(row[5])
+        hires_var.set(row[6])
+        invert_var.set(row[7])
+        target_var.set(row[8])
+        dpi_value.set(row[9])
+        is_saved.set(row[10])
         
         # Update the state of the spinboxes based on the value of smartshift_on_state
-        if row[2]:
+        if row[3]:
             threshold_spinbox.configure(state="normal")
             torque_spinbox.configure(state="normal")
         else:
             threshold_spinbox.configure(state="disabled")
             torque_spinbox.configure(state="disabled")
+
+
+# Function to save values of the device the user is currently editing into the DB.
+def save_current_device():
+    is_saved = 0
+    device_name = selected_device.get()
+    smartshift_on = int(smartshift_on_var.get())
+    threshold = int(threshold_value.get())
+    torque = int(torque_value.get())
+    hires = int(hires_var.get())
+    invert = int(invert_var.get())
+    target = int(target_var.get())
+    dpi = int(dpi_value.get())
+    
+    # Check if an entry already exists in the database
+    cursor.execute("SELECT COUNT(*) FROM user_devices WHERE is_saved = 0")
+    count = cursor.fetchone()[0]
+    
+    if count == 0:
+        # Insert a new entry
+        cursor.execute("""
+            INSERT INTO user_devices (
+                is_saved
+                device_name,
+                smartshift_on_state,
+                threshold_value,
+                torque_value,
+                hires_state,
+                invert_state,
+                target_state,
+                dpi
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (is_saved, device_name, smartshift_on, threshold, torque, hires, invert, target, dpi))
+    else:
+        # Update the existing entry
+        cursor.execute("""
+            UPDATE user_devices SET
+                is_saved
+                device_name = ?,
+                smartshift_on_state = ?,
+                threshold_value = ?,
+                torque_value = ?,
+                hires_state = ?,
+                invert_state = ?,
+                target_state = ?,
+                dpi = ?
+            WHERE is_saved = 0 AND id = (SELECT MAX(id) FROM user_devices WHERE is_saved = 0);
+        """, (is_saved, device_name, smartshift_on, threshold, torque, hires, invert, target, dpi))
+    
+    conn.commit()
+
+
+
+
+
 
 
 
@@ -177,7 +250,7 @@ window.geometry('1000x800')  # Define window size
 window.resizable(True, True)
 
 
-
+# Create label for devices section
 your_devices_label = ctk.CTkLabel(master=window, 
     text="Your Devices",
     font=ctk.CTkFont(family="Roboto", size=24),
@@ -186,8 +259,15 @@ your_devices_label = ctk.CTkLabel(master=window,
     )
 your_devices_label.pack(anchor='w')
 
+# Create frame for user's devices
 your_devices_frame = ctk.CTkFrame(master=window)
 your_devices_frame.pack(padx=20, pady=20, fill="both", expand=True)
+
+button1 = ctk.CTkButton(master=your_devices_frame, text="Button 1")
+button1.pack(pady=10)
+
+button2 = ctk.CTkButton(master=your_devices_frame, text="Button 2")
+button2.pack(pady=10)
 
 
 
