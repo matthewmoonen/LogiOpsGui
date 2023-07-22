@@ -11,7 +11,7 @@ cursor.execute("""
     CREATE TABLE IF NOT EXISTS user_settings (
         id INTEGER PRIMARY KEY,
         selected_device TEXT,
-        on_state INTEGER,
+        smartshift_on_state INTEGER,
         threshold_value INTEGER,
         torque_value INTEGER,
         hires_state INTEGER,
@@ -137,14 +137,14 @@ def save_user_settings():
         # Insert a new entry
         cursor.execute("""
             INSERT INTO user_settings (
-                selected_device, on_state, threshold_value, torque_value, hires_state, invert_state, target_state, dpi
+                selected_device, smartshift_on_state, threshold_value, torque_value, hires_state, invert_state, target_state, dpi
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (selected, on, threshold, torque, hires, invert, target, dpi))
     else:
         # Update the existing entry
         cursor.execute("""
             UPDATE user_settings SET
-            selected_device = ?, on_state = ?, threshold_value = ?, torque_value = ?,
+            selected_device = ?, smartshift_on_state = ?, threshold_value = ?, torque_value = ?,
             hires_state = ?, invert_state = ?, target_state = ?, dpi = ?
             WHERE id = 1
         """, (selected, on, threshold, torque, hires, invert, target, dpi))
@@ -165,7 +165,7 @@ def load_user_settings():
         target_var.set(row[7])
         dpi_value.set(row[8])
         
-        # Update the state of the spinboxes based on the value of on_state
+        # Update the state of the spinboxes based on the value of smartshift_on_state
         if row[2]:
             threshold_spinbox.configure(state="normal")
             torque_spinbox.configure(state="normal")
