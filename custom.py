@@ -135,24 +135,7 @@ table_data = [
 
 
 
-def get_user_devices():
-    cursor.execute("""
-        SELECT
-            device_name,
-            GROUP_CONCAT(id) AS id_array
-        FROM
-            user_devices
-        GROUP BY
-            device_name;
-    """)
 
-    user_devices = cursor.fetchall()
-
-    # Print the results - TODO - get rid of this
-    for row in user_devices:
-        device_name = row[0]
-        id_array = row[1].split(",")  # Convert the comma-separated string to a list of IDs
-        print(f"Device Name: {device_name}, ID Array: {id_array}")
 
 
 
@@ -230,7 +213,9 @@ def save_current_device():
     conn.commit()
 
 
-
+def save_as_entry():
+    # TODO: create function that saves the currently edited device to the array.
+    print('todo')
 
 
 
@@ -263,14 +248,53 @@ your_devices_label.pack(anchor='w')
 your_devices_frame = ctk.CTkFrame(master=window)
 your_devices_frame.pack(padx=20, pady=20, fill="both", expand=True)
 
-button1 = ctk.CTkButton(master=your_devices_frame, text="Button 1")
-button1.pack(pady=10)
 
-button2 = ctk.CTkButton(master=your_devices_frame, text="Button 2")
-button2.pack(pady=10)
-
+# # Load the user settings from the database and set the corresponding variables
+# cursor.execute("SELECT * FROM user_devices ORDER BY id DESC LIMIT 1")
+# row = cursor.fetchone()
 
 
-    
+
+def get_user_devices():
+    cursor.execute("""
+        SELECT DISTINCT device_name
+        FROM user_devices
+        WHERE is_saved = 1;
+    """)
+
+    user_devices = cursor.fetchall()
+
+    user_devices_list = [row[0] for row in user_devices]
+    return user_devices_list
+
+
+def get_unconfigured_devices():
+    all_devices = [device.name for device in devices]
+    devices_already_configured = get_user_devices()
+    return sorted([i for i in all_devices if i not in devices_already_configured], reverse=True)
+
+
+# Create dropdown menu
+def device_dropdown(new_device):
+    print(new_device)
+
+options = get_unconfigured_devices()
+add_device_dropdown = ctk.CTkOptionMenu(master=your_devices_frame, variable=ctk.StringVar(value='Select Your Device'), values=options, state="normal", width=300, height=35, command=device_dropdown)
+add_device_dropdown.pack(padx=20, pady=10)
+
+
+
+
+
+
+
+def slider_event(value):
+    print(value)
+
+slider = ctk.CTkSlider(window, from_=0, to=100, command=slider_event)
+slider.pack()
+
+
+
 if __name__=="__main__":
     window.mainloop()
