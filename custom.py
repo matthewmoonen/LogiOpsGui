@@ -2,6 +2,7 @@ import customtkinter as ctk
 # import tkinter as tk
 import sqlite3
 import datetime
+from CTkMessagebox import CTkMessagebox
 
 
 ctk.set_appearance_mode("dark")
@@ -260,31 +261,66 @@ add_device_button.grid(row=0, column=1)
 
 
 def display_devices():
-    cursor.execute("SELECT device_name, date_added FROM user_devices ORDER BY date_added DESC")
-    user_devices = cursor.fetchall()
 
+# Fetch devices and configurations in reverse chronological order
+    cursor.execute("SELECT user_devices.device_name, user_configs.config_name, user_configs.last_modified "
+                    "FROM user_devices "
+                    "LEFT JOIN user_configs "
+                    "ON user_devices.device_name = user_configs.device_name "
+                    "ORDER BY user_devices.date_added DESC")
+
+    devices_with_configs = {}
+    for device_name, config_name, last_modified in cursor.fetchall():
+        if device_name not in devices_with_configs:
+            devices_with_configs[device_name] = []
+        if config_name:
+            devices_with_configs[device_name].append((config_name, last_modified))
+
+    # Clear previous widgets from the frame
     for widget in your_devices_frame.winfo_children():
         widget.destroy()
 
+    # Display the devices and their configurations in the frame
+    for idx, (device_name, configs) in enumerate(devices_with_configs.items()):
+        device_label = ctk.CTkLabel(your_devices_frame, text=device_name)
+        device_label.grid(row=idx * 2, column=0)
+        print(device_name)
+        print(configs)
+        # delete_btn = ctk.CTkButton(your_devices_frame, text="Delete Device", command=lambda name=device_name: delete_device(name))
+        delete_btn = ctk.CTkButton(your_devices_frame, text="Delete Device", command=lambda name=device_name: device_deletion_warning(name))
 
-    for idx, device in enumerate(user_devices):
-        device_name, _ = device
-        label = ctk.CTkLabel(your_devices_frame, text=device_name)
-        label.grid(row=idx, column=0)
+        delete_btn.grid(row=idx * 2, column=1)
 
-        delete_btn = ctk.CTkButton(your_devices_frame, text="Delete", command=lambda name=device_name: delete_device(name))
-        delete_btn.grid(row=idx, column=1)
+        for config_idx, (config_name, _) in enumerate(configs):
+            config_label = ctk.CTkLabel(your_devices_frame, text=config_name)
+            config_label.grid(row=idx * 2 + config_idx + 1, column=0)
+
+            edit_btn = ctk.CTkButton(your_devices_frame, text="Edit Config", command=lambda name=device_name, cfg=config_name: edit_config(name, cfg))
+            edit_btn.grid(row=idx * 2 + config_idx + 1, column=1)
 
 
+def device_deletion_warning(device_name):
+    msg = CTkMessagebox(title="Delete Device?",
+                        message="Deleting this device will also delete all configurations.\n To suspend the device but keep your configurations, uncheck the uncheck button.",
+                        # icon="warning",
+                        option_1="Delete",
+                        option_2="Cancel",
+                        width=600,
+                        height=300,
+                        fade_in_duration=200
+                        )
     
+    if msg.get()=="Delete":
+        delete_device(device_name)
 
 def delete_device(device_name):
     # Function to delete the selected device from the database and the frame
     cursor.execute("DELETE FROM user_devices WHERE device_name=?", (device_name,))
     conn.commit()
+    
+    display_devices() # Update the displayed devices
+    create_and_update_device_dropdown() # Update device dropdown
 
-    # Update the displayed devices
-    display_devices()
 
 
 
