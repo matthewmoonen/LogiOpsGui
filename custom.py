@@ -1,6 +1,7 @@
 import customtkinter as ctk
-import tkinter as tk
+# import tkinter as tk
 import sqlite3
+import datetime
 
 
 ctk.set_appearance_mode("dark")
@@ -15,15 +16,17 @@ cursor = conn.cursor()
 cursor.execute("""
     CREATE TABLE IF NOT EXISTS user_devices (
         id INTEGER PRIMARY KEY,
-        is_saved INTEGER,
         device_name TEXT,
-        smartshift_on_state INTEGER,
-        threshold_value INTEGER,
-        torque_value INTEGER,
-        hires_state INTEGER,
-        invert_state INTEGER,
-        target_state INTEGER,
-        dpi INTEGER
+        date_added INTEGER,
+        is_activated INTEGER
+    )
+""")
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS user_configs (
+        id INTEGER PRIMARY KEY,
+        device_name TEXT,
+        config_name TEXT,
+        last_modified INTEGER
     )
 """)
 conn.commit()
@@ -39,7 +42,7 @@ class LogitechDevice:
         self.buttons = buttons
 
 # Creating instances of LogitechDevice for each device
-devices = [
+logitech_devices = [
     LogitechDevice("MX Master 3", 200, 4000, 1000, ["0x0050", "0x0051", "0x0052", "0x0053", "0x0056", "0x00c3"]),
     LogitechDevice("MX Master 3 for Mac", 200, 4000, 1000, ["0x0050", "0x0051"]),
     LogitechDevice("MX Master 2S", 200, 4000, 1000, ["0x0050", "0x0051"]),
@@ -137,85 +140,9 @@ table_data = [
 
 
 
-
-
-# Function to load currently edited device from the database
-def load_current_device():
-    cursor.execute("SELECT * FROM user_devices WHERE is_saved = 0 ORDER BY id DESC LIMIT 1;")
-    row = cursor.fetchone()
-    if row:
-        selected_device.set(row[2])
-        smartshift_on_var.set(row[3])
-        threshold_value.set(row[4])
-        torque_value.set(row[5])
-        hires_var.set(row[6])
-        invert_var.set(row[7])
-        target_var.set(row[8])
-        dpi_value.set(row[9])
-        is_saved.set(row[10])
-        
-        # Update the state of the spinboxes based on the value of smartshift_on_state
-        if row[3]:
-            threshold_spinbox.configure(state="normal")
-            torque_spinbox.configure(state="normal")
-        else:
-            threshold_spinbox.configure(state="disabled")
-            torque_spinbox.configure(state="disabled")
-
-
-# Function to save values of the device the user is currently editing into the DB.
-def save_current_device():
-    is_saved = 0
-    device_name = selected_device.get()
-    smartshift_on = int(smartshift_on_var.get())
-    threshold = int(threshold_value.get())
-    torque = int(torque_value.get())
-    hires = int(hires_var.get())
-    invert = int(invert_var.get())
-    target = int(target_var.get())
-    dpi = int(dpi_value.get())
-    
-    # Check if an entry already exists in the database
-    cursor.execute("SELECT COUNT(*) FROM user_devices WHERE is_saved = 0")
-    count = cursor.fetchone()[0]
-    
-    if count == 0:
-        # Insert a new entry
-        cursor.execute("""
-            INSERT INTO user_devices (
-                is_saved
-                device_name,
-                smartshift_on_state,
-                threshold_value,
-                torque_value,
-                hires_state,
-                invert_state,
-                target_state,
-                dpi
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (is_saved, device_name, smartshift_on, threshold, torque, hires, invert, target, dpi))
-    else:
-        # Update the existing entry
-        cursor.execute("""
-            UPDATE user_devices SET
-                is_saved
-                device_name = ?,
-                smartshift_on_state = ?,
-                threshold_value = ?,
-                torque_value = ?,
-                hires_state = ?,
-                invert_state = ?,
-                target_state = ?,
-                dpi = ?
-            WHERE is_saved = 0 AND id = (SELECT MAX(id) FROM user_devices WHERE is_saved = 0);
-        """, (is_saved, device_name, smartshift_on, threshold, torque, hires, invert, target, dpi))
-    
-    conn.commit()
-
-
 def save_as_entry():
     # TODO: create function that saves the currently edited device to the array.
-    print('todo')
+    pass
 
 
 
@@ -235,20 +162,24 @@ window.geometry('1000x800')  # Define window size
 window.resizable(True, True)
 
 
-# Create label for devices section
-your_devices_label = ctk.CTkLabel(master=window, 
-    text="Your Devices",
-    font=ctk.CTkFont(family="Roboto", size=24),
-    padx=20,
-    pady=20
-    )
-your_devices_label.pack(anchor='w')
+# Create frame for 
+add_device_frame = ctk.CTkFrame(master=window)
+add_device_frame.pack(padx=20, pady=20, fill="x")
 
 # Create frame for user's devices
 your_devices_frame = ctk.CTkFrame(master=window)
 your_devices_frame.pack(padx=20, pady=20, fill="both", expand=True)
 
-
+# Create label for devices section
+your_devices_label = ctk.CTkLabel(master=your_devices_frame, 
+    text="Your Devices",
+    font=ctk.CTkFont(family="Roboto", size=24),
+    padx=20,
+    pady=20
+    )
+# your_devices_label.pack(anchor='w')
+your_devices_label.grid(row=0, column=0, padx=20, pady=20)
+                        
 # # Load the user settings from the database and set the corresponding variables
 # cursor.execute("SELECT * FROM user_devices ORDER BY id DESC LIMIT 1")
 # row = cursor.fetchone()
@@ -259,7 +190,6 @@ def get_user_devices():
     cursor.execute("""
         SELECT DISTINCT device_name
         FROM user_devices
-        WHERE is_saved = 1;
     """)
 
     user_devices = cursor.fetchall()
@@ -269,30 +199,101 @@ def get_user_devices():
 
 
 def get_unconfigured_devices():
-    all_devices = [device.name for device in devices]
-    devices_already_configured = get_user_devices()
-    return sorted([i for i in all_devices if i not in devices_already_configured], reverse=True)
+    all_devices = [device.name for device in logitech_devices]
+    return sorted([i for i in all_devices if i not in get_user_devices()], reverse=True)
 
+
+add_device_label = ctk.CTkLabel(your_devices_frame, text="Add New Device")
+add_device_label.grid(row=1, column=0, padx=20, pady=20)
 
 # Create dropdown menu
 def device_dropdown(new_device):
-    print(new_device)
-
-options = get_unconfigured_devices()
-add_device_dropdown = ctk.CTkOptionMenu(master=your_devices_frame, variable=ctk.StringVar(value='Select Your Device'), values=options, state="normal", width=300, height=35, command=device_dropdown)
-add_device_dropdown.pack(padx=20, pady=10)
+    add_device_button.configure(state="normal")
+    add_device_button.configure(fg_color="#208637")
+    add_device_button.configure(command=lambda: on_button_click(new_device))  # Update button command with selected option
 
 
 
 
+def create_and_update_device_dropdown():
+    options = get_unconfigured_devices()
+    selected_option_var = ctk.StringVar(value='Select Device To Add')
+    add_device_dropdown = ctk.CTkOptionMenu(master=add_device_frame,
+                                            variable=selected_option_var,
+                                            values=options,
+                                            state="normal",
+                                            width=400,
+                                            height=36,
+                                            command=device_dropdown)
+    add_device_dropdown.grid(row=0,
+                            column=0,
+                            padx=20,
+                            pady=20)
+
+create_and_update_device_dropdown()
+
+def on_button_click(selected_option):
+    add_device_button.configure(state="disabled", fg_color=("#545B62"))
+    current_datetime = int(datetime.datetime.now().timestamp())
+    cursor.execute("""
+        INSERT INTO user_devices (
+            device_name,
+            date_added
+        ) VALUES (?, ?)
+    """, (selected_option, current_datetime))
+
+    conn.commit()
+    create_and_update_device_dropdown()
+    display_devices()
+
+add_device_button = ctk.CTkButton(master=add_device_frame,
+                                  height=40,
+                                  width=120,
+                                  state="disabled",
+                                  text="Add Device",
+                                  text_color_disabled=("#9FA5AB"),
+                                  fg_color=("#545B62"),
+                                  hover_color=("#28A745"),
+                                  command=lambda: on_button_click('Select Device To Add'))
+add_device_button.grid(row=0, column=1)
 
 
 
-def slider_event(value):
-    print(value)
+def display_devices():
+    cursor.execute("SELECT device_name, date_added FROM user_devices ORDER BY date_added DESC")
+    user_devices = cursor.fetchall()
 
-slider = ctk.CTkSlider(window, from_=0, to=100, command=slider_event)
-slider.pack()
+    for widget in your_devices_frame.winfo_children():
+        widget.destroy()
+
+
+    for idx, device in enumerate(user_devices):
+        device_name, _ = device
+        label = ctk.CTkLabel(your_devices_frame, text=device_name)
+        label.grid(row=idx, column=0)
+
+        delete_btn = ctk.CTkButton(your_devices_frame, text="Delete", command=lambda name=device_name: delete_device(name))
+        delete_btn.grid(row=idx, column=1)
+
+
+    
+
+def delete_device(device_name):
+    # Function to delete the selected device from the database and the frame
+    cursor.execute("DELETE FROM user_devices WHERE device_name=?", (device_name,))
+    conn.commit()
+
+    # Update the displayed devices
+    display_devices()
+
+
+
+
+
+display_devices()
+
+
+
 
 
 
