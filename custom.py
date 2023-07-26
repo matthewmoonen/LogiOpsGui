@@ -4,7 +4,7 @@ import sqlite3
 # import datetime
 import time
 from CTkMessagebox import CTkMessagebox
-
+import re
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("dark-blue")
@@ -43,74 +43,89 @@ conn.commit()
 
 
 class LogitechDevice:
-    def __init__(self, name, min_dpi, max_dpi, default_dpi, buttons, has_thumbwheel):
+    def __init__(self, name, min_dpi=None, max_dpi=None, default_dpi=None, buttons=None, has_thumbwheel=None):
         self.name = name
+        self.snake = self.generate_snake_name(name)
         self.min_dpi = min_dpi
         self.max_dpi = max_dpi
         self.default_dpi = default_dpi
         self.buttons = buttons
         self.has_thumbwheel = has_thumbwheel
 
+
+    def generate_snake_name(self, name):
+        # Replace spaces with underscores
+        snake_name = name.replace(' ', '_')
+        # Remove non-alphanumeric characters using regex
+        snake_name = re.sub(r'\W+', '', snake_name)
+        # Convert the string to lowercase
+        snake_name = snake_name.lower()
+        return snake_name
+
 # Creating instances of LogitechDevice for each device
 logitech_devices = [
     LogitechDevice("MX Master 3S", 200, 8000, 1000, ["0x0050", "0x0051", "0x0052", "0x0053", "0x0056", "0x00c3", "0x00c4"], True),
     LogitechDevice("MX Master 3 for Mac", 200, 4000, 1000, ["0x0050", "0x0051", "0x0052", "0x0053", "0x0056", "0x00c3", "0x00c4"], True),
     LogitechDevice("MX Master 3", 200, 4000, 1000, ["0x0050", "0x0051", "0x0052", "0x0053", "0x0056", "0x00c3", "0x00c4"], True),
-    # 2S Buttons: SEE HERE: https://michael-verschoof.medium.com/setting-up-mx-master-mouse-on-linux-aae0e2ce3962
     LogitechDevice("MX Master 2S", 200, 4000, 1000, ["0x0050", "0x0051", "0x0052", "0x0053", "0x0056", "0x00c3", "0x00c4"], True),
-
-    # Based on https://github.com/PixlOne/logiops/blob/main/logid.example.cfg
-    # https://github.com/PixlOne/logiops/issues/98
     LogitechDevice("MX Master", 400, 1600, 1000, ["0x0050", "0x0051", "0x0052", "0x0053", "0x0056", "0x00c3", "0x00c4"], True), 
-
-
-
-
-
-    # https://harry.sufehmi.com/archives/2021-05-01-linux-and-logitech-mx-anywhere-3/
     LogitechDevice("MX Anywhere 3", 200, 4000, 1000, ["0x0050", "0x0051", "0x0052", "0x0053", "0x0056", "0x00c4", "0x005d", "0x005b"], False),
-
-    # TODO: MX ANYWHERE DOESN'T HAVE THUMB WHEEL    
-    # https://gist.github.com/trustin/56ee795930b6eb186bc6a43cedd389f0
-    # Based on info found here: https://gist.github.com/trustin/56ee795930b6eb186bc6a43cedd389f0#comments
-    # Note: DPI must increment by 200? https://www.anandtech.com/show/9852/the-logitech-mx-anywhere-2-mouse-portable-performance
     LogitechDevice("MX Anywhere 2", 400, 1600, 1000, ["0x0050", "0x0051", "0x0052", "0x0053", "0x0056", "0x00c4", "0x005d", "0x005b"], False),
-
-    # Increments of 50? https://www.reddit.com/r/MouseReview/comments/7li0wj/logitech_mx_anywhere_2s_dpi_setting/
     LogitechDevice("MX Anywhere 2S", 200, 4000, 1000, ["0x0050", "0x0051", "0x0052", "0x0053", "0x0056", "0x00c4", "0x005d", "0x005b"], False),
-
-
-
-    # no hori scroll
-    # https://github.com/PixlOne/logiops/issues/30
     LogitechDevice("MX Vertical", 400, 4000, 1000, ["0x0050", "0x0051", "0x0052", "0x0053", "0x0056", "0x00fd"], False),
-
-
-    # https://github.com/PixlOne/logiops/issues/65
-    # https://github.com/PixlOne/logiops/issues/214
-    # No hori scroll
     LogitechDevice("MX Ergo", 512, 2048, 1000, ["0x0050", "0x0051", "0x00ed", "0x005b", "0x005d", "0x0056", "0x0052", "0x0053"], False),
-    
-
-    # No hori scroll
     LogitechDevice("MX Ergo M575", 400, 2000, 1000, ["0x0050", "0x0051"], False),
-
-    # Horizontal scroll on vertical scroll wheel
-    # Can be customised similar to 
-    # https://github.com/PixlOne/logiops/issues/153
-    # https://segmentfault.com/a/1190000039985213
-    # https://forums.linuxmint.com/viewtopic.php?t=347020
-    # https://github.com/PixlOne/logiops/issues/66
     LogitechDevice("M720 Triathlon", 200, 3200, 1000, ["0x0050", "0x0051", "0x0052", "0x0053", "0x0056", "0x005b", "0x005d", "0x00d0", "0x00d7"], False),
-
-    # Has left/right scroll wheel option
-    # https://gist.github.com/epassaro/262d435f6449d6b2fff6925e0fad4cd1
     LogitechDevice("M585/M590", 1000, 2000, 1000, ["0x0050", "0x0051", "0x0053", "0x0056", "0x005b", "0x005d", "0x00d7"], False),
-    
-
     LogitechDevice("M500s Corded Mouse", 200, 4000, 1000, ["0x0050", "0x0051"], False),
 ]
 
+
+
+
+"""
+DEVICE NOTES:
+
+    MX Master 3:
+        # https://gist.github.com/johnathanmay/77e8cfefda6744dca39cb1311bdf741a
+        # https://github.com/andre19rodrigues/logiops-MX-Master-3-Cinnamon/blob/main/logid.cfg
+
+    MX Master 2S:
+        # 2S Buttons: SEE HERE: https://michael-verschoof.medium.com/setting-up-mx-master-mouse-on-linux-aae0e2ce3962
+
+    MX Master:
+        # Based on https://github.com/PixlOne/logiops/blob/main/logid.example.cfg
+        # https://github.com/PixlOne/logiops/issues/98
+
+    MX Anywhere 3:    
+        # https://harry.sufehmi.com/archives/2021-05-01-linux-and-logitech-mx-anywhere-3/        
+
+    MX Anywhere 2:
+        # https://gist.github.com/trustin/56ee795930b6eb186bc6a43cedd389f0
+        # Based on info found here: https://gist.github.com/trustin/56ee795930b6eb186bc6a43cedd389f0#comments
+        # Note: DPI must increment by 200? https://www.anandtech.com/show/9852/the-logitech-mx-anywhere-2-mouse-portable-performance
+
+    MX Anywhere 2S:
+        # Increments of 50? https://www.reddit.com/r/MouseReview/comments/7li0wj/logitech_mx_anywhere_2s_dpi_setting/
+
+    MX Vertical:
+        # https://github.com/PixlOne/logiops/issues/30
+        
+
+    MX Ergo:
+        # https://github.com/PixlOne/logiops/issues/65
+        # https://github.com/PixlOne/logiops/issues/214
+
+    M720 Triathlon:
+        # https://github.com/PixlOne/logiops/issues/153
+        # https://segmentfault.com/a/1190000039985213
+        # https://forums.linuxmint.com/viewtopic.php?t=347020
+        # https://github.com/PixlOne/logiops/issues/66
+
+    M585/M590:
+        # https://gist.github.com/epassaro/262d435f6449d6b2fff6925e0fad4cd1
+
+"""
 
 class Control:
     def __init__(self, control_id, function):
@@ -195,6 +210,7 @@ table_data = [
 
 
 def save_as_entry():
+    
     # TODO: create function that saves the currently edited device to the array.
     pass
 
@@ -297,6 +313,7 @@ def on_button_click(selected_option):
     """, (selected_option, current_datetime))
 
     conn.commit()
+
     create_and_update_device_dropdown()
     display_devices()
 
@@ -345,26 +362,66 @@ def display_devices():
             delete_btn = ctk.CTkButton(your_devices_frame, text="Delete Device", command=lambda name=device_name: device_deletion_warning(name))
         delete_btn.grid(row=index, column=2)
         index += 1
-        # print(configs)
 
         for config in configs:
             config_name, config_id = config
-            # print(f"Config name: {config_name}, config ID: {config_id}")
             config_label = ctk.CTkLabel(your_devices_frame, text=config_name)
             config_label.grid(row=index, column=0)
-            # edit_btn = ctk.CTkButton(your_devices_frame, text="Edit Config", command=lambda name=device_name, cfg=config_name: edit_config(name, cfg))
             edit_btn = ctk.CTkButton(your_devices_frame, text="Edit Config", command=lambda id=config_id: edit_config(id))
             edit_btn.grid(row=index, column=1)
             index += 1
 
-        # for (config_name,) in configs:
 
 
 
 
+def edit_config(config_id):
 
-def edit_config(cfg):
-    print(f"cfg: {cfg}")
+    cursor.execute("""
+        SELECT device_name, config_name, smartshift_on_state
+        FROM user_configs
+        WHERE id = ?
+    """, (config_id,))
+    configuration = cursor.fetchone()
+    print(f"Config ID: {config_id}, data requested: {configuration}")
+    
+
+
+
+
+    # device = next((d for d in logitech_devices if d.name == device_name), None)
+
+    # if device is not None:
+    #     # Print the buttons and has_thumbwheel state
+    #     print(f"Device: {device_name}")
+    #     print(f"Buttons: {device.buttons}")
+    #     print(f"Has Thumbwheel: {device.has_thumbwheel}")
+    # else:
+    #     print(f"Device '{device_name}' not found in the logitech_devices list.")
+
+def get_device_table_name(logitech_device):
+        return "device_" + logitech_device.snake
+
+def add_config_tables():
+    for logitech_device in logitech_devices:
+
+        # Create the SQL query to create the table
+        create_table_query = f"""
+        CREATE TABLE IF NOT EXISTS {get_device_table_name(logitech_device)} (
+            id INTEGER
+        """
+
+        # Add columns for each button value in the buttons list
+        for button_value in logitech_device.buttons:
+            # Add a prefix to the button_value to create a valid column name
+            column_name = "button_" + button_value.replace('0x', '').lower()
+            create_table_query += f", {column_name} TEXT"
+
+        # Close the table creation query with a closing parenthesis
+        create_table_query += ")"
+
+        # Execute the final query
+        cursor.execute(create_table_query)
 
 
 def device_deletion_warning(device_name):
@@ -382,10 +439,16 @@ def device_deletion_warning(device_name):
 
 def delete_device(device_name):
     # Function to delete the selected device from the database and the frame
-    cursor.execute("DELETE FROM user_devices WHERE device_name=?", (device_name,))
-    cursor.execute("DELETE FROM user_configs WHERE device_name=?", (device_name,))
-    conn.commit()
+    delete_query = """
+    DELETE FROM user_devices WHERE device_name=?
+    """
+    cursor.execute(delete_query, (device_name,))
+    cursor.execute(delete_query.replace("user_devices", "user_configs"), (device_name,))
+    cursor.execute(f"""
+    DELETE FROM {get_device_table_name(LogitechDevice(device_name))}
+    """)
 
+    conn.commit()
 
     display_devices() # Update the displayed devices
     create_and_update_device_dropdown() # Update device dropdown
@@ -427,6 +490,10 @@ def add_config(device_name):
         new_config_name = f"{device_name} ({new_config_number})"
 
     current_datetime = int(time.time() * 1e9)
+    
+
+
+    device_table_name = get_device_table_name(LogitechDevice(device_name))
 
 
     cursor.execute("""
@@ -437,6 +504,18 @@ def add_config(device_name):
         ) VALUES (?, ?, ?)
     """, (device_name, new_config_name, current_datetime))
     conn.commit()
+    
+    config_id = cursor.lastrowid
+
+        # Insert into the device table using the same config_id
+    cursor.execute(f"""
+        INSERT INTO {device_table_name} (
+            id
+        ) VALUES (?)
+    """, (config_id,))
+    conn.commit()
+
+    
 
     display_devices() # Update the displayed devices
     create_and_update_device_dropdown() # Update device dropdown
@@ -460,6 +539,7 @@ def add_config(device_name):
 
 
 
+add_config_tables()
 
 display_devices()
 
