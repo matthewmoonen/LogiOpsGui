@@ -1,7 +1,8 @@
 import customtkinter as ctk
 # import tkinter as tk
 import sqlite3
-import datetime
+# import datetime
+import time
 from CTkMessagebox import CTkMessagebox
 
 
@@ -35,27 +36,72 @@ conn.commit()
 
 
 class LogitechDevice:
-    def __init__(self, name, min_dpi, max_dpi, default_dpi, buttons):
+    def __init__(self, name, min_dpi, max_dpi, default_dpi, buttons, has_thumbwheel):
         self.name = name
         self.min_dpi = min_dpi
         self.max_dpi = max_dpi
         self.default_dpi = default_dpi
         self.buttons = buttons
+        self.has_thumbwheel = has_thumbwheel
 
 # Creating instances of LogitechDevice for each device
 logitech_devices = [
-    LogitechDevice("MX Master 3", 200, 4000, 1000, ["0x0050", "0x0051", "0x0052", "0x0053", "0x0056", "0x00c3"]),
-    LogitechDevice("MX Master 3 for Mac", 200, 4000, 1000, ["0x0050", "0x0051"]),
-    LogitechDevice("MX Master 2S", 200, 4000, 1000, ["0x0050", "0x0051"]),
-    LogitechDevice("MX Master", 400, 1600, 1000, ["0x0050", "0x0051"]),
-    LogitechDevice("MX Anywhere 2S", 200, 4000, 1000, ["0x0050", "0x0051"]),
-    LogitechDevice("MX Anywhere 3", 200, 4000, 1000, ["0x0050", "0x0051"]),
-    LogitechDevice("MX Vertical", 400, 4000, 1000, ["0x0050", "0x0051"]),
-    LogitechDevice("MX Ergo", 512, 2048, 1000, ["0x0050", "0x0051"]),
-    LogitechDevice("MX Ergo M575", 400, 2000, 1000, ["0x0050", "0x0051"]),
-    LogitechDevice("M720 Triathlon", 200, 3200, 1000, ["0x0050", "0x0051"]),
-    LogitechDevice("M590 Multi-Device Silent", 1000, 2000, 1000, ["0x0050", "0x0051"]),
-    LogitechDevice("M500s Advanced Corded Mouse", 200, 4000, 1000, ["0x0050", "0x0051"]),
+    LogitechDevice("MX Master 3S", 200, 8000, 1000, ["0x0050", "0x0051", "0x0052", "0x0053", "0x0056", "0x00c3", "0x00c4"], True),
+    LogitechDevice("MX Master 3 for Mac", 200, 4000, 1000, ["0x0050", "0x0051", "0x0052", "0x0053", "0x0056", "0x00c3", "0x00c4"], True),
+    LogitechDevice("MX Master 3", 200, 4000, 1000, ["0x0050", "0x0051", "0x0052", "0x0053", "0x0056", "0x00c3", "0x00c4"], True),
+    # 2S Buttons: SEE HERE: https://michael-verschoof.medium.com/setting-up-mx-master-mouse-on-linux-aae0e2ce3962
+    LogitechDevice("MX Master 2S", 200, 4000, 1000, ["0x0050", "0x0051", "0x0052", "0x0053", "0x0056", "0x00c3", "0x00c4"], True),
+
+    # Based on https://github.com/PixlOne/logiops/blob/main/logid.example.cfg
+    # https://github.com/PixlOne/logiops/issues/98
+    LogitechDevice("MX Master", 400, 1600, 1000, ["0x0050", "0x0051", "0x0052", "0x0053", "0x0056", "0x00c3", "0x00c4"], True), 
+
+
+
+
+
+    # https://harry.sufehmi.com/archives/2021-05-01-linux-and-logitech-mx-anywhere-3/
+    LogitechDevice("MX Anywhere 3", 200, 4000, 1000, ["0x0050", "0x0051", "0x0052", "0x0053", "0x0056", "0x00c4", "0x005d", "0x005b"], False),
+
+    # TODO: MX ANYWHERE DOESN'T HAVE THUMB WHEEL    
+    # https://gist.github.com/trustin/56ee795930b6eb186bc6a43cedd389f0
+    # Based on info found here: https://gist.github.com/trustin/56ee795930b6eb186bc6a43cedd389f0#comments
+    # Note: DPI must increment by 200? https://www.anandtech.com/show/9852/the-logitech-mx-anywhere-2-mouse-portable-performance
+    LogitechDevice("MX Anywhere 2", 400, 1600, 1000, ["0x0050", "0x0051", "0x0052", "0x0053", "0x0056", "0x00c4", "0x005d", "0x005b"], False),
+
+    # Increments of 50? https://www.reddit.com/r/MouseReview/comments/7li0wj/logitech_mx_anywhere_2s_dpi_setting/
+    LogitechDevice("MX Anywhere 2S", 200, 4000, 1000, ["0x0050", "0x0051", "0x0052", "0x0053", "0x0056", "0x00c4", "0x005d", "0x005b"], False),
+
+
+
+    # no hori scroll
+    # https://github.com/PixlOne/logiops/issues/30
+    LogitechDevice("MX Vertical", 400, 4000, 1000, ["0x0050", "0x0051", "0x0052", "0x0053", "0x0056", "0x00fd"], False),
+
+
+    # https://github.com/PixlOne/logiops/issues/65
+    # https://github.com/PixlOne/logiops/issues/214
+    # No hori scroll
+    LogitechDevice("MX Ergo", 512, 2048, 1000, ["0x0050", "0x0051", "0x00ed", "0x005b", "0x005d", "0x0056", "0x0052", "0x0053"], False),
+    
+
+    # No hori scroll
+    LogitechDevice("MX Ergo M575", 400, 2000, 1000, ["0x0050", "0x0051"], False),
+
+    # Horizontal scroll on vertical scroll wheel
+    # Can be customised similar to 
+    # https://github.com/PixlOne/logiops/issues/153
+    # https://segmentfault.com/a/1190000039985213
+    # https://forums.linuxmint.com/viewtopic.php?t=347020
+    # https://github.com/PixlOne/logiops/issues/66
+    LogitechDevice("M720 Triathlon", 200, 3200, 1000, ["0x0050", "0x0051", "0x0052", "0x0053", "0x0056", "0x005b", "0x005d", "0x00d0", "0x00d7"], False),
+
+    # Has left/right scroll wheel option
+    # https://gist.github.com/epassaro/262d435f6449d6b2fff6925e0fad4cd1
+    LogitechDevice("M585/M590", 1000, 2000, 1000, ["0x0050", "0x0051", "0x0053", "0x0056", "0x005b", "0x005d", "0x00d7"], False),
+    
+
+    LogitechDevice("M500s Corded Mouse", 200, 4000, 1000, ["0x0050", "0x0051"], False),
 ]
 
 
@@ -115,7 +161,7 @@ table_data = [
     Control('0x00e8', 'Volume Down'),
     Control('0x00e9', 'Volume Up'),
     Control('0x00ea', 'App Menu'),
-    Control('0x00ed', 'Trackball Sensitivity?'),
+    Control('0x00ed', 'Trackball Sensitivity'),
     Control('0x00ef', 'F key'),
     Control('0x00f0', 'F key'),
     Control('0x00f1', 'F key'),
@@ -124,7 +170,7 @@ table_data = [
     Control('0x00f4', 'F key'),
     Control('0x00f5', 'F key'),
     Control('0x00f6', 'F key'),
-    Control('0x00fd', 'Mouse Sensitivity'),
+    Control('0x00fd', 'Sensitivity Switch'),
     Control('0x00fe', 'Home')
 ]
 
@@ -235,7 +281,7 @@ create_and_update_device_dropdown()
 
 def on_button_click(selected_option):
     add_device_button.configure(state="disabled", fg_color=("#545B62"))
-    current_datetime = int(datetime.datetime.now().timestamp())
+    current_datetime = int(time.time() * 1e9)
     cursor.execute("""
         INSERT INTO user_devices (
             device_name,
@@ -261,48 +307,50 @@ add_device_button.grid(row=0, column=1)
 
 
 def display_devices():
+    cursor = conn.cursor()
 
-# Fetch devices and configurations in reverse chronological order
-    cursor.execute("SELECT user_devices.device_name, user_configs.config_name, user_configs.last_modified "
-                    "FROM user_devices "
-                    "LEFT JOIN user_configs "
-                    "ON user_devices.device_name = user_configs.device_name "
-                    "ORDER BY user_devices.date_added DESC")
-
-    devices_with_configs = {}
-    for device_name, config_name, last_modified in cursor.fetchall():
-        if device_name not in devices_with_configs:
-            devices_with_configs[device_name] = []
-        if config_name:
-            devices_with_configs[device_name].append((config_name, last_modified))
+    # Fetch devices from user_devices ordered by date_added descending
+    cursor.execute("SELECT device_name FROM user_devices ORDER BY date_added DESC")
+    devices = cursor.fetchall()
 
     # Clear previous widgets from the frame
     for widget in your_devices_frame.winfo_children():
         widget.destroy()
 
+
+    index = 0
     # Display the devices and their configurations in the frame
-    for idx, (device_name, configs) in enumerate(devices_with_configs.items()):
+    for (device_name,) in devices:
         device_label = ctk.CTkLabel(your_devices_frame, text=device_name)
-        device_label.grid(row=idx * 2, column=0)
-        print(device_name)
-        print(configs)
-        # delete_btn = ctk.CTkButton(your_devices_frame, text="Delete Device", command=lambda name=device_name: delete_device(name))
-        delete_btn = ctk.CTkButton(your_devices_frame, text="Delete Device", command=lambda name=device_name: device_deletion_warning(name))
+        device_label.grid(row=index, column=0)
 
-        delete_btn.grid(row=idx * 2, column=1)
+        # Fetch configurations for the current device ordered by last_modified descending
+        cursor.execute("SELECT config_name FROM user_configs WHERE device_name=? ORDER BY last_modified DESC", (device_name,))
+        configs = cursor.fetchall()
 
-        for config_idx, (config_name, _) in enumerate(configs):
+
+        add_config_btn = ctk.CTkButton(your_devices_frame, text="Add Configuration", command=lambda name=device_name: add_config(name))
+        add_config_btn.grid(row=index, column=1)
+        # Create delete buttons that warn the user if they have a config for that device, simply delete if not
+        if len(configs) == 0:
+            delete_btn = ctk.CTkButton(your_devices_frame, text="Delete Device", command=lambda name=device_name: delete_device(name))
+        else:
+            delete_btn = ctk.CTkButton(your_devices_frame, text="Delete Device", command=lambda name=device_name: device_deletion_warning(name))
+        delete_btn.grid(row=index, column=2)
+        index += 1
+
+        for (config_name,) in configs:
             config_label = ctk.CTkLabel(your_devices_frame, text=config_name)
-            config_label.grid(row=idx * 2 + config_idx + 1, column=0)
+            config_label.grid(row=index, column=0)
 
             edit_btn = ctk.CTkButton(your_devices_frame, text="Edit Config", command=lambda name=device_name, cfg=config_name: edit_config(name, cfg))
-            edit_btn.grid(row=idx * 2 + config_idx + 1, column=1)
+            edit_btn.grid(row=index, column=1)
+            index += 1
 
 
 def device_deletion_warning(device_name):
     msg = CTkMessagebox(title="Delete Device?",
-                        message="Deleting this device will also delete all configurations.\n To suspend the device but keep your configurations, uncheck the uncheck button.",
-                        # icon="warning",
+                        message="Deleting this device will also delete all configurations.",
                         option_1="Delete",
                         option_2="Cancel",
                         width=600,
@@ -316,10 +364,78 @@ def device_deletion_warning(device_name):
 def delete_device(device_name):
     # Function to delete the selected device from the database and the frame
     cursor.execute("DELETE FROM user_devices WHERE device_name=?", (device_name,))
+    cursor.execute("DELETE FROM user_configs WHERE device_name=?", (device_name,))
     conn.commit()
-    
+
+
     display_devices() # Update the displayed devices
     create_and_update_device_dropdown() # Update device dropdown
+
+
+def check_highest_config_number(device_name):
+    cursor.execute("""
+        SELECT config_name
+        FROM user_configs
+        WHERE device_name LIKE ?
+    """, (device_name,))
+    default_named_configs = cursor.fetchall()
+    highest_config_number = 0
+    for i in default_named_configs:
+        potential_new_highest = 0
+        if i[0][:len(device_name)] == device_name:
+            if len(i[0]) == len(device_name):
+                potential_new_highest = 1
+            elif i[0][len(device_name):len(device_name)+2] == " (" and i[0][-1] == ")":
+                try:
+                    potential_new_highest = int(i[0][len(device_name)+2:-1])
+                except ValueError:
+                    continue
+        if potential_new_highest > highest_config_number:
+            highest_config_number = potential_new_highest
+
+    return highest_config_number
+
+
+
+
+def add_config(device_name):
+
+    new_config_number = check_highest_config_number(device_name) + 1
+
+    if new_config_number == 1:
+        new_config_name = device_name
+    else:
+        new_config_name = f"{device_name} ({new_config_number})"
+
+    current_datetime = int(time.time() * 1e9)
+
+
+    cursor.execute("""
+        INSERT INTO user_configs (
+            device_name,
+            config_name,
+            last_modified
+        ) VALUES (?, ?, ?)
+    """, (device_name, new_config_name, current_datetime))
+    
+
+    display_devices() # Update the displayed devices
+    create_and_update_device_dropdown() # Update device dropdown
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
