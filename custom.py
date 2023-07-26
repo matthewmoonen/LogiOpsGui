@@ -28,7 +28,14 @@ cursor.execute("""
         id INTEGER PRIMARY KEY,
         device_name TEXT,
         config_name TEXT,
-        last_modified INTEGER
+        last_modified INTEGER,
+        smartshift_on_state INTEGER,
+        threshold_value INTEGER,
+        torque_value INTEGER,
+        hires_state INTEGER,
+        invert_state INTEGER,
+        target_state INTEGER,
+        dpi INTEGER
     )
 """)
 conn.commit()
@@ -417,7 +424,7 @@ def add_config(device_name):
             last_modified
         ) VALUES (?, ?, ?)
     """, (device_name, new_config_name, current_datetime))
-    
+    conn.commit()
 
     display_devices() # Update the displayed devices
     create_and_update_device_dropdown() # Update device dropdown
