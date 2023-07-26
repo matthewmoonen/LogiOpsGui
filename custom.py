@@ -332,7 +332,7 @@ def display_devices():
         device_label.grid(row=index, column=0)
 
         # Fetch configurations for the current device ordered by last_modified descending
-        cursor.execute("SELECT config_name FROM user_configs WHERE device_name=? ORDER BY last_modified DESC", (device_name,))
+        cursor.execute("SELECT config_name, id FROM user_configs WHERE device_name=? ORDER BY last_modified DESC", (device_name,))
         configs = cursor.fetchall()
 
 
@@ -345,14 +345,26 @@ def display_devices():
             delete_btn = ctk.CTkButton(your_devices_frame, text="Delete Device", command=lambda name=device_name: device_deletion_warning(name))
         delete_btn.grid(row=index, column=2)
         index += 1
+        # print(configs)
 
-        for (config_name,) in configs:
+        for config in configs:
+            config_name, config_id = config
+            # print(f"Config name: {config_name}, config ID: {config_id}")
             config_label = ctk.CTkLabel(your_devices_frame, text=config_name)
             config_label.grid(row=index, column=0)
-
-            edit_btn = ctk.CTkButton(your_devices_frame, text="Edit Config", command=lambda name=device_name, cfg=config_name: edit_config(name, cfg))
+            # edit_btn = ctk.CTkButton(your_devices_frame, text="Edit Config", command=lambda name=device_name, cfg=config_name: edit_config(name, cfg))
+            edit_btn = ctk.CTkButton(your_devices_frame, text="Edit Config", command=lambda id=config_id: edit_config(id))
             edit_btn.grid(row=index, column=1)
             index += 1
+
+        # for (config_name,) in configs:
+
+
+
+
+
+def edit_config(cfg):
+    print(f"cfg: {cfg}")
 
 
 def device_deletion_warning(device_name):
