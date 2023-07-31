@@ -58,6 +58,8 @@ def create_app_tables():
             hiresscroll_hires INTEGER CHECK (hiresscroll_hires IN (0, 1) OR hiresscroll_hires IS NULL),
             hiresscroll_invert INTEGER CHECK (hiresscroll_invert IN (0, 1 OR hiresscroll_invert IS NULL)),
             hiresscroll_target INTEGER CHECK (hiresscroll_target IN (0, 1) OR hiresscroll_target IS NULL),
+            thumbwheel_divert INTEGER CHECK (thumbwheel_divert IN (0, 1) OR thumbwheel_divert IS NULL),
+            thumbwheel_invert INTEGER CHECK (thumbwheel_invert IN (0, 1) OR thumbwheel_invert IS NULL),
         FOREIGN KEY (device_id) REFERENCES Devices(device_id) ON DELETE CASCADE
         );
     """)
@@ -72,9 +74,11 @@ def create_app_tables():
         CREATE TABLE IF NOT EXISTS ScrollActions (
             scroll_action_id INTEGER PRIMARY KEY,
             configuration_id INTEGER NOT NULL,
-            scroll_direction TEXT CHECK (scroll_direction IN ('Up', 'Down', 'Left', 'Right', 'touch', 'tap', 'proxy'))
-            scroll_action TEXT CHECK (scroll_action in ('Default', 'None', 'Keypress', 'Axis', 'ToggleSmartShift', 'CycleDPI', 'ChangeHost'))
-        FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DELETE CASCADE
+            scroll_direction TEXT CHECK (scroll_direction IN ('Up', 'Down', 'Left', 'Right', 'touch', 'tap', 'proxy')),
+            scroll_action TEXT CHECK (scroll_action in ('Default', 'None', 'Keypress', 'Axis', 'ToggleSmartShift', 'CycleDPI', 'ChangeHost')),
+            threshold INTEGER NOT NULL DEFAULT 50,
+            mode TEXT NOT NULL DEFAULT 'OnInterval' CHECK (mode IN ('OnInterval', 'OnThreshold', 'Axis', 'NoPress')),
+        FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DELETE CASCADE,
         UNIQUE (scroll_direction, configuration_id)
         );
     """)
@@ -82,20 +86,27 @@ def create_app_tables():
 
 
 
-    # Insert new rows into appropriate tables for scroll wheel up actions
+    # Insert new rows into appropriate tables for scrollwheel actions when a new configuration is added.
     cursor.execute("""
         CREATE TRIGGER add_scrollwheel_columns
         AFTER INSERT ON Configurations
         FOR EACH ROW
         BEGIN
-            INSERT INTO ScrollActions (configuration_id, scroll_direction, scroll_action) VALUES (NEW.configuration_id, 'Left', 'Default');
-            INSERT INTO ScrollActions (configuration_id, scroll_direction, scroll_action) VALUES (NEW.configuration_id, 'Right', 'Default');
+                   
+            -- Inserts columns for vertical scrollwheel
+            INSERT INTO ScrollActions (configuration_id, scroll_direction, scroll_action) VALUES (NEW.configuration_id, 'Up', 'Default');
+            INSERT INTO ScrollActions (configuration_id, scroll_direction, scroll_action) VALUES (NEW.configuration_id, 'Down', 'Default');
 			
-			DECLARE thumbwheel_proxy_value, thumbwheel_touch_value, thumbwheel_tap_value INTEGER;
-			SELECT thumbwheel_proxy, thumbwheel_touch, thumbwheel_tap INTO thumbwheel_proxy_value, thumbwheel_touch_value, thumbwheel_tap_value
+			DECLARE has_thumbwheel_value, thumbwheel_proxy_value, thumbwheel_touch_value, thumbwheel_tap_value INTEGER;
+			SELECT has_thumbwheel, thumbwheel_proxy, thumbwheel_touch, thumbwheel_tap INTO has_thumbwheel_value, thumbwheel_proxy_value, thumbwheel_touch_value, thumbwheel_tap_value
 			FROM Devices
 			WHERE device_id = NEW.device_id;
             
+            -- Inserts relevant columns for horizontal scrollwheel if present
+            IF has_thumbwheel_value = 1 THEN
+                INSERT INTO ScrollActions (configuration_id, scroll_direction, scroll_action) VALUES (NEW.configuration_id, 'Left', 'Default');
+                INSERT INTO ScrollActions (configuration_id, scroll_direction, scroll_action) VALUES (NEW.configuration_id, 'Right', 'Default');
+
 			IF thumbwheel_proxy_value = 1 THEN
 				INSERT INTO ScrollActions (configuration_id, scroll_direction, scroll_action)
 					VALUES (NEW.configuration_id, 'proxy', 'None');
@@ -115,22 +126,6 @@ def create_app_tables():
 
 
 
-    # Insert new rows into appropriate tables for scroll wheel down actions
-    cursor.execute("""
-        CREATE TRIGGER after_configuration_scroll_down_change
-        AFTER INSERT ON Configurations
-        FOR EACH ROW
-        BEGIN
-            IF NEW.scroll_down_action = 'Keypress' THEN 
-                INSERT INTO Keypresses (configuration_id) VALUES NEW.(configuration_id)
-            ELSEIF NEW.scroll_down_action = 'Axis' THEN 
-                INSERT INTO Axes (configuration_id) VALUES NEW.(configuration_id)
-            ELSEIF NEW.scroll_down_action = 'CycleDPI' THEN 
-                INSERT INTO CycleDPI (configuration_id) VALUES NEW.(configuration_id)
-            ELSEIF NEW.scroll_down_action = 'ChangeHost' THEN 
-                INSERT INTO ChangeHost (configuration_id) VALUES NEW.(configuration_id)
-        END
-                   """)
 
 
     cursor.execute("""
@@ -139,7 +134,7 @@ def create_app_tables():
             button_id INTEGER NOT NULL,
             configuration_id INTEGER NOT NULL,
             action TEXT NOT NULL CHECK (action IN ('Default', 'None', 'Keypress', 'Axis', 'Gestures', 'ToggleSmartShift', 'ToggleHiresScroll', 'CycleDPI', 'ChangeHost')),
-        FOREIGN KEY (button_id) REFERENCES Buttons(button_id) ON DELETE CASCADE
+        FOREIGN KEY (button_id) REFERENCES Buttons(button_id) ON DELETE CASCADE,
         FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DELETE CASCADE
         );
     """)
@@ -195,8 +190,8 @@ def create_app_tables():
             direction TEXT NOT NULL CHECK (direction IN ('Up', 'Down', 'Left', 'Right', 'None')),
             action TEXT NOT NULL CHECK (action IN ('None', 'Axis' 'Keypress', 'ToggleSmartShift', 'ToggleHiresScroll', 'CycleDPI', 'ChangeHost')),
             threshold INTEGER NOT NULL DEFAULT 50,
-            mode TEXT NOT NULL DEFAULT 'OnRelease' (mode IN ('OnRelease', 'OnInterval', 'OnThreshold', 'Axis')),
-        UNIQUE (button_config_id, direction)
+            mode TEXT NOT NULL DEFAULT 'OnRelease' (mode IN ('OnRelease', 'OnInterval', 'OnThreshold', 'Axis', 'NoPress')),
+        UNIQUE (button_config_id, direction),
         FOREIGN KEY (button_config_id) REFERENCES ButtonConfigs(button_config_id) ON DELETE CASCADE
         );
     """)
@@ -208,13 +203,13 @@ def create_app_tables():
         FOR EACH ROW
         BEGIN
             IF NEW.action = 'Keypress' THEN 
-                INSERT INTO Keypresses (button_config_id) VALUES NEW.(button_config_id)
+                INSERT INTO Keypresses (gesture_id) VALUES NEW.(gesture_id)
             ELSEIF NEW.action = 'Axis' THEN 
-                INSERT INTO Axes (button_config_id) VALUES NEW.(button_config_id)
+                INSERT INTO Axes (gesture_id) VALUES NEW.(gesture_id)
             ELSEIF NEW.action = 'CycleDPI' THEN 
-                INSERT INTO CycleDPI (button_config_id) VALUES NEW.(button_config_id)
+                INSERT INTO CycleDPI (gesture_id) VALUES NEW.(gesture_id)
             ELSEIF NEW.action = 'ChangeHost' THEN 
-                INSERT INTO ChangeHost (button_config_id) VALUES NEW.(button_config_id)
+                INSERT INTO ChangeHost (gesture_id) VALUES NEW.(gesture_id)
         END;
             """)
 
@@ -227,15 +222,15 @@ def create_app_tables():
         BEGIN
             CASE OLD.action
                 WHEN 'Keypress' THEN
-                   DELETE FROM Keypresses WHERE button_config_id = OLD.button_config_id;
+                   DELETE FROM Keypresses WHERE gesture_id = OLD.gesture_id;
                 WHEN 'Axis' THEN
-                   DELETE FROM Axes WHERE button_config_id = OLD.button_config_id;
+                   DELETE FROM Axes WHERE gesture_id = OLD.gesture_id;
                 WHEN 'Axis' THEN
-                   DELETE FROM Axes WHERE button_config_id = OLD.button_config_id;
+                   DELETE FROM Axes WHERE gesture_id = OLD.gesture_id;
                 WHEN 'CycleDPI' THEN
-                   DELETE FROM CycleDPI WHERE button_config_id = OLD.button_config_id;
+                   DELETE FROM CycleDPI WHERE gesture_id = OLD.gesture_id;
                 WHEN 'ChangeHost' THEN
-                   DELETE FROM ChangeHost WHERE button_config_id = OLD.button_config_id;
+                   DELETE FROM ChangeHost WHERE gesture_id = OLD.gesture_id;
             END CASE;
         END;
     """)
@@ -245,51 +240,87 @@ def create_app_tables():
 
 
 
+
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS Axes (
             axis_id INTEGER PRIMARY KEY,
-            configuration_id INTEGER NOT NULL,
+            configuration_id INTEGER,
             button_config_id INTEGER,
             gesture_id INTEGER,
+            scroll_action_id INTEGER,
             axis_button TEXT NOT NULL,
-            axix_multiplier REAL
-        FOREIGN KEY (gesture_id) REFERENCES Gestures(gesture_id) ON DELETE CASCADE
-        FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DELETE CASCADE
-        FOREIGN KEY (button_config_id) REFERENCES ButtonConfigs(button_config_id) ON DELETE CASCADE
+            axix_multiplier REAL,
+        FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DELETE CASCADE,
+        FOREIGN KEY (button_config_id) REFERENCES ButtonConfigs(button_config_id) ON DELETE CASCADE,
+        FOREIGN KEY (gesture_id) REFERENCES Gestures(gesture_id) ON DELETE CASCADE,
+        FOREIGN KEY (scroll_action_id) REFERENCES ScrollActions(scroll_action_id) ON DELETE CASCADE
         );
     """)
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
 
 
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS cycle_dpi (
-        cycle_dpi_id INTEGER PRIMARY KEY,
-        user_button_customisation_id INTEGER NOT NULL,
-        gesture_id INTEGER,
-        dpi_array TEXT NOT NULL,
-        sensor INTEGER,
-        FOREIGN KEY (user_button_customisation_id) REFERENCES User_Button_Customisations(button_id)
-        FOREIGN KEY (gesture_id) REFERENCES Gestures(gesture_id)
+        CREATE TABLE IF NOT EXISTS CycleDPI
+            cycle_dpi_id INTEGER PRIMARY KEY,
+	        configuration_id INTEGER,
+        	button_config_id INTEGER,
+        	scroll_action_id INTEGER,                           
+            gesture_id INTEGER,
+            dpi_array TEXT NOT NULL,
+            sensor INTEGER,
+        FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DELETE CASCADE,
+	    FOREIGN KEY (button_config_id) REFERENCES ButtonConfigs(button_config_id) ON DELETE CASCADE,
+	    FOREIGN KEY (gesture_id) REFERENCES Gestures(gesture_id) ON DELETE CASCADE,
+	    FOREIGN KEY (scroll_action_id) REFERENCES ScrollActions(scroll_action_id) ON DELETE CASCADE
         );
+    """)
+
+	
+
+    cursor.execute("""
+        CREATE TABLE Keypresses (
+            keypress_id INTEGER PRIMARY KEY,
+            configuration_id INTEGER,
+            button_config_id INTEGER,
+            gesture_id INTEGER,
+            scroll_action_id INTEGER,
+            keypresses TEXT NOT NULL,
+        
+        FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DELETE CASCADE,
+        FOREIGN KEY (button_config_id) REFERENCES ButtonConfigs(button_config_id) ON DELETE CASCADE,
+        FOREIGN KEY (gesture_id) REFERENCES Gestures(gesture_id) ON DELETE CASCADE,
+        FOREIGN KEY (scroll_action_id) REFERENCES ScrollActions(scroll_action_id) ON DELETE CASCADE
+        );
+    """)
+
+                
+
+    cursor.execute("""
+    CREATE TABLE ChangeHost (
+        host_id INTEGER PRIMARY KEY,
+        configuration_id INTEGER,
+        button_config_id INTEGER,
+        gesture_id INTEGER,
+        scroll_action_id INTEGER,
+        host_change TEXT NOT NULL DEFAULT 'next' CHECK (host_change IN ('prev', 'next', '1', '2', '3')),
+        
+        FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DELETE CASCADE,
+        FOREIGN KEY (button_config_id) REFERENCES ButtonConfigs(button_config_id) ON DELETE CASCADE,
+        FOREIGN KEY (gesture_id) REFERENCES Gestures(gesture_id) ON DELETE CASCADE,
+        FOREIGN KEY (scroll_action_id) REFERENCES ScrollActions(scroll_action_id) ON DELETE CASCADE
+    );
+         
     """)
 
 
 
-                
+
+
+
+
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS Thumbwheel (
