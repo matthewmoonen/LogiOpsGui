@@ -3,8 +3,9 @@
 
 
 class Device:
-    def __init__(self, name, config_file_device_name, product_ids, min_dpi, max_dpi, default_dpi, buttons, thumbwheel, smartshift_support, hires_scroll_support, number_of_sensors):
-        self.name = name
+    def __init__(self, device_id, device_name, config_file_device_name, product_ids, min_dpi, max_dpi, default_dpi, buttons, thumbwheel, smartshift_support, hires_scroll_support, number_of_sensors):
+        self.device_id = device_id
+        self.device_name = device_name
         self.config_file_device_name = config_file_device_name
         self.product_ids = product_ids
         self.min_dpi = min_dpi
@@ -19,8 +20,8 @@ class Device:
 
 
 class DeviceButton:
-    def __init__(self, button_id, reprogrammable, fn_key, mouse_key, gesture_support, accessible):
-        self.button_id = button_id
+    def __init__(self, button_cid, reprogrammable, fn_key, mouse_key, gesture_support, accessible):
+        self.button_cid = button_cid
         self.reprogrammable = reprogrammable
         self.fn_key = fn_key
         self.mouse_key = mouse_key
@@ -36,11 +37,15 @@ class DeviceThumbwheel:
         self.timestamp = timestamp
 
 
+
+
+
 # Creating instances of LogitechDevice for each device
 logitech_devices = [
 
 
     Device(
+        1,
         "MX Master 3S for Mac",
         "MX Master 3S for Mac",
         ["910-006574"],
@@ -64,6 +69,7 @@ logitech_devices = [
 
 
     Device(
+        2,
         "MX Master 3S", #Device name
         "MX Master 3S", #Logiops config name
             [ #List of product IDs
@@ -92,6 +98,7 @@ logitech_devices = [
 
     
     Device(
+        3,
         "MX Master 3 for Mac",
         "MX Master 3 for Mac",
             [
@@ -119,6 +126,7 @@ logitech_devices = [
 
 
     Device(
+        4,
         "MX Master 3",
         "Wireless Mouse MX Master 3",
             [
@@ -145,6 +153,7 @@ logitech_devices = [
         ),
 
     Device(
+        5,
         "MX Master 2S",
         "Wireless Mouse MX Master 2S",
             [
@@ -171,6 +180,7 @@ logitech_devices = [
         ),    
 
     Device(
+        6,
         "MX Master",
         "Wireless Mouse MX Master",
             [
@@ -197,6 +207,7 @@ logitech_devices = [
         ),    
 
     Device(
+        7,
         "MX Anywhere 3S",
         "MX Anywhere 3S",
             [
@@ -226,6 +237,7 @@ logitech_devices = [
         ),
 
     Device(
+        8,
         "MX Anywhere 3",
         "MX Anywhere 3",
             [
@@ -253,6 +265,7 @@ logitech_devices = [
         ),
     
     Device(
+        9,
         "MX Anywhere 2", 
         "Wireless Mouse MX Anywhere 2",   
             [
@@ -280,6 +293,7 @@ logitech_devices = [
         ),
     
     Device(
+        10,
         "MX Anywhere 2S",
         "Wireless Mobile Mouse MX Anywhere 2S",
             [
@@ -307,6 +321,7 @@ logitech_devices = [
         ),
     
     Device(
+        11,
         "MX Vertical", 
         "MX Vertical Advanced Ergonomic Mouse",
             [
@@ -331,6 +346,7 @@ logitech_devices = [
         ),
     
     Device(
+        12,
         "MX Ergo", 
         "MX Ergo Multi-Device Trackball",
         [
@@ -358,6 +374,7 @@ logitech_devices = [
         ),
     
     Device(
+        13,
         "MX Ergo M575",
         "ERGO M575 Trackball",
 
@@ -381,6 +398,7 @@ logitech_devices = [
         ),
     
     Device(
+        14,
         "M720 Triathlon", 
         "M720 Triathlon Multi-Device Mouse",
         [
@@ -408,6 +426,7 @@ logitech_devices = [
         ),
     
     Device(
+        15,
         "M585/M590", 
         "M585/M590 Multi-Device Mouse",
         [
@@ -436,25 +455,77 @@ logitech_devices = [
 ]
 
 
+class Controls:
+    def __init__(self, control_id, function):
+        self.control_id = control_id
+        self.function = function
+
+cid_button_functions = [
+    Controls('0x0050', 'Left Mouse Button'),
+    Controls('0x0051', 'Right Mouse Button'),
+    Controls('0x0052', 'Middle Mouse Button'),
+    Controls('0x0053', 'Back Button'),
+    Controls('0x0054', 'Back Button'),
+    Controls('0x0056', 'Forward Button'),
+    Controls('0x0057', 'Forward Button'),
+    Controls('0x005b', 'Left Scroll'),
+    Controls('0x005d', 'Right Scroll'),
+    Controls('0x006e', 'Show Desktop'),
+    Controls('0x006f', 'Lock Screen'),
+    Controls('0x0090', 'Minimize'),
+    Controls('0x0091', 'Maximize'),
+    Controls('0x0095', 'Switch Screens'),
+    Controls('0x00ba', 'Switch Apps'),
+    Controls('0x00bb', 'Home'),
+    Controls('0x00bc', 'Menu'),
+    Controls('0x00bd', 'Back Button'),
+    Controls('0x00be', 'Generic'),
+    Controls('0x00bf', 'Print Screen'),
+    Controls('0x00c0', 'Generic'),
+    Controls('0x00c1', 'Generic'),
+    Controls('0x00c2', 'Lock Screen'),
+    Controls('0x00c3', 'Gesture Button'),
+    Controls('0x00c4', 'Toggle SmartShift'),
+    Controls('0x00c7', 'Decrease Brightness'),
+    Controls('0x00c8', 'Increase Brightness'),
+    Controls('0x00cc', 'Switch Apps'),
+    Controls('0x00ce', 'Back Button'),
+    Controls('0x00cf', 'Forward Button'),
+    Controls('0x00d0', 'Switch Apps'),
+    Controls('0x00d1', 'Generic'),
+    Controls('0x00d2', 'Generic'),
+    Controls('0x00d3', 'Generic'),
+    Controls('0x00d4', 'Search'),
+    Controls('0x00d5', 'Home'),
+    Controls('0x00d6', 'Menu'),
+    Controls('0x00d7', 'Switch Receivers'),
+    Controls('0x00dd', 'Select Language'),
+    Controls('0x00e0', 'Task View'),
+    Controls('0x00e1', 'Action Center'),
+    Controls('0x00e2', 'Decrease Backlight'),
+    Controls('0x00e3', 'Increase Backlight'),
+    Controls('0x00e4', 'Previous Track'),
+    Controls('0x00e5', 'Play/Pause'),
+    Controls('0x00e6', 'Next Track'),
+    Controls('0x00e7', 'Mute'),
+    Controls('0x00e8', 'Volume Down'),
+    Controls('0x00e9', 'Volume Up'),
+    Controls('0x00ea', 'App Menu'),
+    Controls('0x00ed', 'Trackball Sensitivity'),
+    Controls('0x00ef', 'F key'),
+    Controls('0x00f0', 'F key'),
+    Controls('0x00f1', 'F key'),
+    Controls('0x00f2', 'F key'),
+    Controls('0x00f3', 'F key'),
+    Controls('0x00f4', 'F key'),
+    Controls('0x00f5', 'F key'),
+    Controls('0x00f6', 'F key'),
+    Controls('0x00fd', 'Sensitivity Switch'),
+    Controls('0x00fe', 'Home')
+]
 
 
-# def print_device_info(device):
-#     print(f"Device Name: {device.name}")
-#     print(f"Config File Device Name: {device.config_file_device_name}")
-#     print(f"Config File Product IDs: {device.product_ids}")
-#     print(f"Min DPI: {device.min_dpi}")
-#     print(f"Max DPI: {device.max_dpi}")
-#     print(f"Default DPI: {device.default_dpi}")
-#     print(f"Has Thumbwheel: {device.has_thumbwheel}")
-#     print("Buttons:")
-#     for button in device.buttons:
-#         print(f"  Button ID: {button.button_id}")
-#         print(f"  Reprogrammable: {button.reprogrammable}")
-#         print(f"  Function Key: {button.fn_key}")
-#         print(f"  Mouse Key: {button.mouse_key}")
-#         print(f"  Gesture Support: {button.gesture_support}")
-#         print(f"  Accessible: {button.accessible}")
-#         print()
-
-# for device in logitech_devices:
-#     print_device_info(device)
+def get_button_function(control_id):
+    for button in cid_button_functions:
+        if button.control_id == control_id:
+            return button.function
