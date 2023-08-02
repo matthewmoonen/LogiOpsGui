@@ -1,4 +1,5 @@
-from LogitechDeviceData import Device, DeviceButton, DeviceThumbwheel, logitech_devices
+from LogitechDeviceData import logitech_devices, get_button_function
+
 
 
 
@@ -12,6 +13,7 @@ def add_devices(cursor):
 
         cursor.execute("""
                         INSERT INTO Devices (
+                            device_id,
                             device_name,
                             is_user_device,
                             config_file_device_name,
@@ -29,11 +31,50 @@ def add_devices(cursor):
                             number_of_sensors
 
 
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """, (device.name, 0, device.config_file_device_name, str(device.product_ids), device.min_dpi, device.max_dpi, device.default_dpi,
-                          device.thumbwheel.has_thumbwheel, device.thumbwheel.tap, device.thumbwheel.proxy, device.thumbwheel.touch, device.thumbwheel.timestamp,
-                          device.smartshift_support, device.hires_scroll_support, device.number_of_sensors))
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                        
+                        device.device_id,
+                        device.device_name,
+                        0,
+                        device.config_file_device_name,
+                        str(device.product_ids),
+                        device.min_dpi,
+                        device.max_dpi,
+                        device.default_dpi,
+                        device.thumbwheel.has_thumbwheel,
+                        device.thumbwheel.tap,
+                        device.thumbwheel.proxy, 
+                        device.thumbwheel.touch, 
+                        device.thumbwheel.timestamp,
+                        device.smartshift_support, 
+                        device.hires_scroll_support, 
+                        device.number_of_sensors))
+        
+        for button in device.buttons:
 
+            cursor.execute("""
+                            INSERT INTO Buttons (
+                                device_id,
+                                button_cid,
+                                button_name,
+                                reprog,
+                                fn_key,
+                                mouse_key,
+                                gesture_support,
+                                accessible
+                            )
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                            """, (
+                            
+                            device.device_id,
+                            button.button_cid,
+                            get_button_function(button.button_cid),
+                            button.reprogrammable,
+                            button.fn_key,
+                            button.mouse_key,
+                            button.gesture_support,
+                            button.accessible))
 
 create_tables = [
 
@@ -61,14 +102,14 @@ create_tables = [
 
 
     """
-    CREATE TABLE IF NOT EXISTS UserDevices (
-        user_device_id INTEGER PRIMARY KEY,
-        device_id INTEGER NOT NULL,
-        date_added INTEGER NOT NULL,
-        is_activated INTEGER NOT NULL DEFAULT 1,
-    FOREIGN KEY (device_id) REFERENCES Devices(device_id)
-    );
-""",
+        CREATE TABLE IF NOT EXISTS UserDevices (
+            user_device_id INTEGER PRIMARY KEY,
+            device_id INTEGER NOT NULL,
+            date_added INTEGER NOT NULL,
+            is_activated INTEGER NOT NULL DEFAULT 1,
+        FOREIGN KEY (device_id) REFERENCES Devices(device_id)
+        );
+    """,
 
 
 
@@ -234,6 +275,37 @@ create_db_triggers = [
 
 
 """
+CREATE TRIGGER after_userdevices_insert
+AFTER INSERT ON UserDevices
+FOR EACH ROW
+BEGIN
+    UPDATE Devices
+    SET is_user_device = 1
+    WHERE device_id = NEW.device_id;
+END;
+
+
+""",
+
+
+
+"""
+CREATE TRIGGER after_userdevices_delete
+AFTER DELETE ON UserDevices
+FOR EACH ROW
+BEGIN
+    UPDATE Devices
+    SET is_user_device = 0
+    WHERE device_id = OLD.device_id;
+END;
+
+
+""",
+
+
+
+
+"""
 
 CREATE TRIGGER add_scroll_columns_vertical
     AFTER INSERT ON Configurations
@@ -288,6 +360,7 @@ CREATE TRIGGER add_thumbwheel_column_proxy
         INSERT INTO ScrollActions (configuration_id, scroll_direction, scroll_action) VALUES (NEW.configuration_id, 'proxy', 'None');
     END;
 """,
+
 
 
 
