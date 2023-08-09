@@ -1,5 +1,8 @@
 import customtkinter as ctk
 from CTkListbox import *
+import create_app_data
+import execute_db_queries
+
 
 class MainPage(ctk.CTkFrame):
     def __init__(self, master, switch_to_edit_page):
@@ -7,7 +10,15 @@ class MainPage(ctk.CTkFrame):
         self.master = master
 
         top_frame = ctk.CTkFrame(master=self)
-        top_frame.pack(padx=0, pady=0, fill="x")
+        top_frame.pack(padx=20, pady=10, fill="x")
+
+        user_device_frame = ctk.CTkFrame(master=self)
+        user_device_frame.pack(
+            padx=10,
+            pady=(100, 0),
+            fill="both"
+            )
+
 
 
         # Create label for devices section
@@ -28,12 +39,13 @@ class MainPage(ctk.CTkFrame):
                                         fg_color=("#545B62"),
                                         hover_color=("#28A745"))
                                         # command=lambda: add_button_clicked('Select Device To Add'))
-        button_for_adding_devices.grid(row=0, column=3)
+        button_for_adding_devices.grid(padx=(50,0), row=0, column=3)
 
 
         def create_and_update_device_dropdown():
 
-            options = ['one', 'two', 'three', 'four']
+            options = execute_db_queries.get_unconfigured_devices()
+
             # options = execute_db_queries.get_unconfigured_devices()
             # print(options)
             
@@ -64,21 +76,49 @@ class MainPage(ctk.CTkFrame):
             button_for_adding_devices.configure(state="disabled", fg_color=("#545B62"))
             # current_datetime = int(time.time() * 1e9)
             switch_to_edit_page()
+            create_and_update_device_dropdown()
             print(f"logic for adding {selected_option} to the DB goes here")
 
         create_and_update_device_dropdown()
 
 
 
+        
 
-        # self.label = ctk.CTkLabel(self, text="Page 1: List of Entries")
-        # self.label.pack(pady=10)
+        test1 = ctk.CTkLabel(master=user_device_frame, 
+        text="Your Devices",
+        # font=ctk.CTkFont(family="Roboto", size=24),
+        # padx=20,
+        # pady=20
+        )
+        test1.grid(row=0, column=0, padx=20, pady=20)
 
-        # self.entries_listbox = CTkListbox(self)
-        # self.entries_listbox.pack(pady=5)
+        # test1 = ctk.CTkLabel(master=user_device_frame, 
+        # text="Your Devices",
+        # font=ctk.CTkFont(family="Roboto", size=94),
+        # padx=20,
+        # pady=20
+        # )
+        # test1.grid(row=1, column=0, padx=20, pady=20)
 
-        self.new_entry_button = ctk.CTkButton(self, text="Add New Entry", command=switch_to_edit_page)
-        self.new_entry_button.pack(pady=5)
+
+        # test1 = ctk.CTkLabel(master=user_device_frame, 
+        # text="Your Devices",
+        # font=ctk.CTkFont(family="Roboto", size=94),
+        # padx=20,
+        # pady=20
+        # )
+        # test1.grid(row=2, column=0, padx=20, pady=20)
+
+
+        # test1 = ctk.CTkLabel(master=user_device_frame, 
+        # text="Your Devices",
+        # font=ctk.CTkFont(family="Roboto", size=94),
+        # padx=20,
+        # pady=20
+        # )
+        # test1.grid(row=3, column=0, padx=20, pady=20)
+
 
 class EditPage(ctk.CTkFrame):
     def __init__(self, master, switch_to_main_page):
@@ -96,7 +136,9 @@ def setup_gui(root, switch_to_main_page, switch_to_edit_page):
     ctk.set_default_color_theme("dark-blue")
 
     root.geometry("1000x800")
-    root.resizable(True, True)
+    # root.resizable(True, True)
+    root.resizable(False, False)
+
 
     main_page = MainPage(root, switch_to_edit_page)
     edit_page = EditPage(root, switch_to_main_page)
@@ -105,6 +147,14 @@ def setup_gui(root, switch_to_main_page, switch_to_edit_page):
 
 def main():
     root = ctk.CTk()
+
+    # Configure logging for the application
+    create_app_data.configure_logging()
+
+    # Connect to the SQL database and build the required tables
+    create_app_data.initialise_database()
+
+
 
     def show_main_page():
         main_page.pack(padx=0, pady=0, fill="both")
