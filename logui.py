@@ -5,7 +5,8 @@ from CTkListbox import *
 import create_app_data
 import execute_db_queries
 import LogitechDeviceData
-
+# from spinbox import IntSpinbox
+from typing import Union, Callable
 
 
 # primary_colour = "#1F538D"
@@ -13,15 +14,128 @@ import LogitechDeviceData
 primary_colour = "#3A9EE9"
 secondary_colour = "#363636"
 
+
+
+
+
+
+
+
+
+class IntSpinbox(ctk.CTkFrame):
+    def __init__(self, *args,
+                 width: int = 100,
+                 height: int = 32,
+                 step_size: int = 1,
+                 min_value: int = None,
+                 max_value: int = None,
+                 command: Callable = None,
+                 **kwargs):
+        super().__init__(*args, width=width, height=height, **kwargs)
+
+        self.step_size = step_size
+        self.min_value = min_value
+        self.max_value = max_value
+        self.command = command
+        self.enabled = True  # TODO: Initial state is enabled
+
+        self.configure(fg_color=("gray78", "gray28"))  # set frame color
+
+        self.grid_columnconfigure((0, 2), weight=0)  # buttons don't expand
+        self.grid_columnconfigure(1, weight=1)  # entry expands
+
+        self.subtract_button = ctk.CTkButton(self, text="-", width=height-2, height=height-2,
+                                             command=self.subtract_button_callback)
+        self.subtract_button.grid(row=0, column=0, padx=(3, 0), pady=3)
+
+        vcmd = self.register(self.validate)
+        self.entry = ctk.CTkEntry(self, validate="key", validatecommand=(vcmd, '%P'),
+                                  width=width-(3.2*height), height=height-4, border_width=0)
+        self.entry.grid(row=0, column=1, columnspan=1, padx=3, pady=3, sticky="ew")
+        
+        self.entry.bind("<FocusOut>", self.on_focus_out)  # Bind the FocusOut event
+
+        self.add_button = ctk.CTkButton(self, text="+", width=height-2.5, height=height-2.5,
+                                        command=self.add_button_callback)
+        self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
+
+        self.entry.insert(0, "0")
+
+    def validate(self, new_text):
+        return new_text.isdigit() or new_text == ""
+
+    def on_focus_out(self, event):
+        try:
+            value = int(self.entry.get())
+            if self.min_value is not None and value < self.min_value:
+                value = self.min_value
+            if self.max_value is not None and value > self.max_value:
+                value = self.max_value
+            self.entry.delete(0, "end")
+            self.entry.insert(0, value)
+        except ValueError:
+            pass
+
+    def add_button_callback(self):
+        if self.command is not None:
+            self.command()
+        try:
+            value = int(self.entry.get()) + self.step_size
+            if self.max_value is not None and value > self.max_value:
+                value = self.max_value
+            self.entry.delete(0, "end")
+            self.entry.insert(0, value)
+        except ValueError:
+            return
+
+    def subtract_button_callback(self):
+        if self.command is not None:
+            self.command()
+        try:
+            value = int(self.entry.get()) - self.step_size
+            if self.min_value is not None and value < self.min_value:
+                value = self.min_value
+            self.entry.delete(0, "end")
+            self.entry.insert(0, value)
+        except ValueError:
+            return
+
+    def get(self) -> int:
+        try:
+            return int(self.entry.get())
+        except ValueError:
+            return 0
+
+    def set(self, value: int):
+        if self.min_value is not None and value < self.min_value:
+            value = self.min_value
+        if self.max_value is not None and value > self.max_value:
+            value = self.max_value
+        self.entry.delete(0, "end")
+        self.entry.insert(0, str(value))
+
+    def toggle_enable(self, new_enabled_state):
+        self.enabled = new_enabled_state
+        print(self.enabled)
+        state = "normal" if self.enabled else "disabled"
+        self.entry.configure(state=state)
+        self.add_button.configure(state=state)
+        self.subtract_button.configure(state=state)
+
+
+
+
 class MainPage(ctk.CTkFrame):
-    def __init__(self, master):
+    def __init__(self, 
+                 master):
         super().__init__(master)
 
         self.edit_page = None
         self.selected_device = None
 
         def create_title_frame():
-            title_frame = ctk.CTkFrame(master=self, fg_color="transparent")
+            title_frame = ctk.CTkFrame(master=self,
+                                       fg_color="transparent")
             title_frame.pack(
                                 pady=(30,0),
                                 fill="x"
@@ -42,7 +156,8 @@ class MainPage(ctk.CTkFrame):
 
         create_title_frame()
 
-        top_frame = ctk.CTkFrame(master=self, fg_color="transparent")
+        top_frame = ctk.CTkFrame(master=self,
+                                fg_color="transparent")
         top_frame.pack(
                         padx=(0, 10), 
                         pady=(0, 0),
@@ -183,9 +298,12 @@ class EditPage(ctk.CTkFrame):
 
     
 
+        
 
 
-        self.device_name_label = ctk.CTkLabel(master=self,
+        
+
+        device_name_label = ctk.CTkLabel(master=self,
                                                 text=device_attributes._device_name,
                                                 font=ctk.CTkFont(
                                                 family="Roboto",
@@ -197,21 +315,25 @@ class EditPage(ctk.CTkFrame):
 
                                     # anchor='s'
                                               )
-        self.device_name_label.pack()
+        device_name_label.pack()
 
 
 
+        scroll_features_frame = ctk.CTkFrame(master=self,
+                                       fg_color="transparent")
+        scroll_features_frame.pack(
+                                pady=(30,0),
+                                fill="x"
+            )
 
-
-
-        
-        
-
-
+        if device_thumbwheel is not None:
+            scrollwheel_frame_text = "Scrollwheels"
+        else:
+            scrollwheel_frame_text = "Scrollwheel"
 
         self.general_device_label = ctk.CTkLabel(
-                                            master=self,
-                                            text=("Device Settings:"),
+                                            master=scroll_features_frame,
+                                            text=scrollwheel_frame_text,
                                             font=ctk.CTkFont(
                                                     family="Roboto",
                                                     weight="bold",
@@ -221,12 +343,15 @@ class EditPage(ctk.CTkFrame):
                                     # pady=30,
                                     # anchor='s'
                                             )
-        self.general_device_label.pack()
+        self.general_device_label.grid(row=0, column=0)
+
 
 
         if device_attributes._smartshift_support == True:
+
+
             self.smartshift_label = ctk.CTkLabel(
-                                            master=self,
+                                            master=scroll_features_frame,
                                             text=("SmartShift On"),
                                             font=ctk.CTkFont(
                                                     family="Roboto",
@@ -237,40 +362,69 @@ class EditPage(ctk.CTkFrame):
                                     # pady=30,
                                     # anchor='s'
                                             )
-            self.smartshift_label.pack()
+            self.smartshift_label.grid(row=1, column=0)
 
 
-            # Create threshold input
-            threshold_value = tk.StringVar(value="30")  # Default value for threshold
-            threshold_label = ttk.Label(master=self, text="Threshold")
-            threshold_label.pack()
-            # threshold_label.grid(row=0, column=1, padx=5, pady=5)
-            threshold_spinbox = ttk.Spinbox(master=self, from_=0, to=255, textvariable=threshold_value, validate="key")
-            # threshold_spinbox.grid(row=0, column=2, padx=5, pady=5)
-            threshold_spinbox.pack()
-
-
+            
 
             def checkbox_event():
-                print("checkbox toggled, current value:", check_var.get())
+                # TODO: update variable for smartshift 
+                if smartshift_enabled_var.get() == "on":
+                    is_smartshift_on = True
+                else:
+                    is_smartshift_on = False                
+                print(is_smartshift_on)
+                smartshift_threshold.toggle_enable(is_smartshift_on)
+                smartshift_torque.toggle_enable(is_smartshift_on)
 
-            check_var = ctk.StringVar(value="on")
-            checkbox = ctk.CTkCheckBox(self, text="CTkCheckBox", command=checkbox_event,
-                                     variable=check_var, onvalue="on", offvalue="off",
-                                     checkbox_height=30,
-                                     checkbox_width=30,
-                                     corner_radius=0,
-                                     border_width=3,
+            
+            smartshift_enabled_var = ctk.StringVar(value="on")
+            smartshift_checkbox = ctk.CTkCheckBox(master=scroll_features_frame,
+                                                    text="",
+                                                    command=checkbox_event,
+                                                    variable=smartshift_enabled_var,
+                                                    onvalue="on",
+                                                    offvalue="off",
+                                                    checkbox_height=30,
+                                                    checkbox_width=30,
+                                                    corner_radius=0,
+                                                    border_width=3,
                                      )
-            checkbox.pack()
-            # def segmented_button_callback(value):
-            #     print("segmented button clicked:", value)
+            smartshift_checkbox.grid(row=1, column=1)
 
-            # segemented_button = ctk.CTkSegmentedButton(self, values=["Value 1", "Value 2", "Value 3"],
-                                                       
-            #                                                     command=segmented_button_callback)
-            # segemented_button.set("Value 1")
-            # segemented_button.pack()
+
+
+
+
+            smartshift_threshold = IntSpinbox(self,
+                                    width=150,
+                                    step_size=1,
+                                    min_value=1,
+                                    max_value=255)
+            
+            smartshift_threshold.set(42) #TODO: Update
+            smartshift_threshold.pack(padx=20, pady=20)
+
+            # smartshift_threshold_spinbox = ctk.CTkButton(self, text="Toggle Enable/Disable", command=smartshift_threshold.toggle_enable)
+            # smartshift_threshold_spinbox.pack()
+
+            smartshift_torque = IntSpinbox(self,
+                                    width=150,
+                                    step_size=1,
+                                    min_value=1,
+                                    max_value=255)
+            
+            smartshift_torque.set(42) #TODO: Update
+            smartshift_torque.pack(padx=20, pady=20)
+
+
+
+
+
+
+            
+
+
 
 
 
