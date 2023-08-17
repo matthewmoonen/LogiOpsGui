@@ -8,18 +8,17 @@ import LogitechDeviceData
 
 
 class MainPage(ctk.CTkFrame):
-    def __init__(self, master, switch_to_edit_page, create_edit_page
+    def __init__(self, master, switch_to_edit_page, edit_page_instance
                 #  device_name
                  ):
         super().__init__(master)
-        self.master = master
-
+        # self.master = master
+        self.edit_page_instance = edit_page_instance  # Store the EditPage instance
 
         title_frame = ctk.CTkFrame(master=self, fg_color="transparent")
         title_frame.pack(
                             pady=(30,0),
                             fill="x"
-
         )
 
         app_title = ctk.CTkLabel(
@@ -45,24 +44,6 @@ class MainPage(ctk.CTkFrame):
         )
 
         top_frame.grid_columnconfigure((0), weight=1)
-
-
-
-        # your_devices = ctk.CTkLabel(master=top_frame, 
-        #                                   text="Your Devices",
-        #                                 # text="",
-        #                                   font=ctk.CTkFont(family="Roboto", size=20),
-        #                                 #   padx=20,
-        #                                 #   pady=20,
-        #                                 anchor='s'
-        #                                   )
-        # your_devices.grid(row=0,
-        #               column=0,
-        #               padx=20,
-        #               pady=20,
-        #               sticky="w"
-        #               )
-
 
 
 
@@ -106,9 +87,10 @@ class MainPage(ctk.CTkFrame):
         def device_dropdown(new_device):
             button_for_adding_devices.configure(state="normal")
             button_for_adding_devices.configure(fg_color="#208637")
+            # create_edit_page(self.master, switch_to_edit_page, selected_device_name=new_device)
+            self.edit_page_instance.device_name=new_device
             button_for_adding_devices.configure(command=lambda: add_button_clicked(new_device))  # Update button command with selected option
             # create_edit_page(new_device)
-            create_edit_page(self.master, switch_to_edit_page, new_device)
             
 
 
@@ -116,8 +98,9 @@ class MainPage(ctk.CTkFrame):
             button_for_adding_devices.configure(state="disabled", fg_color=("#545B62"))
             # current_datetime = int(time.time() * 1e9)
             # device_name(selected_option)
-            switch_to_edit_page(selected_option)
+            switch_to_edit_page()
             create_and_update_device_dropdown()
+            
             
             
             # print(f"logic for adding {selected_option} to the DB goes here")
@@ -136,14 +119,14 @@ class MainPage(ctk.CTkFrame):
             )
         
 
-
+    
 
         # test1.grid(row=0, column=0, padx=20, pady=20)
 
 
 
 class EditPage(ctk.CTkFrame):
-    def __init__(self, master, switch_to_main_page, device_id=None, device_name=None, config_file_device_name=None, product_ids=None, min_dpi=None, ):
+    def __init__(self, master, switch_to_main_page, device_name_label=None, device_attributes=None, device_id=None, device_name=None, config_file_device_name=None, product_ids=None, min_dpi=None, ):
         super().__init__(master)
         self.device_id = device_id
         self.master = master
@@ -153,9 +136,25 @@ class EditPage(ctk.CTkFrame):
         self.back_button = ctk.CTkButton(self, text="Back to Page 1", command=switch_to_main_page)
         self.back_button.pack(pady=5)
         
-        self.device_name = device_name
-        print(device_name)
-        print(device_id)
+
+        self.device_name_label = device_name_label
+
+
+
+        # self.device_name = device_name
+
+        if device_name is not None:
+            device_attributes, device_thumbwheel = execute_db_queries.get_new_user_device_attributes(device_name)
+        
+        if device_attributes is not None:
+            print(device_attributes._device_name)
+            self.device_name_label = ctk.CTkLabel(self, text=device_attributes._device_name)
+            self.device_name_label.pack()
+            # print(device_name)
+        else:
+            print("device attributes none")
+            self.device_name_label = ctk.CTkLabel(self, text='label here')
+            self.device_name_label.pack()
 
 
 def setup_gui():
@@ -170,6 +169,7 @@ def setup_gui():
 
 
 def create_edit_page(master, switch_to_main_page, selected_device_name=None, selected_device_id=None):
+    print("now creating the edit page")
     if selected_device_name is not None:
         edit_page = EditPage(master, switch_to_main_page, device_name=selected_device_name)
     elif selected_device_id is not None:
@@ -180,8 +180,8 @@ def create_edit_page(master, switch_to_main_page, selected_device_name=None, sel
 
 
 
-def create_main_page(master, switch_to_edit_page):
-    main_page = MainPage(master, switch_to_edit_page, create_edit_page)
+def create_main_page(master, switch_to_edit_page, edit_page):
+    main_page = MainPage(master, switch_to_edit_page, edit_page)
     return main_page
 
 
@@ -197,6 +197,7 @@ def main():
 
 
     def show_edit_page(selected_device=None):
+        print(selected_device)
         main_page.pack_forget()
         # if selected_device is not None:
         edit_page.pack(fill="both", expand=True)
@@ -206,8 +207,14 @@ def main():
         edit_page.pack_forget()
         main_page.pack(fill="both", expand=True)
 
-    edit_page = create_edit_page(root, show_main_page)  # Pass the root and appropriate callback
-    main_page = create_main_page(root, show_edit_page)  # Pass the root and appropriate callback
+
+    edit_page = create_edit_page(root, show_main_page)  # Create an instance of EditPage
+    main_page = create_main_page(root, show_edit_page, edit_page)  # Pass the EditPage instance
+    # ...
+
+
+    # edit_page = create_edit_page(root, show_main_page)  # Pass the root and appropriate callback
+    # main_page = create_main_page(root, show_edit_page)  # Pass the root and appropriate callback
 
     show_main_page()
 
