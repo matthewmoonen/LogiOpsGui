@@ -5,7 +5,6 @@ from CTkListbox import *
 import create_app_data
 import execute_db_queries
 import LogitechDeviceData
-# from spinbox import IntSpinbox
 from typing import Union, Callable
 
 
@@ -50,7 +49,7 @@ class IntSpinbox(ctk.CTkFrame):
 
         vcmd = self.register(self.validate)
         self.entry = ctk.CTkEntry(self, validate="key", validatecommand=(vcmd, '%P'),
-                                  width=width-(3.2*height), height=height-4, border_width=0)
+                                  width=width-(2.8*height), height=height-4, border_width=0)
         self.entry.grid(row=0, column=1, columnspan=1, padx=3, pady=3, sticky="ew")
         
         self.entry.bind("<FocusOut>", self.on_focus_out)  # Bind the FocusOut event
@@ -79,8 +78,8 @@ class IntSpinbox(ctk.CTkFrame):
     def add_button_callback(self):
         if self.command is not None:
             self.command()
-        try:
-            value = int(self.entry.get()) + self.step_size
+        try: 
+            value = int(self.entry.get()) // self.step_size * self.step_size + self.step_size # Set new value to closest multiple of step size after the current value
             if self.max_value is not None and value > self.max_value:
                 value = self.max_value
             self.entry.delete(0, "end")
@@ -92,7 +91,13 @@ class IntSpinbox(ctk.CTkFrame):
         if self.command is not None:
             self.command()
         try:
-            value = int(self.entry.get()) - self.step_size
+
+            def get_nearest_rounded_value(): # Set new value to closest multiple of step size after the current value
+                previous_value = int(self.entry.get())
+                return previous_value // self.step_size * self.step_size - self.step_size if previous_value % self.step_size == 0 else previous_value // self.step_size * self.step_size
+
+            value = get_nearest_rounded_value()
+            
             if self.min_value is not None and value < self.min_value:
                 value = self.min_value
             self.entry.delete(0, "end")
@@ -298,7 +303,7 @@ class EditPage(ctk.CTkFrame):
 
     
 
-        
+
 
 
         
@@ -319,19 +324,128 @@ class EditPage(ctk.CTkFrame):
 
 
 
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        *******************************************************************************
+
+                GENERAL FEATURES HERE
+
+        *******************************************************************************
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        """
+
+
+        general_features_frame = ctk.CTkFrame(master=self,
+                                    #    fg_color="transparent"
+                                       )
+        general_features_frame.pack(
+                                pady=(30,0),
+                                fill="x"
+            )
+
+
+        config_name_label = ctk.CTkLabel(
+                                        master=general_features_frame,
+                                        text=("Configuration Name"),
+                                        font=ctk.CTkFont(
+                                                family="Roboto",
+                                                # weight="bold",
+                                                size=14,
+                                                ),
+                                                # text_color="#1F538D",
+                                # pady=30,
+                                # anchor='s'
+                                        )
+        config_name_label.grid(row=0, column=0)
+
+
+
+        config_name_textbox = ctk.CTkTextbox(
+            master=general_features_frame,
+            height=30,
+            width=500,
+            font=ctk.CTkFont(
+                                family="Roboto",
+                                # weight="bold",
+                                size=16,
+                                ),
+        )
+        config_name_textbox.grid(row=1, column=0)
+
+        config_name_var = config_name_textbox.get(0.0, "end")
+        # TODO: Update event handling to save the name of the configuration.
+
+
+
+        dpi_label = ctk.CTkLabel(
+                                master=general_features_frame,
+                                                                    text=("DPI"),
+                                                font=ctk.CTkFont(
+                                                        family="Roboto",
+                                                            # weight="bold",
+                                                        size=18,
+                                                        ),
+                                                        # text_color="#1F538D",
+                                        # pady=30,
+                                        # anchor='s'
+        )
+        dpi_label.grid(row=2, column=0)
+
+
+
+        dpi_spinbox = IntSpinbox(master=general_features_frame,
+                                width=200,
+                                step_size=50,
+                                min_value=1, #TODO: UPDATE
+                                max_value=8000 # TODO: UPDATE
+                                )
+        
+        dpi_spinbox.set(1000) #TODO: Update
+        dpi_spinbox.grid(row=3, column=0)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        *******************************************************************************
+
+                SCROLL FEATURES HERE
+
+        *******************************************************************************
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        """
+
+
+
+
         scroll_features_frame = ctk.CTkFrame(master=self,
-                                       fg_color="transparent")
+                                    #    fg_color="transparent"
+                                       )
         scroll_features_frame.pack(
                                 pady=(30,0),
                                 fill="x"
             )
 
         if device_thumbwheel is not None:
-            scrollwheel_frame_text = "Scrollwheels"
+            scrollwheel_frame_text = "Vertical Scrollwheel"
         else:
             scrollwheel_frame_text = "Scrollwheel"
 
-        self.general_device_label = ctk.CTkLabel(
+        scrollwheel_main_label = ctk.CTkLabel(
                                             master=scroll_features_frame,
                                             text=scrollwheel_frame_text,
                                             font=ctk.CTkFont(
@@ -343,15 +457,46 @@ class EditPage(ctk.CTkFrame):
                                     # pady=30,
                                     # anchor='s'
                                             )
-        self.general_device_label.grid(row=0, column=0)
+        # scrollwheel_main_label.grid(row=0, column=0)
+        scrollwheel_main_label.pack()
+
+
+
+
+
+
+
+
+
+
+
+
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        *******************************************************************************
+
+                SMARTSHIFT FEATURES
+
+        *******************************************************************************
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        """
+
+
+
 
 
 
         if device_attributes._smartshift_support == True:
 
+            smartshift_frame = ctk.CTkFrame(master=scroll_features_frame,
+                                            )
+            smartshift_frame.pack()
+
 
             self.smartshift_label = ctk.CTkLabel(
-                                            master=scroll_features_frame,
+                                            master=smartshift_frame,
                                             text=("SmartShift On"),
                                             font=ctk.CTkFont(
                                                     family="Roboto",
@@ -362,7 +507,7 @@ class EditPage(ctk.CTkFrame):
                                     # pady=30,
                                     # anchor='s'
                                             )
-            self.smartshift_label.grid(row=1, column=0)
+            self.smartshift_label.grid(row=0, column=0)
 
 
             
@@ -373,13 +518,13 @@ class EditPage(ctk.CTkFrame):
                     is_smartshift_on = True
                 else:
                     is_smartshift_on = False                
-                print(is_smartshift_on)
+                # print(is_smartshift_on)
                 smartshift_threshold.toggle_enable(is_smartshift_on)
                 smartshift_torque.toggle_enable(is_smartshift_on)
 
-            
+
             smartshift_enabled_var = ctk.StringVar(value="on")
-            smartshift_checkbox = ctk.CTkCheckBox(master=scroll_features_frame,
+            smartshift_checkbox = ctk.CTkCheckBox(master=smartshift_frame,
                                                     text="",
                                                     command=checkbox_event,
                                                     variable=smartshift_enabled_var,
@@ -395,27 +540,374 @@ class EditPage(ctk.CTkFrame):
 
 
 
+            self.smartshift_threshold_label = ctk.CTkLabel(
+                                            master=smartshift_frame,
+                                            text=("Threshold"),
+                                            font=ctk.CTkFont(
+                                                    family="Roboto",
+                                                    # weight="bold",
+                                                    size=16,
+                                                    ),
+                                                    # text_color="#1F538D",
+                                    # pady=30,
+                                    # anchor='s'
+                                            )
+            self.smartshift_threshold_label.grid(row=1, column=2)
 
-            smartshift_threshold = IntSpinbox(self,
+
+
+            smartshift_threshold = IntSpinbox(master=smartshift_frame,
                                     width=150,
-                                    step_size=1,
+                                    step_size=5,
                                     min_value=1,
                                     max_value=255)
             
             smartshift_threshold.set(42) #TODO: Update
-            smartshift_threshold.pack(padx=20, pady=20)
+            smartshift_threshold.grid(row=2, column=2)
 
             # smartshift_threshold_spinbox = ctk.CTkButton(self, text="Toggle Enable/Disable", command=smartshift_threshold.toggle_enable)
             # smartshift_threshold_spinbox.pack()
 
-            smartshift_torque = IntSpinbox(self,
+
+            self.smartshift_torque_label = ctk.CTkLabel(
+                                            master=smartshift_frame,
+                                            text=("Torque"),
+                                            font=ctk.CTkFont(
+                                                    family="Roboto",
+                                                    # weight="bold",
+                                                    size=18,
+                                                    ),
+                                                    # text_color="#1F538D",
+                                    # pady=30,
+                                    # anchor='s'
+                                            )
+            self.smartshift_torque_label.grid(row=2, column=3)
+
+
+            smartshift_torque = IntSpinbox(master=smartshift_frame,
                                     width=150,
-                                    step_size=1,
+                                    step_size=5,
                                     min_value=1,
                                     max_value=255)
             
             smartshift_torque.set(42) #TODO: Update
-            smartshift_torque.pack(padx=20, pady=20)
+            smartshift_torque.grid(row=2, column=4)
+
+
+
+
+
+
+
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        *******************************************************************************
+
+                GENERAL SCROLL FEATURES SHARED BY MOST MICE
+                
+        *******************************************************************************
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        """
+
+
+
+
+
+        common_scrollwheel_features_frame = ctk.CTkFrame(master=scroll_features_frame,
+                                        )
+        common_scrollwheel_features_frame.pack()
+
+        
+
+
+
+
+
+        hi_res_scroll_label = ctk.CTkLabel (
+                                            master=common_scrollwheel_features_frame,
+                                            text=("Hi-Res Scroll"),
+                                                font=ctk.CTkFont(
+                                                        family="Roboto",
+                                                            # weight="bold",
+                                                        size=18,
+                                                        ),
+        )
+        hi_res_scroll_label.grid(row=2, column=0)
+
+
+
+        scroll_target_label = ctk.CTkLabel (
+                                            master=common_scrollwheel_features_frame,
+                                            text=("Target"),
+                                                font=ctk.CTkFont(
+                                                        family="Roboto",
+                                                            # weight="bold",
+                                                        size=18,
+                                                        ),
+        )
+        scroll_target_label.grid(row=3, column=0)
+
+
+
+
+        scroll_invert_label = ctk.CTkLabel (
+                                            master=common_scrollwheel_features_frame,
+                                            text=("Invert Scroll"),
+                                                font=ctk.CTkFont(
+                                                        family="Roboto",
+                                                            # weight="bold",
+                                                        size=18,
+                                                        ),
+        )
+        scroll_invert_label.grid(row=4, column=0)
+
+
+
+        
+
+        scroll_speed_title_label = ctk.CTkLabel (
+                                            master=common_scrollwheel_features_frame,
+                                            text=("Scroll Speed"),
+                                                font=ctk.CTkFont(
+                                                        family="Roboto",
+                                                            # weight="bold",
+                                                        size=18,
+                                                        ),
+        )
+        scroll_speed_title_label.grid(row=5, column=0)
+
+
+        def handle_equal_unequal_vertical_scroll_speed():
+            print(up_down_scrollspeed_equal_var.get())
+            if up_down_scrollspeed_equal_var.get() == "on":
+                scroll_speed_up_slider.grid(row=9, column=0)
+                scroll_speed_up_value_label.grid(row=10, column=0)
+            else:
+                scroll_speed_up_slider.grid_forget()
+                scroll_speed_up_value_label.grid_forget()
+  
+
+        up_down_scrollspeed_equal_var = ctk.StringVar(value="on")
+        smartshift_checkbox = ctk.CTkCheckBox(master=common_scrollwheel_features_frame,
+                                                text="",
+                                                command=handle_equal_unequal_vertical_scroll_speed,
+                                                variable=up_down_scrollspeed_equal_var,
+                                                onvalue="on",
+                                                offvalue="off",
+                                                checkbox_height=30,
+                                                checkbox_width=30,
+                                                corner_radius=0,
+                                                border_width=3,
+                                    )
+        smartshift_checkbox.grid(row=6, column=0)
+
+
+
+        scroll_speed_value = 20.0
+        def slider_event(value):
+            global scroll_speed_value  # Use the global keyword to modify the global variable
+            scroll_speed_value = value
+            scroll_speed_value_label.configure(text=scroll_speed_value)  # Update the label text
+
+        # Create the GUI components
+        scroll_speed_slider = ctk.CTkSlider(master=common_scrollwheel_features_frame,
+                                            from_=0,
+                                            to=100, 
+                                            number_of_steps=1000,
+                                            command=slider_event)
+        scroll_speed_slider.set(scroll_speed_value)  # Set the initial value of the slider
+        scroll_speed_slider.grid(row=7, column=0)
+
+        scroll_speed_value_label = ctk.CTkLabel(
+            master=common_scrollwheel_features_frame,
+            text=str(scroll_speed_value),
+            font=ctk.CTkFont(
+                family="Roboto",
+                size=18,
+            ),
+        )
+        scroll_speed_value_label.grid(row=8, column=0)
+
+
+
+
+
+        scroll_speed_up_value = 20.0
+        def up_slider_event(value):
+            global scroll_speed_up_value  # Use the global keyword to modify the global variable
+            scroll_speed_up_value = value
+            scroll_speed_up_value_label.configure(text=scroll_speed_up_value)  # Update the label text
+
+        scroll_speed_up_slider = ctk.CTkSlider(master=common_scrollwheel_features_frame,
+                                            from_=0,
+                                            to=100, 
+                                            number_of_steps=1000,
+                                            command=up_slider_event)
+        scroll_speed_up_slider.set(scroll_speed_up_value)  # Set the initial value of the slider
+        scroll_speed_up_slider.grid(row=9, column=0)
+
+        scroll_speed_up_value_label = ctk.CTkLabel(
+            master=common_scrollwheel_features_frame,
+            text=str(scroll_speed_up_value),
+            font=ctk.CTkFont(
+                family="Roboto",
+                size=18,
+            ),
+        )
+        scroll_speed_up_value_label.grid(row=10, column=0)
+
+
+
+        
+        # TODO: create class - see here https://chat.openai.com/share/8d6e30d1-cac0-4e08-a51f-935e04ae582d
+
+
+
+
+        
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        *******************************************************************************
+
+                THUMBWHEEL(IF PRESENT)
+                
+        *******************************************************************************
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        """
+
+
+        thumbwheel_frame = ctk.CTkFrame(master=scroll_features_frame,
+                                        )
+        thumbwheel_frame.pack()
+
+
+
+        if device_thumbwheel is not None:
+
+
+
+            self.thumbwheel_label = ctk.CTkLabel(
+                                                master=thumbwheel_frame,
+                                                text=("Thumbwheel Controls:"),
+                                                font=ctk.CTkFont(
+                                                        family="Roboto",
+                                                            # weight="bold",
+                                                        size=22,
+                                                        ),
+                                                        # text_color="#1F538D",
+                                        # pady=30,
+                                        # anchor='s'
+                                                )
+            self.thumbwheel_label.grid(row=0, column=0)
+
+            self.thumbwheel_invert_label = ctk.CTkLabel(thumbwheel_frame, text="Invert:")
+            self.thumbwheel_invert_label.grid(row=1, column=0)
+            
+            
+            self.thumbwheel_invert = ctk.CTkSwitch(
+                                                    master=thumbwheel_frame,
+                                                   text="",
+                                                    onvalue="on", 
+                                                    offvalue="off",
+                                                    border_width=3,
+                                                    # width=200,
+                                                    switch_width=40,
+                                                    corner_radius=2,
+                                                    switch_height=21,
+                                                    border_color=("#181818"),
+                                                    command=device_thumbwheel.set_invert()
+
+                                                    )
+            
+            self.thumbwheel_invert.grid(row=2, column=0)
+
+            self.thumbwheel_divert_label = ctk.CTkLabel(master=thumbwheel_frame, text="Divert:")
+            self.thumbwheel_divert_label.grid(row=1, column=1)
+
+
+
+            self.thumbwheel_divert = ctk.CTkSwitch(
+                                                    master=thumbwheel_frame,
+
+                                                   text="",
+                                                    onvalue="on", 
+                                                    offvalue="off",
+                                                    border_width=3,
+                                                    # width=200,
+                                                    switch_width=40,
+                                                    corner_radius=2,
+                                                    switch_height=21,
+                                                    border_color=("black"),
+                                                    command=device_thumbwheel.set_divert_toggle()
+
+                                                    )
+            
+            self.thumbwheel_divert.grid(row=2, column=1)
+
+
+            tap_options = ["None", "Keypress"]
+
+
+            if device_thumbwheel._tap == True:
+
+                def thumbwheel_tap_updated(new_action):
+                    print(f"New tap action: {new_action}!")
+
+                self.tap_label = ctk.CTkLabel(master=thumbwheel_frame, text=("Tap:"))
+                self.tap_label.grid(row=3, column=0)
+
+                self.tap_option_menu = ctk.CTkOptionMenu(
+                                                            master=thumbwheel_frame, 
+                                                            variable=self.tap_scroll_action,
+                                                            values=tap_options,
+                                                            state="normal",
+                                                            command=thumbwheel_tap_updated
+                                                         )
+
+                self.tap_option_menu.grid(row=4, column=0)
+
+
+                # add_device_dropdown = ctk.CTkOptionMenu(master=top_frame,
+                #                                     variable=selected_option_var,
+                #                                     values=options,
+                #                                     state="normal",
+                #                                     width=400,
+                #                                     height=36,
+                #                                     command=device_dropdown)
+                
+
+            if device_thumbwheel._proxy == True:
+                self.proxy_label = ctk.CTkLabel(thumbwheel_frame, text=("Proxy:"))
+                self.proxy_label.grid(row=3, column=1)
+
+            if device_thumbwheel._touch == True:
+                self.touch_label = ctk.CTkLabel(thumbwheel_frame, text=("Touch:"))
+                self.touch_label.grid(row=3, column=2)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -424,6 +916,21 @@ class EditPage(ctk.CTkFrame):
 
             
 
+
+
+
+
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        *******************************************************************************
+
+                BUTTON CONFIGS HERE
+                
+        *******************************************************************************
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        """
 
 
 
@@ -445,9 +952,28 @@ class EditPage(ctk.CTkFrame):
 
         reprogrammable_buttons_array = execute_db_queries.get_reprogrammable_buttons_array(device_attributes._device_id)
 
-        for reprogrammable_button_object in reprogrammable_buttons_array:
-            reprogrammable_button_label = ctk.CTkLabel(self, text=reprogrammable_button_object._button_name)
-            reprogrammable_button_label.pack()
+
+
+
+        buttons_frame = ctk.CTkFrame(master=self,
+                                       fg_color="transparent")
+        buttons_frame.pack(
+                                pady=(30,0),
+                                fill="x"
+            )
+
+
+
+        for index, reprogrammable_button_object in enumerate(reprogrammable_buttons_array):
+            reprogrammable_button_label = ctk.CTkLabel(master=buttons_frame, text=reprogrammable_button_object._button_name)
+            
+            
+            def get_column(i):
+                return 1 if i % 2 == 0 else 0
+            row = index//2
+            column = get_column(index)
+
+            reprogrammable_button_label.grid(row=row, column=column)
             # def combobox_callback(choice):
             #     print("combobox dropdown clicked:", choice)
 
@@ -464,100 +990,7 @@ class EditPage(ctk.CTkFrame):
             optionmenu.set("option 2")
             optionmenu.pack()
 
-        if device_thumbwheel is not None:
-            self.thumbwheel_label = ctk.CTkLabel(
-                                                master=self,
-                                                text=("Thumbwheel Controls:"),
-                                                font=ctk.CTkFont(
-                                                        family="Roboto",
-                                                            # weight="bold",
-                                                        size=22,
-                                                        ),
-                                                        # text_color="#1F538D",
-                                        # pady=30,
-                                        # anchor='s'
-                                                )
-            self.thumbwheel_label.pack()
 
-            self.thumbwheel_invert_label = ctk.CTkLabel(self, text="Invert:")
-            self.thumbwheel_invert_label.pack()
-            
-            
-            self.thumbwheel_invert = ctk.CTkSwitch(master=self,
-                                                   text="",
-                                                    onvalue="on", 
-                                                    offvalue="off",
-                                                    border_width=3,
-                                                    # width=200,
-                                                    switch_width=40,
-                                                    corner_radius=2,
-                                                    switch_height=21,
-                                                    border_color=("#181818"),
-                                                    command=device_thumbwheel.set_invert()
-
-                                                    )
-            
-            self.thumbwheel_invert.pack()
-
-            self.thumbwheel_divert_label = ctk.CTkLabel(self, text="Divert:")
-            self.thumbwheel_divert_label.pack()
-
-
-
-            self.thumbwheel_divert = ctk.CTkSwitch(master=self,
-                                                   text="",
-                                                    onvalue="on", 
-                                                    offvalue="off",
-                                                    border_width=3,
-                                                    # width=200,
-                                                    switch_width=40,
-                                                    corner_radius=2,
-                                                    switch_height=21,
-                                                    border_color=("black"),
-                                                    command=device_thumbwheel.set_divert_toggle()
-
-                                                    )
-            
-            self.thumbwheel_divert.pack()
-
-
-            tap_options = ["None", "Keypress"]
-
-
-            if device_thumbwheel._tap == True:
-
-                def thumbwheel_tap_updated(new_action):
-                    print(f"New tap action: {new_action}!")
-
-                self.tap_label = ctk.CTkLabel(self, text=("Tap:"))
-                self.tap_label.pack()
-
-                self.tap_option_menu = ctk.CTkOptionMenu(master=self, 
-                                                            variable=self.tap_scroll_action,
-                                                            values=tap_options,
-                                                            state="normal",
-                                                            command=thumbwheel_tap_updated
-                                                         )
-
-                self.tap_option_menu.pack()
-
-
-                # add_device_dropdown = ctk.CTkOptionMenu(master=top_frame,
-                #                                     variable=selected_option_var,
-                #                                     values=options,
-                #                                     state="normal",
-                #                                     width=400,
-                #                                     height=36,
-                #                                     command=device_dropdown)
-                
-
-            if device_thumbwheel._proxy == True:
-                self.proxy_label = ctk.CTkLabel(self, text=("Proxy:"))
-                self.proxy_label.pack()
-
-            if device_thumbwheel._touch == True:
-                self.touch_label = ctk.CTkLabel(self, text=("Touch:"))
-                self.touch_label.pack()
 
 
     def go_back(self):
@@ -571,8 +1004,8 @@ def setup_gui():
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("dark-blue")
 
-    root.geometry("1000x800")
-    root.resizable(False, False)
+    root.geometry("1280x1280")
+    root.resizable(True, True)
     root.title("LogiOpsGUI")
     return root
 
