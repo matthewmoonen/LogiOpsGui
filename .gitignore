@@ -5,3 +5,11 @@ logid.cfg
 user_settings.db
 user_devices.db
 logid_mine.cfg
+__pycache__
+/app_data
+/app_data1
+/app_data2
+/app_data3
+/app_data4
+/app_data5
+/app_data6
