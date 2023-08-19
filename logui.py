@@ -220,14 +220,14 @@ class MainPage(ctk.CTkFrame):
         
         create_and_update_device_dropdown()
          
-        bottom_frame = ctk.CTkScrollableFrame(master=self,
+        devices_frame = ctk.CTkScrollableFrame(master=self,
                                               border_width=2,
                                                 corner_radius=0,
                                                 scrollbar_fg_color="#474747",
                                                 scrollbar_button_color=primary_colour,
                                                 # label_fg_color="red"
                                               )
-        bottom_frame.pack(
+        devices_frame.pack(
             padx=20,
             # pady=(0, 20),
             fill="both",
@@ -238,7 +238,7 @@ class MainPage(ctk.CTkFrame):
 
         # for i in range(20):
         #     self.buttons_label = ctk.CTkLabel(
-        #                                         master=bottom_frame,
+        #                                         master=devices_frame,
         #                                         text=("Buttons:"),
         #                                         font=ctk.CTkFont(
         #                                                 family="Roboto",
@@ -253,6 +253,48 @@ class MainPage(ctk.CTkFrame):
 
 
 
+
+        bottom_frame = ctk.CTkFrame(
+            master=self,
+            fg_color="transparent"
+        )
+        bottom_frame.pack(
+                        padx=(20, 20), 
+                        pady=(0, 0),
+                        fill="x",
+        )
+
+
+
+
+
+
+
+
+        save_devices_button = ctk.CTkButton(
+            master=bottom_frame,
+            height=40,
+            width=120,
+            text="Generate CFG",
+            # text_color_disabled=("#9FA5AB"),
+        )
+        save_devices_button.grid(
+            # row=0,
+            # column=2,
+            # padx=(20, 20),
+            pady=30,
+            sticky="e"
+        )
+
+
+        bottom_frame.grid_columnconfigure((0), weight=1)
+
+
+
+
+
+
+        
     def show(self):
         self.pack(fill="both", expand=True)
 
@@ -286,9 +328,7 @@ class EditPage(ctk.CTkFrame):
 
 
 
-        self.back_button = ctk.CTkButton(self, text="Back to Page 1", command=self.go_back)
-        self.back_button.pack(pady=5)
-        
+
 
 
         if device_name is not None and config_id == None:
@@ -324,6 +364,39 @@ class EditPage(ctk.CTkFrame):
 
 
 
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        *******************************************************************************
+
+                MAIN SCROLLABLE FRAME FOR MAIN PAGE
+
+        *******************************************************************************
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        """
+
+
+
+        settings_scrollable_frame = ctk.CTkScrollableFrame(master=self,
+                                              border_width=2,
+                                                corner_radius=0,
+                                                scrollbar_fg_color="#474747",
+                                                scrollbar_button_color=primary_colour,
+                                                # label_fg_color="red"
+                                              )
+
+
+        settings_scrollable_frame.pack(
+                      padx=20,
+            # pady=(0, 20),
+            fill="both",
+            expand=True,
+        )
+
+
+
+
+
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -337,8 +410,8 @@ class EditPage(ctk.CTkFrame):
         """
 
 
-        general_features_frame = ctk.CTkFrame(master=self,
-                                    #    fg_color="transparent"
+        general_features_frame = ctk.CTkFrame(master=settings_scrollable_frame,
+                                       fg_color="transparent"
                                        )
         general_features_frame.pack(
                                 pady=(30,0),
@@ -397,7 +470,7 @@ class EditPage(ctk.CTkFrame):
 
         dpi_spinbox = IntSpinbox(master=general_features_frame,
                                 width=200,
-                                step_size=50,
+                                step_size=100,
                                 min_value=1, #TODO: UPDATE
                                 max_value=8000 # TODO: UPDATE
                                 )
@@ -432,7 +505,7 @@ class EditPage(ctk.CTkFrame):
 
 
 
-        scroll_features_frame = ctk.CTkFrame(master=self,
+        scroll_features_frame = ctk.CTkFrame(master=settings_scrollable_frame,
                                     #    fg_color="transparent"
                                        )
         scroll_features_frame.pack(
@@ -635,19 +708,24 @@ class EditPage(ctk.CTkFrame):
                                                         ),
         )
         hi_res_scroll_label.grid(row=2, column=0)
+        
+        self.hires_scroll_switch = ctk.CTkSwitch(
+                                                master=common_scrollwheel_features_frame,
+                                                text="",
+                                                onvalue="on", 
+                                                offvalue="off",
+                                                border_width=3,
+                                                # width=200,
+                                                switch_width=40,
+                                                corner_radius=2,
+                                                switch_height=21,
+                                                border_color=("#181818"),
+                                                command=None #TODO: UPDATE
 
+                                                )
+        
+        self.hires_scroll_switch.grid(row=2, column=1)
 
-
-        scroll_target_label = ctk.CTkLabel (
-                                            master=common_scrollwheel_features_frame,
-                                            text=("Target"),
-                                                font=ctk.CTkFont(
-                                                        family="Roboto",
-                                                            # weight="bold",
-                                                        size=18,
-                                                        ),
-        )
-        scroll_target_label.grid(row=3, column=0)
 
 
 
@@ -661,9 +739,58 @@ class EditPage(ctk.CTkFrame):
                                                         size=18,
                                                         ),
         )
-        scroll_invert_label.grid(row=4, column=0)
+        scroll_invert_label.grid(row=3, column=0)
 
 
+
+
+        self.scroll_invert_switch = ctk.CTkSwitch(
+                                                master=common_scrollwheel_features_frame,
+                                                text="",
+                                                onvalue="on", 
+                                                offvalue="off",
+                                                border_width=3,
+                                                # width=200,
+                                                switch_width=40,
+                                                corner_radius=2,
+                                                switch_height=21,
+                                                border_color=("#181818"),
+                                                command=None #TODO: UPDATE
+
+                                                )
+        
+        self.scroll_invert_switch.grid(row=3, column=1)
+
+
+
+        scroll_target_label = ctk.CTkLabel (
+                                            master=common_scrollwheel_features_frame,
+                                            text=("Target"),
+                                                font=ctk.CTkFont(
+                                                        family="Roboto",
+                                                            # weight="bold",
+                                                        size=18,
+                                                        ),
+        )
+        scroll_target_label.grid(row=4, column=0)
+
+
+        self.target_switch = ctk.CTkSwitch(
+                                                master=common_scrollwheel_features_frame,
+                                                text="",
+                                                onvalue="on", 
+                                                offvalue="off",
+                                                border_width=3,
+                                                # width=200,
+                                                switch_width=40,
+                                                corner_radius=2,
+                                                switch_height=21,
+                                                border_color=("#181818"),
+                                                command=None #TODO: UPDATE
+
+                                                )
+        
+        self.target_switch.grid(row=4, column=1)
 
         
 
@@ -677,6 +804,10 @@ class EditPage(ctk.CTkFrame):
                                                         ),
         )
         scroll_speed_title_label.grid(row=5, column=0)
+
+
+
+
 
 
         def handle_equal_unequal_vertical_scroll_speed():
@@ -849,45 +980,53 @@ class EditPage(ctk.CTkFrame):
             self.thumbwheel_divert.grid(row=2, column=1)
 
 
-            tap_options = ["None", "Keypress"]
+            tap_touch_proxy_options = ['Do Nothing', 'Keypress', 'Toggle SmartShift', 'Cycle DPI', 'Change Host']
+            if device_attributes._smartshift_support != True:
+                tap_touch_proxy_options.remove("Toggle SmartShift")
+
 
 
             if device_thumbwheel._tap == True:
 
-                def thumbwheel_tap_updated(new_action):
-                    print(f"New tap action: {new_action}!")
-
                 self.tap_label = ctk.CTkLabel(master=thumbwheel_frame, text=("Tap:"))
                 self.tap_label.grid(row=3, column=0)
 
-                self.tap_option_menu = ctk.CTkOptionMenu(
-                                                            master=thumbwheel_frame, 
-                                                            variable=self.tap_scroll_action,
-                                                            values=tap_options,
-                                                            state="normal",
-                                                            command=thumbwheel_tap_updated
-                                                         )
+                thumbwheel_tap_tabview = ctk.CTkTabview(master=thumbwheel_frame)
+                thumbwheel_tap_tabview.grid(row=4, column=0)
 
-                self.tap_option_menu.grid(row=4, column=0)
+                for i in tap_touch_proxy_options:
+                    thumbwheel_tap_tabview.add(i)  
 
-
-                # add_device_dropdown = ctk.CTkOptionMenu(master=top_frame,
-                #                                     variable=selected_option_var,
-                #                                     values=options,
-                #                                     state="normal",
-                #                                     width=400,
-                #                                     height=36,
-                #                                     command=device_dropdown)
+                thumbwheel_tap_tabview.set("Do Nothing")  # set currently visible tab TODO: update this to match DB value
                 
+                    
 
             if device_thumbwheel._proxy == True:
-                self.proxy_label = ctk.CTkLabel(thumbwheel_frame, text=("Proxy:"))
-                self.proxy_label.grid(row=3, column=1)
+                proxy_label = ctk.CTkLabel(thumbwheel_frame, text=("Proxy:"))
+                proxy_label.grid(row=5, column=0)
+
+                thumbwheel_proxy_tabview = ctk.CTkTabview(master=thumbwheel_frame)
+                thumbwheel_proxy_tabview.grid(row=6, column=0)
+
+                for i in tap_touch_proxy_options:
+                    thumbwheel_proxy_tabview.add(i)  
+
+                thumbwheel_proxy_tabview.set("Do Nothing")  # set currently visible tab TODO: update this to match DB value
+                
 
             if device_thumbwheel._touch == True:
-                self.touch_label = ctk.CTkLabel(thumbwheel_frame, text=("Touch:"))
-                self.touch_label.grid(row=3, column=2)
 
+                touch_label = ctk.CTkLabel(thumbwheel_frame, text=("Touch:"))
+                touch_label.grid(row=7, column=0)
+
+                thumbwheel_touch_tabview = ctk.CTkTabview(master=thumbwheel_frame)
+                thumbwheel_touch_tabview.grid(row=8, column=0)
+
+                for i in tap_touch_proxy_options:
+                    thumbwheel_touch_tabview.add(i)  
+
+                thumbwheel_touch_tabview.set("Do Nothing")  # set currently visible tab TODO: update this to match DB value
+                
 
 
 
@@ -936,8 +1075,10 @@ class EditPage(ctk.CTkFrame):
 
 
 
+        reprogrammable_buttons_array = execute_db_queries.get_reprogrammable_buttons_array(device_attributes._device_id)
+
         self.buttons_label = ctk.CTkLabel(
-                                            master=self,
+                                            master=settings_scrollable_frame,
                                             text=("Buttons:"),
                                             font=ctk.CTkFont(
                                                     family="Roboto",
@@ -950,17 +1091,15 @@ class EditPage(ctk.CTkFrame):
                                             )
         self.buttons_label.pack()
 
-        reprogrammable_buttons_array = execute_db_queries.get_reprogrammable_buttons_array(device_attributes._device_id)
 
-
-
-
-        buttons_frame = ctk.CTkFrame(master=self,
+        buttons_frame = ctk.CTkFrame(master=settings_scrollable_frame,
                                        fg_color="transparent")
         buttons_frame.pack(
                                 pady=(30,0),
                                 fill="x"
             )
+
+
 
 
 
@@ -984,11 +1123,26 @@ class EditPage(ctk.CTkFrame):
             # combobox.pack()
             def optionmenu_callback(choice):
                 print("optionmenu dropdown clicked:", choice)
+                print(thumbwheel_touch_tabview.get())
 
-            optionmenu = ctk.CTkOptionMenu(self, values=["option 1", "option 2"],
+            optionmenu = ctk.CTkOptionMenu(master=settings_scrollable_frame, values=["option 1", "option 2"],
                                                     command=optionmenu_callback)
             optionmenu.set("option 2")
             optionmenu.pack()
+
+
+
+    
+        bottom_frame = ctk.CTkFrame(
+            master=self,
+            fg_color="transparent"
+        )
+        bottom_frame.pack()
+
+        self.back_button = ctk.CTkButton(master=bottom_frame, 
+                                            text="Cancel",
+                                            command=self.go_back)
+        self.back_button.pack(pady=20)
 
 
 

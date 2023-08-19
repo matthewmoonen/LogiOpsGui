@@ -1,8 +1,20 @@
-
-
-
 class Device:
-    def __init__(self, device_id, device_name, config_file_device_name, product_ids, min_dpi, max_dpi, default_dpi, buttons, thumbwheel, smartshift_support, hires_scroll_support, number_of_sensors):
+    def __init__(self,
+                device_id=None,
+                device_name=None,
+                config_file_device_name=None,
+                product_ids=None,
+                min_dpi=None,
+                max_dpi=None,
+                default_dpi=None,
+                buttons=None,
+                thumbwheel=None,
+                smartshift_support=None,
+                hires_scroll_support=None,
+                number_of_sensors=None,
+                #  user_added_or_edited = None, TODO: THIS
+                
+                 ):
         self._device_id = device_id
         self._device_name = device_name
         self._config_file_device_name = config_file_device_name
@@ -52,6 +64,10 @@ class Device:
 
     def get_number_of_sensors(self):
         return self._number_of_sensors
+    
+    def get_smartshift_on(self):
+        return self._smartshift_on
+
 
     # Setters
     def set_device_id(self, device_id):
@@ -90,22 +106,46 @@ class Device:
     def set_number_of_sensors(self, number_of_sensors):
         self._number_of_sensors = number_of_sensors
 
+    def set_smartshift_on_db(self, smartshift_on):
+        self._smartshift_on = smartshift_on
+
+    def set_smartshift_on_toggle(self):
+        self._smartshift_on = not self._smartshift_on
+
 
 
 class DeviceButton:
-    def __init__(self, button_cid, reprogrammable, fn_key, mouse_key, gesture_support, accessible):
+    def __init__(self, button_cid=None, reprogrammable=None, fn_key=None, mouse_key=None, gesture_support=None, accessible=None, button_id=None, button_name=None, button_action="Default", gesture_up=None, gesture_down=None, gesture_left=None, gesture_right=None, gesture_none=None):
         self._button_cid = button_cid
         self._reprogrammable = reprogrammable
         self._fn_key = fn_key
         self._mouse_key = mouse_key
         self._gesture_support = gesture_support
         self._accessible = accessible
+        self._button_id = button_id
+        self._button_name = button_name
+        self._button_action = button_action
+        self._gesture_up = gesture_up
+        self._gesture_down = gesture_down
+        self._gesture_left = gesture_left
+        self._gesture_right = gesture_right
+        self._gesture_none = gesture_none
+
+
+
+
+
+
         #   Accessible refers to whether the button is physically accessible on the mouse when in normal use.
         #   For example, 0x00d7 is normally the control ID for the button to switch between host devices/computers, and theoretically has gesture support.
         #   However it is usually located on the bottom of the mouse. 
         
 
     # Getters
+
+    def get_button_id(self):
+        return self._button_id
+
     def get_button_cid(self):
         return self._button_cid
 
@@ -123,6 +163,12 @@ class DeviceButton:
 
     def get_accessible(self):
         return self._accessible
+    
+    def get_button_id(self):
+        return self._button_id
+    
+    def get_button_name(self):
+        return self._button_name
 
     # Setters
     def set_button_cid(self, button_cid):
@@ -143,14 +189,32 @@ class DeviceButton:
     def set_accessible(self, accessible):
         self._accessible = accessible
 
+    def set_button_id(self, button_id):
+        self._button_id = button_id
+
+    def set_button_name(self, button_name):
+        self._button_name = button_name
+
 
 class DeviceThumbwheel:
-    def __init__(self, has_thumbwheel, tap, proxy, touch, timestamp):
+    def __init__(self, 
+                has_thumbwheel=None,
+                tap=None,
+                proxy=None, 
+                proxy_keypresses=None,
+                touch=None,
+                timestamp=None,
+                invert=False,
+                divert=False):
         self._has_thumbwheel = has_thumbwheel
         self._tap = tap
         self._proxy = proxy
+        self._proxy_keypresses = proxy_keypresses
         self._touch = touch
         self._timestamp = timestamp
+        self._invert = invert
+        self._divert = divert
+
 
     # Getters
     def get_has_thumbwheel(self):
@@ -161,12 +225,21 @@ class DeviceThumbwheel:
 
     def get_proxy(self):
         return self._proxy
+    
+    def get_proxy_keypresses(self):
+        return self._proxy_keypresses
 
     def get_touch(self):
         return self._touch
 
     def get_timestamp(self):
         return self._timestamp
+    
+    def get_invert(self):
+        return self._invert
+    
+    def get_divert(self):
+        return self._divert
 
     # Setters
     def set_has_thumbwheel(self, has_thumbwheel):
@@ -178,12 +251,23 @@ class DeviceThumbwheel:
     def set_proxy(self, proxy):
         self._proxy = proxy
 
+    def set_proxy_keypresses(self, proxy_keypresses):
+        self._proxy_keypresses = proxy_keypresses
+
     def set_touch(self, touch):
         self._touch = touch
 
     def set_timestamp(self, timestamp):
         self._timestamp = timestamp
 
+    def set_invert(self):
+        self._invert = not self._invert
+
+    def set_divert_db(self, divert):
+        self._divert = divert
+
+    def set_divert_toggle(self):
+        self._divert = not self._divert
 
 
 # Creating instances of LogitechDevice for each device
@@ -193,9 +277,9 @@ logitech_devices = [
     Device(
         1, # Device ID. This doesn't reference anything related to Logitech's naming/classification of devices. It's simply for use in this program.
         
-        "MX Master 3S for Mac", # Device name
+        "MX Master 3S for Mac", # Device name in the GUI
 
-        "MX Master 3S for Mac", # Logiops config name
+        "MX Master 3S for Mac", # Device name in the config file
         
         [
             "910-006574" # List of product IDs that the device is sold under (colour variations etc).
@@ -704,7 +788,7 @@ def get_button_function(control_id):
         
 
 def main():
-    pass
+   pass
 
 if __name__ == "__main__":
     main()
