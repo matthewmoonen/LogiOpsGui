@@ -32,6 +32,7 @@ class IntSpinbox(ctk.CTkFrame):
                  **kwargs):
         super().__init__(*args, width=width, height=height, **kwargs)
 
+
         self.step_size = step_size
         self.min_value = min_value
         self.max_value = max_value
@@ -46,6 +47,8 @@ class IntSpinbox(ctk.CTkFrame):
         self.subtract_button = ctk.CTkButton(self, text="-", width=height-2, height=height-2,
                                              command=self.subtract_button_callback)
         self.subtract_button.grid(row=0, column=0, padx=(3, 0), pady=3)
+
+        self.default_value = 0 if min_value is None else min_value  # Set default value based on min_value
 
         vcmd = self.register(self.validate)
         self.entry = ctk.CTkEntry(self, validate="key", validatecommand=(vcmd, '%P'),
@@ -70,10 +73,11 @@ class IntSpinbox(ctk.CTkFrame):
                 value = self.min_value
             if self.max_value is not None and value > self.max_value:
                 value = self.max_value
-            self.entry.delete(0, "end")
-            self.entry.insert(0, value)
         except ValueError:
-            pass
+            value = self.default_value  # Use default_value if parsing fails
+        
+        self.entry.delete(0, "end")
+        self.entry.insert(0, value)
 
     def add_button_callback(self):
         if self.command is not None:
@@ -471,7 +475,7 @@ class EditPage(ctk.CTkFrame):
         dpi_spinbox = IntSpinbox(master=general_features_frame,
                                 width=200,
                                 step_size=100,
-                                min_value=1, #TODO: UPDATE
+                                min_value=400, #TODO: UPDATE
                                 max_value=8000 # TODO: UPDATE
                                 )
         
@@ -796,7 +800,7 @@ class EditPage(ctk.CTkFrame):
 
         scroll_speed_title_label = ctk.CTkLabel (
                                             master=common_scrollwheel_features_frame,
-                                            text=("Scroll Speed"),
+                                            text=("Scroll Speed (Axis Multiplier)"),
                                                 font=ctk.CTkFont(
                                                         family="Roboto",
                                                             # weight="bold",
@@ -808,16 +812,16 @@ class EditPage(ctk.CTkFrame):
 
 
 
-
+        scroll_up_equals_scroll_down = True # TODO: update logic for  this.
 
         def handle_equal_unequal_vertical_scroll_speed():
             print(up_down_scrollspeed_equal_var.get())
             if up_down_scrollspeed_equal_var.get() == "on":
-                scroll_speed_up_slider.grid(row=9, column=0)
-                scroll_speed_up_value_label.grid(row=10, column=0)
-            else:
                 scroll_speed_up_slider.grid_forget()
                 scroll_speed_up_value_label.grid_forget()
+            else:
+                scroll_speed_up_slider.grid(row=9, column=0)
+                scroll_speed_up_value_label.grid(row=10, column=0)
   
 
         up_down_scrollspeed_equal_var = ctk.StringVar(value="on")
@@ -859,6 +863,8 @@ class EditPage(ctk.CTkFrame):
                 size=18,
             ),
         )
+        
+        
         scroll_speed_value_label.grid(row=8, column=0)
 
 
@@ -991,7 +997,8 @@ class EditPage(ctk.CTkFrame):
                 self.tap_label = ctk.CTkLabel(master=thumbwheel_frame, text=("Tap:"))
                 self.tap_label.grid(row=3, column=0)
 
-                thumbwheel_tap_tabview = ctk.CTkTabview(master=thumbwheel_frame)
+                thumbwheel_tap_tabview = ctk.CTkTabview(master=thumbwheel_frame,
+                                                        height=0)
                 thumbwheel_tap_tabview.grid(row=4, column=0)
 
                 for i in tap_touch_proxy_options:
@@ -1005,7 +1012,8 @@ class EditPage(ctk.CTkFrame):
                 proxy_label = ctk.CTkLabel(thumbwheel_frame, text=("Proxy:"))
                 proxy_label.grid(row=5, column=0)
 
-                thumbwheel_proxy_tabview = ctk.CTkTabview(master=thumbwheel_frame)
+                thumbwheel_proxy_tabview = ctk.CTkTabview(master=thumbwheel_frame,
+                                                          height=0)
                 thumbwheel_proxy_tabview.grid(row=6, column=0)
 
                 for i in tap_touch_proxy_options:
@@ -1019,7 +1027,8 @@ class EditPage(ctk.CTkFrame):
                 touch_label = ctk.CTkLabel(thumbwheel_frame, text=("Touch:"))
                 touch_label.grid(row=7, column=0)
 
-                thumbwheel_touch_tabview = ctk.CTkTabview(master=thumbwheel_frame)
+                thumbwheel_touch_tabview = ctk.CTkTabview(master=thumbwheel_frame,
+                                                          height=0)
                 thumbwheel_touch_tabview.grid(row=8, column=0)
 
                 for i in tap_touch_proxy_options:

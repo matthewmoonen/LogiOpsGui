@@ -8,7 +8,7 @@ class Device:
                 max_dpi=None,
                 default_dpi=None,
                 buttons=None,
-                thumbwheel=None,
+                has_thumbwheel=None,
                 smartshift_support=None,
                 hires_scroll_support=None,
                 number_of_sensors=None,
@@ -23,12 +23,11 @@ class Device:
         self._max_dpi = max_dpi
         self._default_dpi = default_dpi
         self._buttons = buttons
-        self._thumbwheel = thumbwheel
+        self._has_thumbwheel = has_thumbwheel
         self._smartshift_support = smartshift_support
         self._hires_scroll_support = hires_scroll_support
         self._number_of_sensors = number_of_sensors
 
-    # Getters
     def get_device_id(self):
         return self._device_id
 
@@ -53,8 +52,8 @@ class Device:
     def get_buttons(self):
         return self._buttons
 
-    def get_thumbwheel(self):
-        return self._thumbwheel
+    def get_has_thumbwheel(self):
+        return self._has_thumbwheel
 
     def get_smartshift_support(self):
         return self._smartshift_support
@@ -69,7 +68,7 @@ class Device:
         return self._smartshift_on
 
 
-    # Setters
+
     def set_device_id(self, device_id):
         self._device_id = device_id
 
@@ -94,8 +93,8 @@ class Device:
     def set_buttons(self, buttons):
         self._buttons = buttons
 
-    def set_thumbwheel(self, thumbwheel):
-        self._thumbwheel = thumbwheel
+    def set_has_thumbwheel(self, has_thumbwheel):
+        self._has_thumbwheel = has_thumbwheel
 
     def set_smartshift_support(self, smartshift_support):
         self._smartshift_support = smartshift_support
