@@ -312,10 +312,6 @@ table_creation_queries = [
 
 
 create_db_triggers = [
-    
-]
-
-create_db_triggers3 = [
 
 
 
