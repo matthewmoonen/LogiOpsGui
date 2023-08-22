@@ -1,4 +1,4 @@
-import LogitechDeviceData
+import DeviceData
 import logging
 import os
 import execute_db_queries
@@ -17,8 +17,6 @@ def configure_logging():
         datefmt='%Y-%m-%d %H:%M:%S'
     )
 
-
-
 def initialise_database():
 
     database_path = 'app_data/app_records.db'
@@ -26,19 +24,19 @@ def initialise_database():
     if not os.path.exists(database_path):
         conn = sqlite3.connect(database_path)
         cursor = conn.cursor()
-
-        execute_db_queries.execute_queries(cursor, create_tables)
+        
+        execute_db_queries.execute_queries(cursor, table_creation_queries)
         execute_db_queries.execute_queries(cursor, create_db_triggers)
         add_devices(cursor)
-        
+
         conn.commit()
         conn.close()
 
-    
+
 
 def add_devices(cursor):
     try:
-        for device in LogitechDeviceData.logitech_devices:
+        for device in DeviceData.logitech_devices:
 
 
 
@@ -59,30 +57,33 @@ def add_devices(cursor):
                                 thumbwheel_timestamp,
                                 smartshift_support,
                                 hires_scroll_support,
-                                number_of_sensors
+                                number_of_sensors,
+                                has_scrollwheel
 
 
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                             """, (
                             
-                            device._device_id,
-                            device._device_name,
+                            device.device_id,
+                            device.device_name,
                             0,
-                            device._config_file_device_name,
-                            str(device._product_ids),
-                            device._min_dpi,
-                            device._max_dpi,
-                            device._default_dpi,
-                            device._has_thumbwheel._has_thumbwheel,
-                            device._has_thumbwheel._tap,
-                            device._has_thumbwheel._proxy, 
-                            device._has_thumbwheel._touch, 
-                            device._has_thumbwheel._timestamp,
-                            device._smartshift_support, 
-                            device._hires_scroll_support, 
-                            device._number_of_sensors))
+                            device.config_file_device_name,
+                            str(device.device_pids),
+                            device.min_dpi,
+                            device.max_dpi,
+                            device.default_dpi,
+                            device.has_thumbwheel,
+                            device.thumbwheel_tap_support,
+                            device.thumbwheel_proxy_support,
+                            device.thumbwheel_touch_support,
+                            device.thumbwheel_timestamp_support,
+                            device.smartshift_support, 
+                            device.hires_scroll_support, 
+                            device.number_of_sensors,
+                            device.has_scrollwheel
+                            ))
             
-            for button in device._buttons:
+            for button in device.buttons:
 
                 cursor.execute("""
                                 INSERT INTO Buttons (
@@ -98,19 +99,19 @@ def add_devices(cursor):
                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                                 """, (
                                 
-                                device._device_id,
-                                button._button_cid,
-                                LogitechDeviceData.get_button_function(button._button_cid),
-                                button._reprogrammable,
-                                button._fn_key,
-                                button._mouse_key,
-                                button._gesture_support,
-                                button._accessible))
+                                device.device_id,
+                                button.button_cid,
+                                DeviceData.cid_button_functions.get(button.button_cid, "Unknown Button"),
+                                button.reprogrammable,
+                                button.fn_key,
+                                button.mouse_key,
+                                button.gesture_support,
+                                button.accessible))
 
     except sqlite3.Error as e:
         logging.error(e)
 
-create_tables = [
+table_creation_queries = [
 
 
     """
@@ -123,6 +124,7 @@ create_tables = [
             min_dpi INTEGER NOT NULL,
             max_dpi INTEGER NOT NULL,
             default_dpi INTEGER NOT NULL DEFAULT 1000,
+            has_scrollwheel INTEGER NOT NULL CHECK (has_scrollwheel IN (0, 1)),
             has_thumbwheel INTEGER NOT NULL CHECK (has_thumbwheel IN (0, 1)),
             thumbwheel_tap INTEGER,
             thumbwheel_proxy INTEGER,
@@ -130,22 +132,12 @@ create_tables = [
             thumbwheel_timestamp INTEGER,
             smartshift_support INTEGER NOT NULL DEFAULT 1,
             hires_scroll_support INTEGER NOT NULL DEFAULT 1,
-            number_of_sensors INTEGER NOT NULL DEFAULT 1 CHECK (number_of_sensors >=1)
-        );
-    """,
-
-
-    """
-        CREATE TABLE IF NOT EXISTS UserDevices (
-            user_device_id INTEGER PRIMARY KEY,
-            device_id INTEGER NOT NULL UNIQUE,
+            number_of_sensors INTEGER NOT NULL DEFAULT 1 CHECK (number_of_sensors >=1),
             date_added TEXT,
-            is_activated INTEGER NOT NULL DEFAULT 1,
-        FOREIGN KEY (device_id) REFERENCES Devices(device_id)
+            is_activated INTEGER NOT NULL DEFAULT 0,
+            last_edited TEXT
         );
     """,
-
-
 
 
     """
@@ -168,7 +160,6 @@ create_tables = [
     """
         CREATE TABLE IF NOT EXISTS Configurations (
             configuration_id INTEGER PRIMARY KEY,
-            user_device_id INTEGER NOT NULL,
             device_id INTEGER NOT NULL,
             configuration_name TEXT NOT NULL,
             date_added TEXT,
@@ -191,8 +182,7 @@ create_tables = [
             tap_action TEXT CHECK (tap_action IN ('Default', 'Axis', 'Keypress', 'ToggleSmartShift', 'ToggleHiresScroll', 'CycleDPI', 'ChangeHost') OR tap_action IS NULL) DEFAULT NULL,
             touch_action TEXT CHECK (touch_action IN ('Default', 'Axis', 'Keypress', 'ToggleSmartShift', 'ToggleHiresScroll', 'CycleDPI', 'ChangeHost') OR touch_action IS NULL) DEFAULT NULL,
         
-        FOREIGN KEY (device_id) REFERENCES Devices(device_id) ON DELETE CASCADE,
-        FOREIGN KEY (user_device_id) REFERENCES UserDevices(user_device_id) ON DELETE CASCADE
+        FOREIGN KEY (device_id) REFERENCES Devices(device_id) ON DELETE CASCADE
         );
     """,
 
@@ -322,43 +312,20 @@ create_tables = [
 
 
 create_db_triggers = [
+    
+]
 
-
-"""
-CREATE TRIGGER IF NOT EXISTS after_userdevices_insert
-AFTER INSERT ON UserDevices
-FOR EACH ROW
-BEGIN
-    UPDATE Devices
-    SET is_user_device = 1
-    WHERE device_id = NEW.device_id;
-END;
-
-
-""",
+create_db_triggers3 = [
 
 
 
 """
-CREATE TRIGGER IF NOT EXISTS after_userdevices_delete
-AFTER DELETE ON UserDevices
-FOR EACH ROW
-BEGIN
-    UPDATE Devices
-    SET is_user_device = 0
-    WHERE device_id = OLD.device_id;
-END;
-
-
-""",
-
-"""
-CREATE TRIGGER IF NOT EXISTS add_first_config
-    AFTER INSERT ON UserDevices
+CREATE TRIGGER add_first_config
+    AFTER INSERT ON Devices
     FOR EACH ROW
+    WHEN NEW.is_user_device = 1
 BEGIN
     INSERT INTO Configurations (
-        user_device_id,
         device_id,
         configuration_name,
         last_modified,
@@ -378,32 +345,90 @@ BEGIN
         touch_action
     )
     VALUES (
-        NEW.user_device_id,
         NEW.device_id,
         (SELECT device_name FROM Devices WHERE device_id = NEW.device_id),
         NULL,  -- last_modified can be NULL
         1,     -- is_selected is 1
-        CASE WHEN (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 1 ELSE NULL END,
-        CASE WHEN (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 0 ELSE NULL END,
-        CASE WHEN (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 0 ELSE NULL END,
-        CASE WHEN (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 0 ELSE NULL END,
-        CASE WHEN (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 0 ELSE NULL END,
-        CASE WHEN (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 0 ELSE NULL END,
-        CASE WHEN (SELECT has_thumbwheel FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 0 ELSE NULL END,
-        CASE WHEN (SELECT has_thumbwheel FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 0 ELSE NULL END,
-        CASE WHEN (SELECT has_thumbwheel FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 'Default' ELSE NULL END,
-        CASE WHEN (SELECT has_thumbwheel FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 'Default' ELSE NULL END,
-        CASE WHEN (SELECT thumbwheel_proxy FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 'Default' ELSE NULL END,
-        CASE WHEN (SELECT thumbwheel_tap FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 'Default' ELSE NULL END,
-        CASE WHEN (SELECT thumbwheel_touch FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 'Default' ELSE NULL END
+        CASE WHEN NEW.smartshift_support = 1 THEN 1 ELSE NULL END,
+        CASE WHEN NEW.smartshift_support = 1 THEN 0 ELSE NULL END,
+        CASE WHEN NEW.smartshift_support = 1 THEN 0 ELSE NULL END,
+        CASE WHEN NEW.hires_scroll_support = 1 THEN 0 ELSE NULL END,
+        CASE WHEN NEW.hires_scroll_support = 1 THEN 0 ELSE NULL END,
+        CASE WHEN NEW.hires_scroll_support = 1 THEN 0 ELSE NULL END,
+        CASE WHEN NEW.has_thumbwheel = 1 THEN 0 ELSE NULL END,
+        CASE WHEN NEW.has_thumbwheel = 1 THEN 0 ELSE NULL END,
+        CASE WHEN NEW.has_thumbwheel = 1 THEN 'Default' ELSE NULL END,
+        CASE WHEN NEW.has_thumbwheel = 1 THEN 'Default' ELSE NULL END,
+        CASE WHEN NEW.thumbwheel_proxy = 1 THEN 'Default' ELSE NULL END,
+        CASE WHEN NEW.thumbwheel_tap = 1 THEN 'Default' ELSE NULL END,
+        CASE WHEN NEW.thumbwheel_touch = 1 THEN 'Default' ELSE NULL END
     );
-END;
+END
+""",
 
 
+
+
+"""
+CREATE TRIGGER delete_config_on_is_user_device_update
+    AFTER UPDATE ON Devices
+    FOR EACH ROW
+    WHEN OLD.is_user_device = 1 AND NEW.is_user_device = 0
+BEGIN
+	DELETE FROM Configurations WHERE device_id = NEW.device_id;
+END
+""",
+
+"""
+CREATE TRIGGER update_config_on_is_user_device_change
+    AFTER UPDATE ON Devices
+    FOR EACH ROW
+    WHEN OLD.is_user_device = 0 AND NEW.is_user_device = 1
+BEGIN
+    INSERT INTO Configurations (
+        device_id,
+        configuration_name,
+        last_modified,
+        is_selected,
+        smartshift_on,
+        smartshift_threshold,
+        smartshift_torque,
+        hiresscroll_hires,
+        hiresscroll_invert,
+        hiresscroll_target,
+        thumbwheel_divert,
+        thumbwheel_invert,
+        scroll_left_action,
+        scroll_right_action,
+        proxy_action,
+        tap_action,
+        touch_action
+    )
+    VALUES (
+        NEW.device_id,
+        (SELECT device_name FROM Devices WHERE device_id = NEW.device_id),
+        NULL,  -- last_modified can be NULL
+        1,     -- is_selected is 1
+        CASE WHEN NEW.smartshift_support = 1 THEN 1 ELSE NULL END,
+        CASE WHEN NEW.smartshift_support = 1 THEN 0 ELSE NULL END,
+        CASE WHEN NEW.smartshift_support = 1 THEN 0 ELSE NULL END,
+        CASE WHEN NEW.hires_scroll_support = 1 THEN 0 ELSE NULL END,
+        CASE WHEN NEW.hires_scroll_support = 1 THEN 0 ELSE NULL END,
+        CASE WHEN NEW.hires_scroll_support = 1 THEN 0 ELSE NULL END,
+        CASE WHEN NEW.has_thumbwheel = 1 THEN 0 ELSE NULL END,
+        CASE WHEN NEW.has_thumbwheel = 1 THEN 0 ELSE NULL END,
+        CASE WHEN NEW.has_thumbwheel = 1 THEN 'Default' ELSE NULL END,
+        CASE WHEN NEW.has_thumbwheel = 1 THEN 'Default' ELSE NULL END,
+        CASE WHEN NEW.thumbwheel_proxy = 1 THEN 'Default' ELSE NULL END,
+        CASE WHEN NEW.thumbwheel_tap = 1 THEN 'Default' ELSE NULL END,
+        CASE WHEN NEW.thumbwheel_touch = 1 THEN 'Default' ELSE NULL END
+    );
+END
 """,
 
 
 """
+
 CREATE TRIGGER IF NOT EXISTS add_button_configs
 AFTER INSERT ON Configurations
 FOR EACH ROW
@@ -413,10 +438,9 @@ BEGIN
     FROM Buttons AS b
     WHERE b.device_id = NEW.device_id AND b.reprog = 1 AND b.accessible = 1;
 END;
-""",
 
 
-"""
+
 CREATE TRIGGER IF NOT EXISTS add_gestures
 AFTER INSERT ON ButtonConfigs
 FOR EACH ROW
@@ -442,6 +466,7 @@ END;
 CREATE TRIGGER IF NOT EXISTS add_scroll_columns_vertical
     AFTER INSERT ON Configurations
     FOR EACH ROW
+    WHEN (SELECT has_scrollwheel FROM Devices WHERE device_id = NEW.device_id) = 1
     BEGIN      
         -- Inserts columns for vertical scrollwheel
         INSERT INTO ScrollActions (configuration_id, scroll_direction, scroll_action) VALUES (NEW.configuration_id, 'Up', 'None');
@@ -499,16 +524,16 @@ AFTER DELETE ON Configurations
 BEGIN
     UPDATE Configurations
     SET is_selected = 1
-    WHERE user_device_id = OLD.user_device_id
+    WHERE device_id = OLD.device_id
     AND configuration_id = (
         SELECT MAX(configuration_id)
         FROM Configurations
-        WHERE user_device_id = OLD.user_device_id
+        WHERE device_id = OLD.device_id
     )
     AND NOT EXISTS (
         SELECT 1
         FROM Configurations
-        WHERE user_device_id = OLD.user_device_id
+        WHERE device_id = OLD.device_id
         AND is_selected = 1
     );
 END
@@ -521,7 +546,7 @@ WHEN NEW.is_selected = 1
 BEGIN
     UPDATE Configurations
     SET is_selected = 0
-    WHERE user_device_id = NEW.user_device_id
+    WHERE device_id = NEW.device_id
         AND is_selected = 1
         AND configuration_id <> NEW.configuration_id;
 END
@@ -535,20 +560,20 @@ FOR EACH ROW
 BEGIN
     SELECT COUNT(*) 
     FROM Configurations
-    WHERE user_device_id = NEW.user_device_id
+    WHERE device_id = NEW.device_id
         AND is_selected = 1;
     UPDATE Configurations
     SET is_selected = CASE
-        WHEN user_device_id = NEW.user_device_id AND configuration_id = NEW.configuration_id THEN 1
+        WHEN device_id = NEW.device_id AND configuration_id = NEW.configuration_id THEN 1
         ELSE 0
         END
-    WHERE user_device_id = NEW.user_device_id
+    WHERE device_id = NEW.device_id
         AND is_selected = 1
         AND configuration_id <> NEW.configuration_id
         AND (
             SELECT COUNT(*) 
             FROM Configurations
-            WHERE user_device_id = NEW.user_device_id
+            WHERE device_id = NEW.device_id
                 AND is_selected = 1
         ) > 1;
 END
@@ -590,17 +615,22 @@ END;
 """,
 
 
-"""
--- Trigger for inserting the current date and time on row insertion
-CREATE TRIGGER user_devices_insert_date_added
-AFTER INSERT ON UserDevices
-BEGIN
-    UPDATE UserDevices
-    SET date_added = DATETIME('now')
-    WHERE user_device_id = NEW.user_device_id;
-END;
-""",
 
+
+
+
+"""
+-- Trigger for inserting the current date and time on device added to user devices
+CREATE TRIGGER IF NOT EXISTS update_date_added_on_is_user_device_change
+    AFTER UPDATE ON Devices
+    FOR EACH ROW
+    WHEN OLD.is_user_device = 0 AND NEW.is_user_device = 1
+BEGIN
+    UPDATE Devices
+    SET date_added = DATETIME('now')
+    WHERE device_id = NEW.device_id;
+END;
+"""
 ]
 
 

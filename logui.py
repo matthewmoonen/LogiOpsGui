@@ -4,7 +4,7 @@ from tkinter import ttk
 from CTkListbox import *
 import create_app_data
 import execute_db_queries
-import LogitechDeviceData
+import DeviceData
 from typing import Union, Callable
 
 

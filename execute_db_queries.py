@@ -1,5 +1,6 @@
 import logging
 import sqlite3
+import DeviceData
 import LogitechDeviceData
 import ConfigClasses
 
@@ -134,7 +135,7 @@ def get_reprogrammable_buttons_array(device_id):
 
     for row in reprogrammable_buttons_data:
         
-        button = LogitechDeviceData.DeviceButton(
+        button = DeviceData.DeviceButton(
             button_id=row[0],
             button_cid=row[1],
             button_name=row[2],
@@ -162,7 +163,7 @@ def get_new_user_device_attributes(selected_device):
 
 
         if device:
-            device_attributes = LogitechDeviceData.Device(
+            device_attributes = DeviceData.Device(
                 device_name=selected_device,
                 device_id=device[0],
                 min_dpi=device[1],
