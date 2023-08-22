@@ -12,6 +12,13 @@ class Device:
                 smartshift_support=None,
                 hires_scroll_support=None,
                 number_of_sensors=None,
+                thumbwheel_tap=None,
+                thumbwheel_proxy=None,
+                thumbwheel_touch=None,
+                thumbwheel_timestamp=None,
+                user_device_id=None,
+                date_added=None,
+                last_edited=None
                 #  user_added_or_edited = None, TODO: THIS
                 
                  ):
@@ -27,6 +34,13 @@ class Device:
         self._smartshift_support = smartshift_support
         self._hires_scroll_support = hires_scroll_support
         self._number_of_sensors = number_of_sensors
+        self._thumbwheel_tap = thumbwheel_tap
+        self._thumbwheel_proxy = thumbwheel_proxy
+        self._thumbwheel_touch = thumbwheel_touch
+        self._thumbwheel_timestamp = thumbwheel_timestamp
+        self._user_device_id = user_device_id
+        self._date_added = date_added
+        self._last_edited = last_edited
 
     def get_device_id(self):
         return self._device_id
@@ -66,6 +80,18 @@ class Device:
     
     def get_smartshift_on(self):
         return self._smartshift_on
+
+    def get_thumbwheel_tap(self):
+        return self._thumbwheel_tap
+
+    def get_thumbwheel_proxy(self):
+        return self._thumbwheel_proxy
+    
+    def get_thumbwheel_touch(self):
+        return self._thumbwheel_touch
+
+    def get_thumbwheel_timestamp(self):
+        return self._thumbwheel_timestamp
 
 
 
@@ -299,7 +325,7 @@ logitech_devices = [
             DeviceButton("0x0052", True, False, True, True, True),
             DeviceButton("0x0053", True, False, True, True, True),
             DeviceButton("0x0056", True, False, True, True, True),
-            DeviceButton("0x00c3", True, False, True, False, True),
+            DeviceButton("0x00c3", True, False, True, True, True),
             DeviceButton("0x00c4", True, False, True, True, True),
             DeviceButton("0x00d7", True, False, False, True, False),
         ],
@@ -340,7 +366,7 @@ logitech_devices = [
             DeviceButton("0x0052", True, False, True, True, True),
             DeviceButton("0x0053", True, False, True, True, True),
             DeviceButton("0x0056", True, False, True, True, True),
-            DeviceButton("0x00c3", True, False, True, False, True),
+            DeviceButton("0x00c3", True, False, True, True, True),
             DeviceButton("0x00c4", True, False, True, True, True),
             DeviceButton("0x00d7", True, False, False, True, False),
         ],
@@ -368,7 +394,7 @@ logitech_devices = [
             DeviceButton("0x0052", True, False, True, True, True),
             DeviceButton("0x0053", True, False, True, True, True),
             DeviceButton("0x0056", True, False, True, True, True),
-            DeviceButton("0x00c3", True, False, True, False, True),
+            DeviceButton("0x00c3", True, False, True, True, True),
             DeviceButton("0x00c4", True, False, True, True, True),
             DeviceButton("0x00d7", True, False, False, True, False),
         ],
@@ -396,7 +422,7 @@ logitech_devices = [
             DeviceButton("0x0052", True, False, True, True, True),
             DeviceButton("0x0053", True, False, True, True, True),
             DeviceButton("0x0056", True, False, True, True, True),
-            DeviceButton("0x00c3", True, False, True, False, True),
+            DeviceButton("0x00c3", True, False, True, True, True),
             DeviceButton("0x00c4", True, False, True, True, True),
             DeviceButton("0x00d7", True, False, False, True, False),
         ],
@@ -423,7 +449,7 @@ logitech_devices = [
             DeviceButton("0x0052", True, False, True, True, True),
             DeviceButton("0x0053", True, False, True, True, True),
             DeviceButton("0x0056", True, False, True, True, True),
-            DeviceButton("0x00c3", True, False, True, False, True),
+            DeviceButton("0x00c3", True, False, True, True, True),
             DeviceButton("0x00c4", True, False, True, True, True),
             DeviceButton("0x00d7", True, False, False, True, False),
         ],
@@ -450,7 +476,7 @@ logitech_devices = [
             DeviceButton("0x0052", True, False, True, True, True),
             DeviceButton("0x0053", True, False, True, True, True),
             DeviceButton("0x0056", True, False, True, True, True),
-            DeviceButton("0x00c3", True, False, True, False, True),
+            DeviceButton("0x00c3", True, False, True, True, True),
             DeviceButton("0x00c4", True, False, True, True, True),
             DeviceButton("0x00d7", True, False, False, True, False),
         ],
@@ -709,7 +735,7 @@ logitech_devices = [
 
 ]
 
-
+# TODO: Change this to a dictionary.
 class Controls:
     def __init__(self, control_id, function):
         self.control_id = control_id
