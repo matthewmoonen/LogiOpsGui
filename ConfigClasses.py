@@ -17,18 +17,7 @@ class DeviceConfig():
                     hiresscroll_target=None,
                     thumbwheel_divert=None,
                     thumbwheel_invert=None,
-                    scroll_direction_up_action=None,
-                    scroll_direction_up_mode=None,
-                    scroll_direction_up_threshold=None,
-                    scroll_direction_down_action=None,
-                    scroll_direction_down_mode=None,
-                    scroll_direction_down_threshold=None,
-                    scroll_direction_left_action=None,
-                    scroll_direction_left_mode=None,
-                    scroll_direction_left_threshold=None,
-                    scroll_direction_right_action=None,
-                    scroll_direction_right_mode=None,
-                    scroll_direction_right_threshold=None,
+                    scroll_directions=None,
                  ):
         
         self.device_id = device_id
@@ -48,14 +37,61 @@ class DeviceConfig():
         self.thumbwheel_divert = thumbwheel_divert
         self.thumbwheel_invert = thumbwheel_invert
 
+# class ScrollActions:
+#     def __init__(self,
+#                  config_id,
+#                  scroll_action_id,
+#                  scroll_direction,
+
+#                  )
+class UserDevices:
+    def __init__(
+        self,
+        device_id,
+        device_name,
+        is_activated,
+        configs
+    ):
+        self.device_id = device_id
+        self.device_name = device_name
+        self.is_activated = is_activated
+        self.configs = configs
+
+
+class UserConfigs:
+    def __init__(self,
+                 device_id,
+                 config_id,
+                 config_name,
+                 is_selected,
+                 ):
+        self.device_id = device_id
+        self.config_id = config_id
+        self.config_name = config_name
+        self.is_selected = is_selected
+
+
 
 
 class ButtonConfig:
-    def __init__(self, button_config_id, button_id, config_id, action):
+    def __init__(self,
+                 button_config_id,
+                 button_id,
+                 config_id,
+                 action,
+                 button_cid,
+                 button_name,
+                 reprog,
+                 fn_key,
+                 mouse_key,
+                 gesture_support,
+                 accessible
+                 ):
         self.button_config_id = button_config_id
         self.button_id = button_id
         self.config_id = config_id
         self.action = action
+        self.button_cid = button_cid
 
 
 
