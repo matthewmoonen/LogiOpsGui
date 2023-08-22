@@ -239,23 +239,20 @@ class MainPage(ctk.CTkFrame):
             )
 
 
-
-        # for i in range(20):
-        #     self.buttons_label = ctk.CTkLabel(
-        #                                         master=devices_frame,
-        #                                         text=("Buttons:"),
-        #                                         font=ctk.CTkFont(
-        #                                                 family="Roboto",
-        #                                                     # weight="bold",
-        #                                                 size=42,
-        #                                                 ),
-        #                                                 # text_color="#1F538D",
-        #                                 # pady=30,
-        #                                 # anchor='s'
-        #                                         )
-        #     self.buttons_label.pack()
+        user_devices_and_configs = execute_db_queries.get_user_devices_and_configs()
+        for device in user_devices_and_configs:
+            device_label = ctk.CTkLabel(master=devices_frame,
+                                        text=device.device_name,
+                                        font=ctk.CTkFont(
+                                                family="Roboto",
+                                                weight="bold",
+                                                size=20,
+                                                    ),
+                                        )
+            device_label.pack()
 
 
+        
 
 
         bottom_frame = ctk.CTkFrame(
