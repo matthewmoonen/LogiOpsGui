@@ -34,7 +34,7 @@ def initialise_database():
         conn.commit()
         conn.close()
 
-
+    
 
 def add_devices(cursor):
     try:
@@ -138,8 +138,8 @@ create_tables = [
     """
         CREATE TABLE IF NOT EXISTS UserDevices (
             user_device_id INTEGER PRIMARY KEY,
-            device_id INTEGER NOT NULL,
-            date_added INTEGER NOT NULL,
+            device_id INTEGER NOT NULL UNIQUE,
+            date_added TEXT,
             is_activated INTEGER NOT NULL DEFAULT 1,
         FOREIGN KEY (device_id) REFERENCES Devices(device_id)
         );
@@ -169,18 +169,29 @@ create_tables = [
         CREATE TABLE IF NOT EXISTS Configurations (
             configuration_id INTEGER PRIMARY KEY,
             user_device_id INTEGER NOT NULL,
+            device_id INTEGER NOT NULL,
             configuration_name TEXT NOT NULL,
-            last_modified INTEGER NOT NULL,
+            date_added TEXT,
+            last_modified TEXT,
             is_selected INTEGER NOT NULL CHECK (is_selected IN (0, 1)),
             smartshift_on INTEGER CHECK (smartshift_on IN (0, 1) OR smartshift_on IS NULL),
-            smartshift_threshold INTEGER CHECK (smartshift_threshold BETWEEN 1 AND 255 OR smartshift_threshold IS NULL),
-            default_smartshift_threshold INTEGER CHECK (default_smartshift_threshold BETWEEN 1 AND 255 OR default_smartshift_threshold IS NULL),
+            -- Threshold or torque of 0 denotes smartshift support but deactivated. NULL = No smartshift support
+            smartshift_threshold INTEGER CHECK (smartshift_threshold BETWEEN 0 AND 255 OR smartshift_threshold IS NULL), 
+            smartshift_torque INTEGER CHECK (smartshift_torque BETWEEN 0 AND 255 OR smartshift_torque IS NULL),
             hiresscroll_hires INTEGER CHECK (hiresscroll_hires IN (0, 1) OR hiresscroll_hires IS NULL),
             hiresscroll_invert INTEGER CHECK (hiresscroll_invert IN (0, 1 OR hiresscroll_invert IS NULL)),
             hiresscroll_target INTEGER CHECK (hiresscroll_target IN (0, 1) OR hiresscroll_target IS NULL),
             thumbwheel_divert INTEGER CHECK (thumbwheel_divert IN (0, 1) OR thumbwheel_divert IS NULL),
             thumbwheel_invert INTEGER CHECK (thumbwheel_invert IN (0, 1) OR thumbwheel_invert IS NULL),
-
+            scroll_up_action TEXT NOT NULL CHECK (scroll_up_action IN ('Default', 'NoPress', 'AxisScroll', 'Axis', 'Keypress', 'ToggleSmartShift', 'ToggleHiresScroll', 'CycleDPI', 'ChangeHost')) DEFAULT 'Default',
+            scroll_down_action TEXT NOT NULL CHECK (scroll_down_action IN ('Default', 'NoPress', 'AxisScroll', 'Axis', 'Keypress', 'ToggleSmartShift', 'ToggleHiresScroll', 'CycleDPI', 'ChangeHost')) DEFAULT 'Default',
+            scroll_left_action TEXT CHECK (scroll_left_action IN ('Default', 'NoPress', 'AxisScroll', 'Axis', 'Keypress', 'ToggleSmartShift', 'ToggleHiresScroll', 'CycleDPI', 'ChangeHost') OR scroll_left_action IS NULL) DEFAULT 'Default',
+            scroll_right_action TEXT CHECK (scroll_right_action IN ('Default', 'NoPress', 'AxisScroll', 'Axis', 'Keypress', 'ToggleSmartShift', 'ToggleHiresScroll', 'CycleDPI', 'ChangeHost') OR scroll_right_action IS NULL) DEFAULT 'Default',
+            proxy_action TEXT CHECK (proxy_action IN ('Default', 'Axis', 'Keypress', 'ToggleSmartShift', 'ToggleHiresScroll', 'CycleDPI', 'ChangeHost') OR proxy_action IS NULL) DEFAULT NULL,
+            tap_action TEXT CHECK (tap_action IN ('Default', 'Axis', 'Keypress', 'ToggleSmartShift', 'ToggleHiresScroll', 'CycleDPI', 'ChangeHost') OR tap_action IS NULL) DEFAULT NULL,
+            touch_action TEXT CHECK (touch_action IN ('Default', 'Axis', 'Keypress', 'ToggleSmartShift', 'ToggleHiresScroll', 'CycleDPI', 'ChangeHost') OR touch_action IS NULL) DEFAULT NULL,
+        
+        FOREIGN KEY (device_id) REFERENCES Devices(device_id) ON DELETE CASCADE,
         FOREIGN KEY (user_device_id) REFERENCES UserDevices(user_device_id) ON DELETE CASCADE
         );
     """,
@@ -207,7 +218,7 @@ create_tables = [
             scroll_action_id INTEGER PRIMARY KEY,
             configuration_id INTEGER NOT NULL,
             scroll_direction TEXT CHECK (scroll_direction IN ('Up', 'Down', 'Left', 'Right', 'touch', 'tap', 'proxy')),
-            scroll_action TEXT CHECK (scroll_action in ('Default', 'None', 'Keypress', 'Axis', 'ToggleSmartShift', 'CycleDPI', 'ChangeHost')),
+            scroll_action TEXT CHECK (scroll_action in ('None', 'Keypress', 'Axis', 'ToggleSmartShift', 'CycleDPI', 'ChangeHost')),
             threshold INTEGER NOT NULL DEFAULT 50,
             mode TEXT NOT NULL DEFAULT 'OnInterval' CHECK (mode IN ('OnInterval', 'OnThreshold', 'Axis', 'NoPress')),
 
@@ -222,7 +233,7 @@ create_tables = [
             button_config_id INTEGER PRIMARY KEY,
             button_id INTEGER NOT NULL,
             configuration_id INTEGER NOT NULL,
-            action TEXT NOT NULL CHECK (action IN ('Default', 'None', 'Keypress', 'Axis', 'Gestures', 'ToggleSmartShift', 'ToggleHiresScroll', 'CycleDPI', 'ChangeHost')),
+            action TEXT NOT NULL CHECK (action IN ('Default', 'NoPress', 'Keypress', 'Axis', 'Gestures', 'ToggleSmartShift', 'ToggleHiresScroll', 'CycleDPI', 'ChangeHost')),
 
         FOREIGN KEY (button_id) REFERENCES Buttons(button_id) ON DELETE CASCADE,
         FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DELETE CASCADE
@@ -303,6 +314,11 @@ create_tables = [
 ]
 
 
+# TODO: Create a query for duplicating configs. 
+    # - New ButtonConfigs will automatically propagate with default values, so need to create Python that forces copy of these
+    # - New Gesture IDs will automatically propagate with default values, so as above
+    # - Unique constraints prevent duplicate entries (good), so just need to get the values from the tables and duplicate them
+    # OR COULD this be done somehow through triggers? Specify a way to denote a copy versus a new insertion, and then let 
 
 
 create_db_triggers = [
@@ -336,6 +352,88 @@ END;
 
 """,
 
+"""
+CREATE TRIGGER IF NOT EXISTS add_first_config
+    AFTER INSERT ON UserDevices
+    FOR EACH ROW
+BEGIN
+    INSERT INTO Configurations (
+        user_device_id,
+        device_id,
+        configuration_name,
+        last_modified,
+        is_selected,
+        smartshift_on,
+        smartshift_threshold,
+        smartshift_torque,
+        hiresscroll_hires,
+        hiresscroll_invert,
+        hiresscroll_target,
+        thumbwheel_divert,
+        thumbwheel_invert,
+        scroll_left_action,
+        scroll_right_action,
+        proxy_action,
+        tap_action,
+        touch_action
+    )
+    VALUES (
+        NEW.user_device_id,
+        NEW.device_id,
+        (SELECT device_name FROM Devices WHERE device_id = NEW.device_id),
+        NULL,  -- last_modified can be NULL
+        1,     -- is_selected is 1
+        CASE WHEN (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 1 ELSE NULL END,
+        CASE WHEN (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 0 ELSE NULL END,
+        CASE WHEN (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 0 ELSE NULL END,
+        CASE WHEN (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 0 ELSE NULL END,
+        CASE WHEN (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 0 ELSE NULL END,
+        CASE WHEN (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 0 ELSE NULL END,
+        CASE WHEN (SELECT has_thumbwheel FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 0 ELSE NULL END,
+        CASE WHEN (SELECT has_thumbwheel FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 0 ELSE NULL END,
+        CASE WHEN (SELECT has_thumbwheel FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 'Default' ELSE NULL END,
+        CASE WHEN (SELECT has_thumbwheel FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 'Default' ELSE NULL END,
+        CASE WHEN (SELECT thumbwheel_proxy FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 'Default' ELSE NULL END,
+        CASE WHEN (SELECT thumbwheel_tap FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 'Default' ELSE NULL END,
+        CASE WHEN (SELECT thumbwheel_touch FROM Devices WHERE device_id = NEW.device_id) = 1 THEN 'Default' ELSE NULL END
+    );
+END;
+
+
+""",
+
+
+"""
+CREATE TRIGGER IF NOT EXISTS add_button_configs
+AFTER INSERT ON Configurations
+FOR EACH ROW
+BEGIN
+    INSERT INTO ButtonConfigs (button_id, configuration_id, action)
+    SELECT b.button_id, NEW.configuration_id, 'Default' 
+    FROM Buttons AS b
+    WHERE b.device_id = NEW.device_id AND b.reprog = 1 AND b.accessible = 1;
+END;
+""",
+
+
+"""
+CREATE TRIGGER IF NOT EXISTS add_gestures
+AFTER INSERT ON ButtonConfigs
+FOR EACH ROW
+BEGIN
+    INSERT INTO Gestures (button_config_id, direction, action, threshold, mode)
+    SELECT NEW.button_config_id, 'Up', 'None', 50, 'OnRelease'
+    UNION ALL SELECT NEW.button_config_id, 'Down', 'None', 50, 'OnRelease'
+    UNION ALL SELECT NEW.button_config_id, 'Left', 'None', 50, 'OnRelease'
+    UNION ALL SELECT NEW.button_config_id, 'Right', 'None', 50, 'OnRelease'
+    UNION ALL SELECT NEW.button_config_id, 'None', 'None', 50, 'OnRelease'
+    WHERE EXISTS (
+        SELECT 1 FROM Buttons AS b
+        WHERE b.button_id = NEW.button_id AND b.gesture_support = 1
+    );
+END;
+
+""",
 
 
 
@@ -346,8 +444,8 @@ CREATE TRIGGER IF NOT EXISTS add_scroll_columns_vertical
     FOR EACH ROW
     BEGIN      
         -- Inserts columns for vertical scrollwheel
-        INSERT INTO ScrollActions (configuration_id, scroll_direction, scroll_action) VALUES (NEW.configuration_id, 'Up', 'Default');
-        INSERT INTO ScrollActions (configuration_id, scroll_direction, scroll_action) VALUES (NEW.configuration_id, 'Down', 'Default');
+        INSERT INTO ScrollActions (configuration_id, scroll_direction, scroll_action) VALUES (NEW.configuration_id, 'Up', 'None');
+        INSERT INTO ScrollActions (configuration_id, scroll_direction, scroll_action) VALUES (NEW.configuration_id, 'Down', 'None');
     END;
 
 """,
@@ -357,10 +455,10 @@ CREATE TRIGGER IF NOT EXISTS add_scroll_columns_vertical
 CREATE TRIGGER IF NOT EXISTS add_scroll_columns_horizontal
     AFTER INSERT ON Configurations
     FOR EACH ROW
-    WHEN (SELECT has_thumbwheel FROM UserDevices WHERE user_device_id = NEW.user_device_id) = 1
+    WHEN (SELECT has_thumbwheel FROM Devices WHERE device_id = NEW.device_id) = 1
     BEGIN
-        INSERT INTO ScrollActions (configuration_id, scroll_direction, scroll_action) VALUES (NEW.configuration_id, 'Left', 'Default');
-        INSERT INTO ScrollActions (configuration_id, scroll_direction, scroll_action) VALUES (NEW.configuration_id, 'Right', 'Default');
+        INSERT INTO ScrollActions (configuration_id, scroll_direction, scroll_action) VALUES (NEW.configuration_id, 'Left', 'None');
+        INSERT INTO ScrollActions (configuration_id, scroll_direction, scroll_action) VALUES (NEW.configuration_id, 'Right', 'None');
     END;
 
 """,
@@ -369,7 +467,7 @@ CREATE TRIGGER IF NOT EXISTS add_scroll_columns_horizontal
 CREATE TRIGGER IF NOT EXISTS add_thumbwheel_column_tap
     AFTER INSERT ON Configurations
     FOR EACH ROW
-    WHEN (SELECT thumbwheel_tap FROM UserDevices WHERE user_device_id = NEW.user_device_id) = 1
+    WHEN (SELECT thumbwheel_tap FROM Devices WHERE device_id = NEW.device_id) = 1
     BEGIN
         INSERT INTO ScrollActions (configuration_id, scroll_direction, scroll_action) VALUES (NEW.configuration_id, 'tap', 'None');
     END;
@@ -379,7 +477,7 @@ CREATE TRIGGER IF NOT EXISTS add_thumbwheel_column_tap
 CREATE TRIGGER IF NOT EXISTS add_thumbwheel_column_touch
     AFTER INSERT ON Configurations
     FOR EACH ROW
-    WHEN (SELECT thumbwheel_touch FROM UserDevices WHERE user_device_id = NEW.user_device_id) = 1
+    WHEN (SELECT thumbwheel_touch FROM Devices WHERE device_id = NEW.device_id) = 1
     BEGIN
         INSERT INTO ScrollActions (configuration_id, scroll_direction, scroll_action) VALUES (NEW.configuration_id, 'touch', 'None');
     END;
@@ -389,14 +487,119 @@ CREATE TRIGGER IF NOT EXISTS add_thumbwheel_column_touch
 CREATE TRIGGER IF NOT EXISTS add_thumbwheel_column_proxy
     AFTER INSERT ON Configurations
     FOR EACH ROW
-    WHEN (SELECT thumbwheel_proxy FROM UserDevices WHERE user_device_id = NEW.user_device_id) = 1
+    WHEN (SELECT thumbwheel_proxy FROM Devices WHERE device_id = NEW.device_id) = 1
     BEGIN
         INSERT INTO ScrollActions (configuration_id, scroll_direction, scroll_action) VALUES (NEW.configuration_id, 'proxy', 'None');
     END;
 """,
 
+"""
+CREATE TRIGGER configuration_update_selected_after_delete
+AFTER DELETE ON Configurations
+BEGIN
+    UPDATE Configurations
+    SET is_selected = 1
+    WHERE user_device_id = OLD.user_device_id
+    AND configuration_id = (
+        SELECT MAX(configuration_id)
+        FROM Configurations
+        WHERE user_device_id = OLD.user_device_id
+    )
+    AND NOT EXISTS (
+        SELECT 1
+        FROM Configurations
+        WHERE user_device_id = OLD.user_device_id
+        AND is_selected = 1
+    );
+END
+""",
+
+"""
+CREATE TRIGGER configuration_update_selected_after_insert
+AFTER INSERT ON Configurations
+WHEN NEW.is_selected = 1
+BEGIN
+    UPDATE Configurations
+    SET is_selected = 0
+    WHERE user_device_id = NEW.user_device_id
+        AND is_selected = 1
+        AND configuration_id <> NEW.configuration_id;
+END
+""",
 
 
+"""
+CREATE TRIGGER configuration_update_selected_after_update
+AFTER UPDATE ON Configurations
+FOR EACH ROW
+BEGIN
+    SELECT COUNT(*) 
+    FROM Configurations
+    WHERE user_device_id = NEW.user_device_id
+        AND is_selected = 1;
+    UPDATE Configurations
+    SET is_selected = CASE
+        WHEN user_device_id = NEW.user_device_id AND configuration_id = NEW.configuration_id THEN 1
+        ELSE 0
+        END
+    WHERE user_device_id = NEW.user_device_id
+        AND is_selected = 1
+        AND configuration_id <> NEW.configuration_id
+        AND (
+            SELECT COUNT(*) 
+            FROM Configurations
+            WHERE user_device_id = NEW.user_device_id
+                AND is_selected = 1
+        ) > 1;
+END
+""",
+
+
+
+"""
+-- Trigger for inserting the current date and time on row insertion
+CREATE TRIGGER configuration_insert_last_modified
+AFTER INSERT ON Configurations
+BEGIN
+    UPDATE Configurations
+    SET last_modified = DATETIME('now')
+    WHERE configuration_id = NEW.configuration_id;
+END;
+""",
+
+"""
+-- Trigger for inserting the current date and time on row update
+CREATE TRIGGER configuration_update_last_modified
+AFTER UPDATE ON Configurations
+BEGIN
+    UPDATE Configurations
+    SET last_modified = DATETIME('now')
+    WHERE configuration_id = NEW.configuration_id;
+END;
+""",
+
+"""
+-- Trigger for inserting the current date and time on row insertion
+CREATE TRIGGER configuration_insert_date_added
+AFTER INSERT ON Configurations
+BEGIN
+    UPDATE Configurations
+    SET date_added = DATETIME('now')
+    WHERE configuration_id = NEW.configuration_id;
+END;
+""",
+
+
+"""
+-- Trigger for inserting the current date and time on row insertion
+CREATE TRIGGER user_devices_insert_date_added
+AFTER INSERT ON UserDevices
+BEGIN
+    UPDATE UserDevices
+    SET date_added = DATETIME('now')
+    WHERE user_device_id = NEW.user_device_id;
+END;
+""",
 
 ]
 
