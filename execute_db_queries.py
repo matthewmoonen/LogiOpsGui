@@ -57,6 +57,57 @@ def get_button_configs(config_id, button_id):
 
     return button_configs_array
 
+
+def get_user_devices_and_configs():
+        
+    conn, cursor = create_db_connection()
+    cursor.execute("""
+        SELECT Devices.device_id, Devices.device_name, UserDevices.is_activated
+        FROM Devices
+        JOIN UserDevices ON Devices.device_id = UserDevices.device_id
+        ORDER BY UserDevices.date_added DESC
+    """)
+    devices = cursor.fetchall()
+
+    user_devices_objects = []
+    for device in devices:
+        device_id, device_name, is_activated = device
+
+        # Fetch UserConfigs for the current device
+        cursor.execute("""
+            SELECT configuration_id, configuration_name, is_selected
+            FROM Configurations
+            WHERE device_id = ?
+            ORDER BY is_selected DESC, last_modified DESC
+        """, (device_id,))
+        configs_data = cursor.fetchall()
+        
+        configs = []
+        for config_data in configs_data:
+            config_id, config_name, is_selected = config_data
+            user_config = ConfigClasses.UserConfigs(device_id, config_id, config_name, is_selected)
+            configs.append(user_config)
+
+        user_device = ConfigClasses.UserDevices(device_id, device_name, is_activated, configs)
+        user_devices_objects.append(user_device)
+
+    close_without_committing_changes(conn)
+    return user_devices_objects
+
+    # for user_device in user_devices_objects:
+    #     print(
+    #         f"Device ID: {user_device.device_id}, "
+    #         f"Device Name: {user_device.device_name}, "
+    #         f"Is Activated: {user_device.is_activated}"
+    #     )
+    #     print("Configs:")
+    #     for config in user_device.configs:
+    #         print(
+    #             f"  Config ID: {config.config_id}, "
+    #             f"Config Name: {config.config_name}, "
+    #             f"Is Selected: {config.is_selected}"
+    #         )
+
 def get_existing_device_config(config_id):
     conn, cursor = create_db_connection()
 
@@ -218,9 +269,17 @@ def get_unconfigured_devices():
     
     return [row[0] for row in non_user_devices]
 
+def get_configured_devices_and_configs():
+
+    conn, cursor = create_db_connection()
+
+    cursor.execute("""
+        SELECT 
+                   """)
+
 def main():
 
-    pass
+    get_user_devices_and_configs()
     # button_configs_array = get_button_configs(15, 115)
     # for i in button_configs_array:
     #     print(i.button_config_id)
