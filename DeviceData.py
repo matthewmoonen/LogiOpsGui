@@ -1,3 +1,5 @@
+
+
 class Device:
     def __init__(
                 self,
@@ -88,7 +90,6 @@ class UserDevice(Device):
                 min_dpi,
                 max_dpi,
                 default_dpi,
-                buttons,
                 has_scrollwheel,
                 smartshift_support,
                 hires_scroll_support,
@@ -99,10 +100,10 @@ class UserDevice(Device):
                 thumbwheel_timestamp_support,
                 number_of_sensors,
                 is_user_device,
-                date_added,
-                is_activated,
-                last_edited,
-                configurations
+                date_added=None,
+                is_activated=None,
+                last_edited=None,
+                configurations=None
     ):
         super().__init__(
             device_id,
@@ -111,7 +112,6 @@ class UserDevice(Device):
             min_dpi,
             max_dpi,
             default_dpi,
-            buttons,
             has_scrollwheel,
             smartshift_support,
             hires_scroll_support,
@@ -149,10 +149,10 @@ class UserDevice(Device):
     
     @property
     def configurations(self):
-        if isinstance(self._configurations, list) and len(self._configurations) >= 1: 
-            return self._configurations
-        else:
-            raise ValueError("Configurations must be an array and cannot be empty")
+        return self._configurations
+        # if isinstance(self._configurations, list) and len(self._configurations) >= 1: 
+        # else:
+        #     raise ValueError("Configurations must be an array and cannot be empty")
 
     class DeviceConfig:
         def __init__(self,

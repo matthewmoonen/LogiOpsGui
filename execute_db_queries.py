@@ -63,10 +63,10 @@ def get_user_devices_and_configs():
         
     conn, cursor = create_db_connection()
     cursor.execute("""
-        SELECT Devices.device_id, Devices.device_name, UserDevices.is_activated
+        SELECT device_id, device_name, is_activated
         FROM Devices
-        JOIN UserDevices ON Devices.device_id = UserDevices.device_id
-        ORDER BY UserDevices.date_added DESC
+        WHERE is_user_device = 1
+        ORDER BY date_added DESC
     """)
     devices = cursor.fetchall()
 
@@ -277,10 +277,63 @@ def get_configured_devices_and_configs():
     cursor.execute("""
         SELECT 
                    """)
+    
+
+
+# TODO CREATE trigger to automatically propagate default_dpi to be current DPI on addition of new configuration.
+
+def get_object():
+    conn, cursor = create_db_connection()
+
+    cursor.execute("""
+        SELECT device_id, device_name, min_dpi, max_dpi, has_scrollwheel, has_thumbwheel, thumbwheel_tap, thumbwheel_proxy, thumbwheel_touch, smartshift_support, hires_scroll_support, is_activated, date_added, is_activated, last_edited, last_edited
+                   FROM Devices
+                   WHERE is_user_device = 1
+                   ORDER BY date_added DESC
+""")
+
+
+    sql_query_results = cursor.fetchall()
+
+    user_devices = []
+    for result in sql_query_results:
+        device_id, device_name, min_dpi, max_dpi, has_scrollwheel, has_thumbwheel, thumbwheel_tap, thumbwheel_proxy, thumbwheel_touch, smartshift_support, hires_scroll_support, is_activated, date_added, is_activated, last_edited, configurations = result
+        
+        # Creating the UserDevice instance
+        user_device = DeviceData.UserDevice(
+            device_id, device_name, min_dpi, max_dpi, has_scrollwheel, has_thumbwheel,
+            thumbwheel_tap, thumbwheel_proxy, thumbwheel_touch, smartshift_support,
+            hires_scroll_support, is_activated, [1, 2, 3], date_added, last_edited,
+            configurations
+        )
+        
+        user_devices.append(user_device)
+
+    # Print out the attributes of the created instance(s)
+    for user_device in user_devices:
+        print("Device ID:", user_device.device_id)
+        print("Device Name:", user_device.device_name)
+        print("Min DPI:", user_device.min_dpi)
+        print("Max DPI:", user_device.max_dpi)
+        # ... (print other attributes as needed)
+        # print("Buttons:", user_device.buttons)
+        print("Date Added:", user_device.date_added)
+        print("Is Activated:", user_device.is_activated)
+        print("Last Edited:", user_device.last_edited)
+        print("Configurations:", user_device.configurations)
+        print("=" * 50)  # Separate output for each instance
+
+
+
+
+
+
+
+
 
 def main():
-
-    get_user_devices_and_configs()
+    get_object()
+    # get_user_devices_and_configs()
     # button_configs_array = get_button_configs(15, 115)
     # for i in button_configs_array:
     #     print(i.button_config_id)

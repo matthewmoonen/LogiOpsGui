@@ -1159,28 +1159,27 @@ class EditPage(ctk.CTkFrame):
 
 
 
-def setup_gui():
-    root = ctk.CTk()
+def setup_gui(root):
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("dark-blue")
 
     root.geometry("1280x1280")
     root.resizable(True, True)
     root.title("LogiOpsGUI")
-    return root
-
-def main():
-    root = setup_gui()
-
-    # Configure logging for the application
-    create_app_data.configure_logging()
-
-    # Connect to the SQL database and build the required tables
-    create_app_data.initialise_database()
 
     main_page = MainPage(root)
     main_page.pack(fill="both", expand=True)
 
+def main():
+
+    root = ctk.CTk()
+    
+    create_app_data.configure_logging() # Configure logging for the application
+
+    create_app_data.initialise_database() # Create DB, build required tables and triggers, add devices from DeviceData.py
+    
+    setup_gui(root) # Configure GUI settings and pack main page into window.
+    
     root.mainloop()
 
 if __name__ == "__main__":
