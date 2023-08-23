@@ -37,9 +37,6 @@ class Device:
         self.number_of_sensors = number_of_sensors
 
 
-
-
-
 class InitialiseDatabase(Device):
     def __init__(
                     self,
@@ -81,7 +78,121 @@ class InitialiseDatabase(Device):
         self.buttons = buttons
         self.device_pids = device_pids
 
-class UserDevice(Device):
+
+class EditPageDevice(Device):
+    def __init__(
+                self,
+                device_id,
+                device_name,
+                config_file_device_name,
+                min_dpi,
+                max_dpi,
+                default_dpi,
+                has_scrollwheel,
+                smartshift_support,
+                hires_scroll_support,
+                has_thumbwheel,
+                thumbwheel_tap_support,
+                thumbwheel_proxy_support,
+                thumbwheel_touch_support,
+                thumbwheel_timestamp_support,
+                number_of_sensors,
+                is_user_device,
+                date_added=None,
+                is_activated=None,
+                last_edited=None,
+                configurations=None
+    ):
+        super().__init__(
+            device_id,
+            device_name,
+            config_file_device_name,
+            min_dpi,
+            max_dpi,
+            default_dpi,
+            has_scrollwheel,
+            smartshift_support,
+            hires_scroll_support,
+            has_thumbwheel,
+            thumbwheel_tap_support,
+            thumbwheel_proxy_support,
+            thumbwheel_touch_support,
+            thumbwheel_timestamp_support,
+            number_of_sensors,
+        )
+        self._is_user_device = is_user_device
+        self._date_added = date_added
+        self._is_activated = is_activated
+        self._last_edited = last_edited
+        self._configurations = configurations
+
+    @property
+    def is_user_device(self):
+        if isinstance(self._is_user_device, bool):
+            return self._is_user_device
+        else:
+            raise ValueError("is_user_device must be a bool")
+
+    @property
+    def date_added(self):
+        return self._date_added
+        
+    @property
+    def is_activated(self):
+        return self._is_activated
+    
+    @property
+    def last_edited(self):
+        return self._last_edited
+    
+    @property
+    def configurations(self):
+        if isinstance(self._configurations, list) and len(self._configurations) >= 1: 
+            return self._configurations
+        else:
+            raise ValueError("Configurations must be an array and cannot be empty")
+
+class DeviceConfig:
+    def __init__(self,
+            config_id,
+            config_name,
+            dpi,
+            date_added,
+            is_activated,
+            last_modified,
+            is_selected,
+            smartshift_on,
+            smartshift_threshold,
+            default_smartshift_threshold,
+            hiresscroll_hires,
+            hiresscroll_invert,
+            hiresscroll_target,
+            thumbwheel_divert,
+            thumbwheel_invert,
+            ):
+
+        self.config_id = config_id
+        self.config_name = config_name
+        self.dpi = dpi
+        self.date_added = date_added
+        self.is_activated = is_activated
+        self.last_modified = last_modified
+        self.is_selected = is_selected
+        self.smartshift_on = smartshift_on
+        self.smartshift_threshold = smartshift_threshold
+        self.default_smartshift_threshold = default_smartshift_threshold
+        self.hiresscroll_hires = hiresscroll_hires
+        self.hiresscroll_invert = hiresscroll_invert
+        self.hiresscroll_target = hiresscroll_target
+        self.thumbwheel_divert = thumbwheel_divert
+        self.thumbwheel_invert = thumbwheel_invert
+
+
+
+
+
+
+class MainPageDevice(Device):
     def __init__(
                 self,
                 device_id,
@@ -153,42 +264,6 @@ class UserDevice(Device):
         # if isinstance(self._configurations, list) and len(self._configurations) >= 1: 
         # else:
         #     raise ValueError("Configurations must be an array and cannot be empty")
-
-    class DeviceConfig:
-        def __init__(self,
-                config_id,
-                config_name,
-                dpi,
-                date_added,
-                is_activated,
-                last_modified,
-                is_selected,
-                smartshift_on,
-                smartshift_threshold,
-                default_smartshift_threshold,
-                hiresscroll_hires,
-                hiresscroll_invert,
-                hiresscroll_target,
-                thumbwheel_divert,
-                thumbwheel_invert,
-                ):
-    
-            self.config_id = config_id
-            self.config_name = config_name
-            self.dpi = dpi
-            self.date_added = date_added
-            self.is_activated = is_activated
-            self.last_modified = last_modified
-            self.is_selected = is_selected
-            self.smartshift_on = smartshift_on
-            self.smartshift_threshold = smartshift_threshold
-            self.default_smartshift_threshold = default_smartshift_threshold
-            self.hiresscroll_hires = hiresscroll_hires
-            self.hiresscroll_invert = hiresscroll_invert
-            self.hiresscroll_target = hiresscroll_target
-            self.thumbwheel_divert = thumbwheel_divert
-            self.thumbwheel_invert = thumbwheel_invert
-
 
 
 
