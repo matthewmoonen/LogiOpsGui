@@ -320,20 +320,26 @@ def get_configurations(device_id):
     # TODO: Update selection order.
 
     cursor.execute("""
-        SELECT config_id, config_name, dpi, date_added, is_activated, last_modified, is_selected, smartshift_on, smartshift_threshold, hiresscroll_hires, hiresscroll_invert, hiresscroll_target, thumbwheel_divert, thumbwheel_invert
-                   FROM Configurations
-                   WHERE user_device = ?
-                   ORDER BY is_selected DESC
-""")
+        SELECT configuration_id, configuration_name, date_added, is_selected, last_modified, is_selected, dpi, smartshift_on, smartshift_threshold, hiresscroll_hires, hiresscroll_invert, hiresscroll_target, thumbwheel_divert, thumbwheel_invert, scroll_up_action, scroll_down_action, scroll_left_action, scroll_right_action, proxy_action, tap_action, touch_action
+        FROM Configurations
+        WHERE device_id = ?
+        ORDER BY is_selected DESC
+    """, (device_id,))
+
 
 
     sql_query_results = cursor.fetchall()
+    print(sql_query_results)
 
+    for result in sql_query_results:
+        user_config = DeviceData.DeviceConfig(
+            config_id=result[0], config_name=result[1], 
+        )
 
-
+    conn.close()
 
 def main():
-    get_configurations(1)
+    get_configurations(4)
     # get_object()
     # get_user_devices_and_configs()
     # button_configs_array = get_button_configs(15, 115)

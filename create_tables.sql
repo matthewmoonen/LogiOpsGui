@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS Configurations (
     date_added TEXT,
     last_modified TEXT,
     is_selected INTEGER NOT NULL CHECK (is_selected IN (0, 1)),
+    dpi INTEGER,
     smartshift_on INTEGER CHECK (smartshift_on IN (0, 1) OR smartshift_on IS NULL),
     -- Threshold or torque of 0 denotes smartshift support but deactivated. NULL = No smartshift support
     smartshift_threshold INTEGER CHECK (smartshift_threshold BETWEEN 0 AND 255 OR smartshift_threshold IS NULL), 

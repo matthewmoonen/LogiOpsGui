@@ -304,3 +304,14 @@ BEGIN
     SET date_added = DATETIME('now')
     WHERE device_id = NEW.device_id;
 END;
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS auto_insert_default_dpi
+AFTER INSERT ON Configurations
+FOR EACH ROW
+BEGIN
+    UPDATE Configurations
+    SET dpi = (SELECT default_dpi FROM Devices WHERE device_id = NEW.device_id)
+    WHERE configuration_id = NEW.configuration_id;
+END;
