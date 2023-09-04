@@ -152,42 +152,52 @@ class EditPageDevice(Device):
         else:
             raise ValueError("Configurations must be an array and cannot be empty")
 
+
 class DeviceConfig:
     def __init__(self,
-            config_id,
-            config_name,
-            dpi,
-            date_added,
-            is_activated,
-            last_modified,
-            is_selected,
-            smartshift_on,
-            smartshift_threshold,
-            default_smartshift_threshold,
-            hiresscroll_hires,
-            hiresscroll_invert,
-            hiresscroll_target,
-            thumbwheel_divert,
-            thumbwheel_invert,
-            ):
-
-        self.config_id = config_id
-        self.config_name = config_name
+                 configuration_id,
+                 configuration_name,
+                 dpi,
+                 date_added,
+                 last_modified,
+                 is_selected,
+                 smartshift_on,
+                 smartshift_threshold,
+                 smartshift_torque,
+                 hiresscroll_hires,
+                 hiresscroll_invert,
+                 hiresscroll_target,
+                 thumbwheel_divert,
+                 thumbwheel_invert,
+                 scroll_up_action,
+                 scroll_down_action,
+                 scroll_left_action,
+                 scroll_right_action,
+                 proxy_action,
+                 tap_action,
+                 touch_action):
+        
+        self.configuration_id = configuration_id
+        self.configuration_name = configuration_name
         self.dpi = dpi
         self.date_added = date_added
-        self.is_activated = is_activated
         self.last_modified = last_modified
         self.is_selected = is_selected
         self.smartshift_on = smartshift_on
         self.smartshift_threshold = smartshift_threshold
-        self.default_smartshift_threshold = default_smartshift_threshold
+        self.smartshift_torque = smartshift_torque
         self.hiresscroll_hires = hiresscroll_hires
         self.hiresscroll_invert = hiresscroll_invert
         self.hiresscroll_target = hiresscroll_target
         self.thumbwheel_divert = thumbwheel_divert
         self.thumbwheel_invert = thumbwheel_invert
-
-
+        self.scroll_up_action = scroll_up_action
+        self.scroll_down_action = scroll_down_action
+        self.scroll_left_action = scroll_left_action
+        self.scroll_right_action = scroll_right_action
+        self.proxy_action = proxy_action
+        self.tap_action = tap_action
+        self.touch_action = touch_action
 
 
 
@@ -270,40 +280,71 @@ class MainPageDevice(Device):
 
 class DeviceButton:
     def __init__(
-                    self, 
+                    self,
+                    device_id, 
                     button_cid, 
-                    reprogrammable, 
-                    fn_key, 
-                    mouse_key, 
+                    button_name,
                     gesture_support, 
-                    accessible, 
-                    button_id=None, 
-                    button_name=None, 
-                    button_action=None
                     ):
-        
+        self.device_id = device_id
         self.button_cid = button_cid
+        self.button_name = button_name
+        self.gesture_support = gesture_support
+ 
+
+# TODO: a better name for this class.
+class InitialiseButtonsDatabase(DeviceButton):
+    def __init__(
+        self,
+        button_cid, 
+        gesture_support, 
+        reprogrammable, 
+        fn_key, 
+        mouse_key, 
+        accessible, 
+        device_id=None,
+        button_name=None,
+        ):
+        super().__init__(
+            device_id,
+            button_cid,
+            button_name,
+            gesture_support,
+    )
         self.reprogrammable = reprogrammable
         self.fn_key = fn_key
         self.mouse_key = mouse_key
-        self.gesture_support = gesture_support
         self.accessible = accessible
-        self.button_id = button_id
-        self.button_name = button_name
-        self.button_action = button_action
+
+class ButtonConfig(InitialiseButtonsDatabase):
+    def __init__(
+            self,
+            device_id,
+            button_cid,
+            button_name,
+            gesture_support,
+            button_id,
+            configuration_id,
+            button_config_id,
+            button_action,
+    ):
+       super().__init__(
+           device_id,
+           button_cid,
+           button_name,
+           gesture_support
+       )
+       self.button_id = button_id
+       self.configuration_id = configuration_id
+       self.button_config_id = button_config_id
+       self.button_action = button_action
 
 
 
 
-        #   Accessible refers to whether the button is physically accessible on the mouse when in normal use.
-        #   For example, 0x00d7 is normally the control ID for the button to switch between host devices/computers, and theoretically has gesture support.
-        #   However it is usually located on the bottom of the mouse. 
-        
-
-    # Getters
-
-
-
+#   Accessible refers to whether the button is physically accessible on the mouse when in normal use.
+#   For example, 0x00d7 is normally the control ID for the button to switch between host devices/computers, and theoretically has gesture support.
+#   However it is usually located on the bottom of the mouse. 
 
 # Creating instances of LogitechDevice for each device
 logitech_devices = [ 
@@ -317,14 +358,14 @@ max_dpi = 8000,
 default_dpi = 1000,
 has_scrollwheel=True,
 buttons = [
-DeviceButton("0x0050", False, False, True, False, True),
-DeviceButton("0x0051", False, False, True, False, True),
-DeviceButton("0x0052", True, False, True, True, True),
-DeviceButton("0x0053", True, False, True, True, True),
-DeviceButton("0x0056", True, False, True, True, True),
-DeviceButton("0x00c3", True, False, True, True, True),
-DeviceButton("0x00c4", True, False, True, True, True),
-DeviceButton("0x00d7", True, False, False, True, False),
+InitialiseButtonsDatabase(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00c3", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
 ],
 has_thumbwheel = True,
 thumbwheel_tap_support = True,
@@ -351,14 +392,14 @@ default_dpi =              1000,
 has_scrollwheel=True,
 
 buttons =      [
-DeviceButton("0x0050", False, False, True, False, True),
-DeviceButton("0x0051", False, False, True, False, True),
-DeviceButton("0x0052", True, False, True, True, True),
-DeviceButton("0x0053", True, False, True, True, True),
-DeviceButton("0x0056", True, False, True, True, True),
-DeviceButton("0x00c3", True, False, True, True, True),
-DeviceButton("0x00c4", True, False, True, True, True),
-DeviceButton("0x00d7", True, False, False, True, False),
+InitialiseButtonsDatabase(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00c3", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
 ],
 
 has_thumbwheel = True,
@@ -387,14 +428,14 @@ default_dpi =         1000,
 has_scrollwheel=True,
 
 buttons =     [
-DeviceButton("0x0050", False, False, True, False, True),
-DeviceButton("0x0051", False, False, True, False, True),
-DeviceButton("0x0052", True, False, True, True, True),
-DeviceButton("0x0053", True, False, True, True, True),
-DeviceButton("0x0056", True, False, True, True, True),
-DeviceButton("0x00c3", True, False, True, True, True),
-DeviceButton("0x00c4", True, False, True, True, True),
-DeviceButton("0x00d7", True, False, False, True, False),
+InitialiseButtonsDatabase(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00c3", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
 ],
 
 has_thumbwheel = True,
@@ -426,14 +467,14 @@ default_dpi =           1000,
 has_scrollwheel=True,
 
 buttons =      [
-DeviceButton("0x0050", False, False, True, False, True),
-DeviceButton("0x0051", False, False, True, False, True),
-DeviceButton("0x0052", True, False, True, True, True),
-DeviceButton("0x0053", True, False, True, True, True),
-DeviceButton("0x0056", True, False, True, True, True),
-DeviceButton("0x00c3", True, False, True, True, True),
-DeviceButton("0x00c4", True, False, True, True, True),
-DeviceButton("0x00d7", True, False, False, True, False),
+InitialiseButtonsDatabase(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00c3", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
 ],
 
 has_thumbwheel = True,
@@ -463,14 +504,14 @@ default_dpi = 1000,
 has_scrollwheel=True,
 
 buttons =      [
-DeviceButton("0x0050", False, False, True, False, True),
-DeviceButton("0x0051", False, False, True, False, True),
-DeviceButton("0x0052", True, False, True, True, True),
-DeviceButton("0x0053", True, False, True, True, True),
-DeviceButton("0x0056", True, False, True, True, True),
-DeviceButton("0x00c3", True, False, True, True, True),
-DeviceButton("0x00c4", True, False, True, True, True),
-DeviceButton("0x00d7", True, False, False, True, False),
+InitialiseButtonsDatabase(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00c3", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
 ],
 
 has_thumbwheel = True,
@@ -500,14 +541,14 @@ default_dpi = 1000,
 has_scrollwheel=True,
 
 buttons =     [
-DeviceButton("0x0050", False, False, True, False, True),
-DeviceButton("0x0051", False, False, True, False, True),
-DeviceButton("0x0052", True, False, True, True, True),
-DeviceButton("0x0053", True, False, True, True, True),
-DeviceButton("0x0056", True, False, True, True, True),
-DeviceButton("0x00c3", True, False, True, True, True),
-DeviceButton("0x00c4", True, False, True, True, True),
-DeviceButton("0x00d7", True, False, False, True, False),
+InitialiseButtonsDatabase(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00c3", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
 ],
 
 has_thumbwheel = True,
@@ -537,15 +578,15 @@ default_dpi = 1000,
 has_scrollwheel=True,
 
 buttons =         [
-DeviceButton("0x0050", False, False, True, False, True),
-DeviceButton("0x0051", False, False, True, False, True),
-DeviceButton("0x0052", True, False, True, True, True),
-DeviceButton("0x0053", True, False, True, True, True),
-DeviceButton("0x0056", True, False, True, True, True),
-DeviceButton("0x005b", True, False, True, True, True),
-DeviceButton("0x005d", True, False, True, True, True),
-DeviceButton("0x00c4", True, False, True, True, True),
-DeviceButton("0x00d7", True, False, False, True, False),
+InitialiseButtonsDatabase(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x005b", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x005d", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
 ], 
 
 has_thumbwheel = False,
@@ -576,15 +617,15 @@ default_dpi = 1000,
 has_scrollwheel=True,
 
 buttons =       [
-DeviceButton("0x0050", False, False, True, False, True),
-DeviceButton("0x0051", False, False, True, False, True),
-DeviceButton("0x0052", True, False, True, True, True),
-DeviceButton("0x0053", True, False, True, True, True),
-DeviceButton("0x0056", True, False, True, True, True),
-DeviceButton("0x005b", True, False, True, True, True),
-DeviceButton("0x005d", True, False, True, True, True),
-DeviceButton("0x00c4", True, False, True, True, True),
-DeviceButton("0x00d7", True, False, False, True, False),
+InitialiseButtonsDatabase(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x005b", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x005d", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
 ], 
 
 has_thumbwheel = False,
@@ -615,15 +656,15 @@ default_dpi = 1000,
 has_scrollwheel=True,
 
 buttons =      [
-DeviceButton("0x0050", False, False, True, False, True),
-DeviceButton("0x0051", False, False, True, False, True),
-DeviceButton("0x0052", True, False, True, True, True),
-DeviceButton("0x0053", True, False, True, True, True),
-DeviceButton("0x0056", True, False, True, True, True),
-DeviceButton("0x005b", True, False, True, True, True),
-DeviceButton("0x005d", True, False, True, True, True),
-DeviceButton("0x00c4", True, False, True, True, True),
-DeviceButton("0x00d7", True, False, False, True, False),
+InitialiseButtonsDatabase(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x005b", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x005d", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
 ], 
 
 has_thumbwheel = False,
@@ -650,15 +691,15 @@ min_dpi =   200, max_dpi = 4000, default_dpi =1000,
 has_scrollwheel=True,
 
 buttons =       [
-DeviceButton("0x0050", False, False, True, False, True),
-DeviceButton("0x0051", False, False, True, False, True),
-DeviceButton("0x0052", True, False, True, True, True),
-DeviceButton("0x0053", True, False, True, True, True),
-DeviceButton("0x0056", True, False, True, True, True),
-DeviceButton("0x005b", True, False, True, True, True),
-DeviceButton("0x005d", True, False, True, True, True),
-DeviceButton("0x00c4", True, False, True, True, True),
-DeviceButton("0x00d7", True, False, False, True, False),
+InitialiseButtonsDatabase(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x005b", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x005d", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
 ], 
 
 has_thumbwheel = False,
@@ -687,12 +728,12 @@ min_dpi =   400, max_dpi = 4000, default_dpi =1000,
 has_scrollwheel=True,
 
 buttons =    [
-DeviceButton("0x0050", False, False, True, False, True),
-DeviceButton("0x0051", False, False, True, False, True),
-DeviceButton("0x0052", True, False, True, True, True),
-DeviceButton("0x0053", True, False, True, True, True),
-DeviceButton("0x0056", True, False, True, True, True),
-DeviceButton("0x00fd", True, False, True, True, True),
+InitialiseButtonsDatabase(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00fd", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
 ],
 
 has_thumbwheel = False,
@@ -719,14 +760,14 @@ min_dpi =   512, max_dpi = 2048, default_dpi = 1000,
 has_scrollwheel=True,
 
 buttons =    [
-DeviceButton("0x0050", False, False, True, False, True),
-DeviceButton("0x0051", False, False, True, False, True),
-DeviceButton("0x0052", True, False, True, True, True),
-DeviceButton("0x0053", True, False, True, True, True),
-DeviceButton("0x0056", True, False, True, True, True),
-DeviceButton("0x005b", True, False, True, True, True),
-DeviceButton("0x005d", True, False, True, True, True),
-DeviceButton("0x00ed", True, False, True, True, True), # TODO: Get confirmation that this is correct for this button
+InitialiseButtonsDatabase(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x005b", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x005d", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00ed", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True), # TODO: Get confirmation that this is correct for this button
 
 ],
 
@@ -756,10 +797,10 @@ min_dpi =    400, max_dpi = 2000, default_dpi =1000,
 has_scrollwheel=True,
 
 buttons =    [
-DeviceButton("0x0050", False, False, True, False, True),
-DeviceButton("0x0051", False, False, True, False, True),
-DeviceButton("0x0053", True, False, True, True, True),
-DeviceButton("0x0056", True, False, True, True, True), # TODO: are there any more buttons on this mouse?
+InitialiseButtonsDatabase(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True), # TODO: are there any more buttons on this mouse?
 ],
 
 has_thumbwheel = False,
@@ -787,15 +828,15 @@ min_dpi =    200, max_dpi = 3200,default_dpi = 1000,
 has_scrollwheel=True,
 
 buttons =    [
-DeviceButton("0x0050", False, False, True, False, True),
-DeviceButton("0x0051", False, False, True, False, True),
-DeviceButton("0x0052", True, False, True, True, True),
-DeviceButton("0x0053", True, False, True, True, True),
-DeviceButton("0x0056", True, False, True, True, True),
-DeviceButton("0x005b", True, False, True, True, True),
-DeviceButton("0x005d", True, False, True, True, True),
-DeviceButton("0x00d0", True, False, True, True, True),
-DeviceButton("0x00d7", True, False, False, True, False), # TODO: Check accessibility!
+InitialiseButtonsDatabase(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x005b", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x005d", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00d0", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False), # TODO: Check accessibility!
 ],
 
 has_thumbwheel = False,
@@ -823,13 +864,13 @@ min_dpi =        1000, max_dpi = 2000,default_dpi = 1000,
 has_scrollwheel=True,
 
 buttons =    [
-DeviceButton("0x0050", False, False, True, False, True),
-DeviceButton("0x0051", False, False, True, False, True),
-DeviceButton("0x0053", True, False, True, True, True),
-DeviceButton("0x0056", True, False, True, True, True),
-DeviceButton("0x005b", True, False, True, True, True),
-DeviceButton("0x005d", True, False, True, True, True),
-DeviceButton("0x00d7", True, False, False, True, False),
+InitialiseButtonsDatabase(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x005b", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x005d", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+InitialiseButtonsDatabase(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
 ],
 
 has_thumbwheel = False,

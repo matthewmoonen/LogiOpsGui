@@ -39,7 +39,7 @@ def parse_sql_file_into_array(sql_file_path):
     with open (sql_file_path , "r") as sql_file:
         sql_contents = sql_file.read()
 
-    queries = sql_contents.split("-- ### QUERY_SEPARATOR ###")
+    queries = sql_contents.split("-- ### QUERY_SEPARATOR ###")  
     
     return_array = []
 
@@ -122,7 +122,8 @@ def add_devices(cursor):
                                 button.fn_key,
                                 button.mouse_key,
                                 button.gesture_support,
-                                button.accessible))
+                                button.accessible
+                                ))
 
     except sqlite3.Error as e:
         logging.error(e)

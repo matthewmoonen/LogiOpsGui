@@ -84,8 +84,8 @@ def get_user_devices_and_configs():
         
         configs = []
         for config_data in configs_data:
-            config_id, config_name, is_selected = config_data
-            user_config = ConfigClasses.UserConfigs(device_id, config_id, config_name, is_selected)
+            config_id, configuration_name, is_selected = config_data
+            user_config = ConfigClasses.UserConfigs(device_id, config_id, configuration_name, is_selected)
             configs.append(user_config)
 
         user_device = ConfigClasses.UserDevices(device_id, device_name, is_activated, configs)
@@ -104,7 +104,7 @@ def get_user_devices_and_configs():
     #     for config in user_device.configs:
     #         print(
     #             f"  Config ID: {config.config_id}, "
-    #             f"Config Name: {config.config_name}, "
+    #             f"Config Name: {config.configuration_name}, "
     #             f"Is Selected: {config.is_selected}"
     #         )
 
@@ -134,7 +134,7 @@ def get_reprogrammable_buttons_array(device_id):
 
     for row in reprogrammable_buttons_data:
         
-        button = DeviceData.DeviceButton(
+        button = DeviceData.InitialiseButtonsDatabase(
             button_id=row[0],
             button_cid=row[1],
             button_name=row[2],
@@ -320,7 +320,7 @@ def get_configurations(device_id):
     # TODO: Update selection order.
 
     cursor.execute("""
-        SELECT configuration_id, configuration_name, date_added, is_selected, last_modified, is_selected, dpi, smartshift_on, smartshift_threshold, hiresscroll_hires, hiresscroll_invert, hiresscroll_target, thumbwheel_divert, thumbwheel_invert, scroll_up_action, scroll_down_action, scroll_left_action, scroll_right_action, proxy_action, tap_action, touch_action
+        SELECT configuration_id, configuration_name, date_added, last_modified, is_selected, dpi, smartshift_on, smartshift_threshold, smartshift_torque, hiresscroll_hires, hiresscroll_invert, hiresscroll_target, thumbwheel_divert, thumbwheel_invert, scroll_up_action, scroll_down_action, scroll_left_action, scroll_right_action, proxy_action, tap_action, touch_action
         FROM Configurations
         WHERE device_id = ?
         ORDER BY is_selected DESC
@@ -329,22 +329,79 @@ def get_configurations(device_id):
 
 
     sql_query_results = cursor.fetchall()
-    print(sql_query_results)
 
+    user_device_configurations = []
     for result in sql_query_results:
         user_config = DeviceData.DeviceConfig(
-            config_id=result[0], config_name=result[1], 
-        )
+    configuration_id=result[0],
+    configuration_name=result[1],
+    date_added=result[2],
+    last_modified=result[3],
+    is_selected=bool(result[4]),
+    dpi=result[5],
+    #TODO Update getter and setter methods to handle these better.
+    smartshift_on=bool(result[6]) if result[6] is not None else result[6],
+    smartshift_threshold=result[7],
+    smartshift_torque= result[8],
+    hiresscroll_hires = bool(result[9]) if result[9] is not None else result[9],
+    hiresscroll_invert = bool(result[10]) if result[10] is not None else result[10],
+    hiresscroll_target = bool(result[11]) if result[11] is not None else result[11],
+    thumbwheel_divert = bool(result[12]) if result[12] is not None else result[12],
+    thumbwheel_invert = result[13],
+    scroll_up_action = result[14],
+    scroll_down_action = result[15],
+    scroll_left_action = result[16],
+    scroll_right_action = result[17],
+    proxy_action = result[18],
+    tap_action = result[19],
+    touch_action = result[20],
+
+
+)
+    user_device_configurations.append(user_config)
+
+
+    
+    print("Config ID:", user_config.configuration_id)
+    print("Config Name:", user_config.configuration_name)
+    print("DPI:", user_config.dpi)
+    print("Date Added:", user_config.date_added)
+    print("Last Modified:", user_config.last_modified)
+    print("Is Selected:", user_config.is_selected)
+    print("Smartshift On:", user_config.smartshift_on)
+    print("Smartshift Threshold:", user_config.smartshift_threshold)
+    print("Hiresscroll Hires:", user_config.hiresscroll_hires)
+    print("Hiresscroll Invert:", user_config.hiresscroll_invert)
+    print("Hiresscroll Target:", user_config.hiresscroll_target)
+    print("Thumbwheel Divert:", user_config.thumbwheel_divert)
+    print("Thumbwheel Invert:", user_config.thumbwheel_invert)
+    print("Scroll Up Action:", user_config.scroll_up_action)
+    print("Scroll Down Action:", user_config.scroll_down_action)
+    print("Scroll Left Action:", user_config.scroll_left_action)
+    print("Scroll Right Action:", user_config.scroll_right_action)
+    print("Proxy Action:", user_config.proxy_action)
+    print("Tap Action:", user_config.tap_action)
+    print("Touch Action:", user_config.touch_action)
+
 
     conn.close()
 
+    return user_device_configurations
+
+
+def get_scroll_actions():
+    
+    
+    pass
+
+
 def main():
-    get_configurations(4)
+    get_configurations(14)
     # get_object()
     # get_user_devices_and_configs()
     # button_configs_array = get_button_configs(15, 115)
     # for i in button_configs_array:
-    #     print(i.button_config_id)
+    #     print(i.button_configuration_id)
 
     # reprogrammable_buttons_array = get_reprogrammable_buttons_array(15)
     # for i in reprogrammable_buttons_array:
