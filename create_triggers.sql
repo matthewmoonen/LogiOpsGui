@@ -751,26 +751,69 @@ END;
 
 -- ### QUERY_SEPARATOR ###
 
-CREATE TRIGGER IF NOT EXISTS configuration_update_selected_after_update
-AFTER UPDATE ON Configurations
+CREATE TRIGGER IF NOT EXISTS button_configs_update_selected_after_update
+AFTER UPDATE ON ButtonConfigs
 FOR EACH ROW
 BEGIN
-    SELECT COUNT(*) 
-    FROM Configurations
-    WHERE device_id = NEW.device_id
-        AND is_selected = 1;
-    UPDATE Configurations
+    UPDATE ButtonConfigs
     SET is_selected = CASE
-        WHEN device_id = NEW.device_id AND configuration_id = NEW.configuration_id THEN 1
-        ELSE 0
+        WHEN NEW.is_selected = 1 AND OLD.is_selected = 0 THEN 0
+        ELSE is_selected
         END
-    WHERE device_id = NEW.device_id
-        AND is_selected = 1
-        AND configuration_id <> NEW.configuration_id
-        AND (
-            SELECT COUNT(*) 
-            FROM Configurations
-            WHERE device_id = NEW.device_id
-                AND is_selected = 1
-        ) > 1;
+    WHERE button_id = NEW.button_id
+        AND configuration_id = NEW.configuration_id
+        AND button_config_id != NEW.button_config_id;
 END;
+
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS getures_update_selected_after_update
+AFTER UPDATE ON Gestures
+FOR EACH ROW
+BEGIN
+    UPDATE Gestures
+    SET is_selected = CASE
+        WHEN NEW.is_selected = 1 AND OLD.is_selected = 0 THEN 0
+        ELSE is_selected
+        END
+    WHERE button_config_id = NEW.button_config_id
+        AND direction = NEW.direction
+        AND gesture_id != NEW.gesture_id;
+END;
+
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS scroll_actions_update_selected_after_update
+AFTER UPDATE ON ScrollActions
+FOR EACH ROW
+BEGIN
+    UPDATE ScrollActions
+    SET is_selected = CASE
+        WHEN NEW.is_selected = 1 AND OLD.is_selected = 0 THEN 0
+        ELSE is_selected
+        END
+    WHERE configuration_id = NEW.configuration_id
+        AND scroll_direction = NEW.scroll_direction
+        AND scroll_action_id != NEW.scroll_action_id;
+END;
+
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS touch_tap_proxy_update_selected_after_update
+AFTER UPDATE ON TouchTapProxy
+FOR EACH ROW
+BEGIN
+    UPDATE TouchTapProxy
+    SET is_selected = CASE
+        WHEN NEW.is_selected = 1 AND OLD.is_selected = 0 THEN 0
+        ELSE is_selected
+        END
+    WHERE configuration_id = NEW.configuration_id
+        AND touch_tap_proxy = NEW.touch_tap_proxy
+        AND touch_tap_proxy_id != NEW.touch_tap_proxy_id;
+END;
+
+
