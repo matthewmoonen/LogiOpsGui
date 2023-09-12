@@ -68,9 +68,7 @@ CREATE TABLE IF NOT EXISTS ScrollActions (
     scroll_action_id INTEGER PRIMARY KEY,
     configuration_id INTEGER NOT NULL,
     scroll_direction TEXT CHECK (scroll_direction IN ('Up', 'Down', 'Left', 'Right')),
-    threshold INTEGER NOT NULL DEFAULT 50,
     action_type TEXT NOT NULL CHECK (action_type IN ('Default', 'NoPress', 'ToggleSmartShift', 'ToggleHiresScroll', 'Keypress', 'Axis', 'CycleDPI', 'ChangeHost')),
-    mode TEXT DEFAULT 'OnInterval' CHECK (mode IN ('OnInterval', 'OnThreshold', 'Axis', 'NoPress') OR mode IS NULL),
     action_id INTEGER,
     is_selected INTEGER NOT NULL DEFAULT 0 CHECK (is_selected IN (0, 1)),
     date_added TEXT,
@@ -78,6 +76,18 @@ CREATE TABLE IF NOT EXISTS ScrollActions (
 
 
 FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DELETE CASCADE
+);
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TABLE IF NOT EXISTS ScrollActionProperties (
+    scroll_action_property_id INTEGER PRIMARY KEY,
+    configuration_id INTEGER NOT NULL,
+    scroll_direction TEXT CHECK (scroll_direction IN ('Up', 'Down', 'Left', 'Right')),
+    threshold INTEGER NOT NULL DEFAULT 50,
+    mode TEXT NOT NULL DEFAULT 'OnInterval' CHECK (mode IN ('OnInterval', 'OnThreshold')),
+
+    FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DELETE CASCADE
 );
 
 
@@ -123,15 +133,26 @@ FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DE
 
 CREATE TABLE IF NOT EXISTS Gestures (
     gesture_id INTEGER PRIMARY KEY,
-    button_config_id INTEGER,
+    button_config_id INTEGER NOT NULL,
     direction TEXT NOT NULL CHECK (direction IN ('Up', 'Down', 'Left', 'Right', 'None')),
     gesture_action TEXT NOT NULL CHECK (gesture_action IN ('None', 'Axis', 'Keypress', 'ToggleSmartShift', 'ToggleHiresScroll', 'CycleDPI', 'ChangeHost')),
-    threshold INTEGER NOT NULL DEFAULT 50,
-    mode TEXT DEFAULT 'OnRelease' CHECK (mode IN ('OnRelease', 'OnInterval', 'OnThreshold', 'Axis', 'NoPress') OR mode IS NULL),
     is_selected INTEGER NOT NULL DEFAULT 0 CHECK (is_selected IN (0,1)),
+    
+    FOREIGN KEY (button_config_id) REFERENCES ButtonConfigs(button_config_id) ON DELETE CASCADE
+);
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TABLE IF NOT EXISTS GestureProperties (
+    gesture_property_id INTEGER PRIMARY KEY,
+    button_config_id INTEGER,
+    direction TEXT NOT NULL CHECK (direction IN ('Up', 'Down', 'Left', 'Right', 'None')),
+    threshold INTEGER NOT NULL DEFAULT 50,
+    mode TEXT NOT NULL DEFAULT 'OnRelease' CHECK (mode IN ('OnRelease', 'OnInterval', 'OnThreshold', 'Axis', 'NoPress')),
 
     FOREIGN KEY (button_config_id) REFERENCES ButtonConfigs(button_config_id) ON DELETE CASCADE
 );
+
 
 
 -- ### QUERY_SEPARATOR ###
@@ -139,8 +160,9 @@ CREATE TABLE IF NOT EXISTS Gestures (
 CREATE TABLE IF NOT EXISTS Axes (
     axis_id INTEGER PRIMARY KEY,
     configuration_id INTEGER,
-    action_id INTEGER,
-    axis_button TEXT NOT NULL,
+    action_id INTEGER NOT NULL,
+    source_table TEXT NOT NULL CHECK (source_table IN ('ButtonConfigs', 'Gestures', 'ScrollActions', 'TouchTapProxy')),
+    axis_button TEXT,
     axis_multiplier REAL,
 
 FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DELETE CASCADE

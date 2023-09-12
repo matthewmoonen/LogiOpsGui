@@ -83,22 +83,10 @@ BEGIN
     );
 END;
 
--- ### QUERY_SEPARATOR ###
-
-
-CREATE TRIGGER add_button_configs_default
-AFTER INSERT ON Configurations
-FOR EACH ROW
-BEGIN
-    INSERT INTO ButtonConfigs (button_id, configuration_id, action_type, is_selected, device_id)
-    SELECT b.button_id, NEW.configuration_id, 'Default', 1, NEW.device_id
-    FROM Buttons AS b
-    WHERE b.device_id = NEW.device_id AND b.reprog = 1 AND b.accessible = 1;
-END
 
 -- ### QUERY_SEPARATOR ###
 
-CREATE TRIGGER add_button_configs_nopress
+CREATE TRIGGER add_button_configs
 AFTER INSERT ON Configurations
 FOR EACH ROW
 BEGIN
@@ -106,46 +94,28 @@ BEGIN
     SELECT b.button_id, NEW.configuration_id, 'NoPress', NEW.device_id
     FROM Buttons AS b
     WHERE b.device_id = NEW.device_id AND b.reprog = 1 AND b.accessible = 1;
-END
 
--- ### QUERY_SEPARATOR ###
-
-CREATE TRIGGER add_button_configs_smartshift_toggle
-AFTER INSERT ON Configurations
-FOR EACH ROW
-BEGIN
     INSERT INTO ButtonConfigs (button_id, configuration_id, action_type, device_id)
     SELECT b.button_id, NEW.configuration_id, 'ToggleSmartShift', NEW.device_id
     FROM Buttons AS b
     WHERE b.device_id = NEW.device_id AND b.reprog = 1 AND b.accessible = 1 AND (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1;
-END
 
--- ### QUERY_SEPARATOR ###
-
-
-CREATE TRIGGER add_button_configs_hires_scroll_toggle
-AFTER INSERT ON Configurations
-FOR EACH ROW
-BEGIN
     INSERT INTO ButtonConfigs (button_id, configuration_id, action_type, device_id)
     SELECT b.button_id, NEW.configuration_id, 'ToggleHiresScroll', NEW.device_id
     FROM Buttons AS b
     WHERE b.device_id = NEW.device_id AND b.reprog = 1 AND b.accessible = 1 AND (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1;
-END
 
--- ### QUERY_SEPARATOR ###
-
-
-
-CREATE TRIGGER add_button_configs_gestures
-AFTER INSERT ON Configurations
-FOR EACH ROW
-BEGIN
     INSERT INTO ButtonConfigs (button_id, configuration_id, action_type, device_id)
     SELECT b.button_id, NEW.configuration_id, 'Gestures', NEW.device_id
     FROM Buttons AS b
     WHERE b.device_id = NEW.device_id AND b.reprog = 1 AND b.accessible = 1 AND b.gesture_support = 1;
+
+    INSERT INTO ButtonConfigs (button_id, configuration_id, action_type, is_selected, device_id)
+    SELECT b.button_id, NEW.configuration_id, 'Default', 1, NEW.device_id
+    FROM Buttons AS b
+    WHERE b.device_id = NEW.device_id AND b.reprog = 1 AND b.accessible = 1;
 END
+
 
 
 -- ### QUERY_SEPARATOR ###
@@ -261,389 +231,132 @@ END
 
 
 -- ### QUERY_SEPARATOR ###
-CREATE TRIGGER add_scroll_up_action_default
+CREATE TRIGGER add_vertical_scroll_actions
 AFTER INSERT ON Configurations
 FOR EACH ROW
 WHEN (SELECT has_scrollwheel FROM Devices WHERE device_id = NEW.device_id) = 1
+
 BEGIN
-    INSERT INTO ScrollActions (configuration_id, scroll_direction, threshold, action_type, mode, is_selected)
-    VALUES (NEW.configuration_id, 'Up', 0, 'Default', NULL, 1);
-END
+    INSERT INTO ScrollActionProperties (configuration_id, scroll_direction)
+    VALUES
+    (NEW.configuration_id, 'Down'),
+    (NEW.configuration_id, 'Up');
 
--- ### QUERY_SEPARATOR ###
-CREATE TRIGGER add_scroll_down_action_default
-AFTER INSERT ON Configurations
-FOR EACH ROW
-WHEN (SELECT has_scrollwheel FROM Devices WHERE device_id = NEW.device_id) = 1
-BEGIN
-    INSERT INTO ScrollActions (configuration_id, scroll_direction, threshold, action_type, mode, is_selected)
-    VALUES (NEW.configuration_id, 'Down', 0, 'Default', NULL, 1);
-END
+    INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
+    VALUES
+    (NEW.configuration_id, 'Up', 'Default', 1),
+    (NEW.configuration_id, 'Down', 'Default', 1),
+    (NEW.configuration_id, 'Up', 'NoPress', 0),
+    (NEW.configuration_id, 'Down', 'NoPress', 0);
 
+    -- Check for smartshift_support and insert if true
+    INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
+    SELECT NEW.configuration_id, 'Up', 'ToggleSmartShift', 0
+    WHERE (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1;
+    INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
+    SELECT NEW.configuration_id, 'Down', 'ToggleSmartShift', 0
+    WHERE (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1;
 
--- ### QUERY_SEPARATOR ###
-CREATE TRIGGER add_scroll_left_action_default
+    -- Check for hires_scroll_support and insert if true
+    INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
+    SELECT NEW.configuration_id, 'Up', 'ToggleHiresScroll', 0
+    WHERE (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1;
+    INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
+    SELECT NEW.configuration_id, 'Down', 'ToggleHiresScroll', 0
+    WHERE (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1;
+
+END;
+
+-- -- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER add_horizontal_scroll_actions
 AFTER INSERT ON Configurations
 FOR EACH ROW
 WHEN (SELECT has_thumbwheel FROM Devices WHERE device_id = NEW.device_id) = 1
 BEGIN
-    INSERT INTO ScrollActions (configuration_id, scroll_direction, threshold, action_type, mode, is_selected)
-    VALUES (NEW.configuration_id, 'Left', 0, 'Default', NULL, 1);
-END
+    INSERT INTO ScrollActionProperties (configuration_id, scroll_direction)
+    VALUES
+    (NEW.configuration_id, 'Right'),
+    (NEW.configuration_id, 'Left');
 
--- ### QUERY_SEPARATOR ###
-CREATE TRIGGER add_scroll_right_action_default
-AFTER INSERT ON Configurations
-FOR EACH ROW
-WHEN (SELECT has_thumbwheel FROM Devices WHERE device_id = NEW.device_id) = 1
-BEGIN
-    INSERT INTO ScrollActions (configuration_id, scroll_direction, threshold, action_type, mode, is_selected)
-    VALUES (NEW.configuration_id, 'Right', 0, 'Default', NULL, 1);
-END
-
-
--- ### QUERY_SEPARATOR ###
-CREATE TRIGGER add_scroll_up_action_do_nothing
-AFTER INSERT ON Configurations
-FOR EACH ROW
-WHEN (SELECT has_scrollwheel FROM Devices WHERE device_id = NEW.device_id) = 1
-BEGIN
-    INSERT INTO ScrollActions (configuration_id, scroll_direction, threshold, action_type, mode, is_selected)
-    VALUES (NEW.configuration_id, 'Up', 0, 'NoPress', 'NoPress', 0);
-END
-
-
--- ### QUERY_SEPARATOR ###
-CREATE TRIGGER add_scroll_down_action_do_nothing
-AFTER INSERT ON Configurations
-FOR EACH ROW
-WHEN (SELECT has_scrollwheel FROM Devices WHERE device_id = NEW.device_id) = 1
-BEGIN
-    INSERT INTO ScrollActions (configuration_id, scroll_direction, threshold, action_type, mode, is_selected)
-    VALUES (NEW.configuration_id, 'Down', 0, 'NoPress', 'NoPress', 0);
-END
-
-
--- ### QUERY_SEPARATOR ###
-CREATE TRIGGER add_scroll_left_action_do_nothing
-AFTER INSERT ON Configurations
-FOR EACH ROW
-WHEN (SELECT has_thumbwheel FROM Devices WHERE device_id = NEW.device_id) = 1
-BEGIN
-    INSERT INTO ScrollActions (configuration_id, scroll_direction, threshold, action_type, mode, is_selected)
-    VALUES (NEW.configuration_id, 'Left', 0, 'NoPress', 'NoPress', 0);
-END
-
-
--- ### QUERY_SEPARATOR ###
-CREATE TRIGGER add_scroll_right_action_do_nothing
-AFTER INSERT ON Configurations
-FOR EACH ROW
-WHEN (SELECT has_thumbwheel FROM Devices WHERE device_id = NEW.device_id) = 1
-BEGIN
-    INSERT INTO ScrollActions (configuration_id, scroll_direction, threshold, action_type, mode, is_selected)
-    VALUES (NEW.configuration_id, 'Right', 0, 'NoPress', 'NoPress', 0);
-END
-
-
--- ### QUERY_SEPARATOR ###
-CREATE TRIGGER add_scroll_up_action_toggle_smartshift
-AFTER INSERT ON Configurations
-FOR EACH ROW
-WHEN (SELECT has_scrollwheel FROM Devices WHERE device_id = NEW.device_id) = 1
-BEGIN
     INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
-    VALUES (NEW.configuration_id, 'Up', 'ToggleSmartShift', 0);
-END
+    VALUES
+    (NEW.configuration_id, 'Left', 'Default', 1),
+    (NEW.configuration_id, 'Right', 'Default', 1),
+    (NEW.configuration_id, 'Left', 'NoPress', 0),
+    (NEW.configuration_id, 'Right', 'NoPress', 0);
 
-
--- ### QUERY_SEPARATOR ###
-CREATE TRIGGER add_scroll_down_action_toggle_smartshift
-AFTER INSERT ON Configurations
-FOR EACH ROW
-WHEN (SELECT has_scrollwheel FROM Devices WHERE device_id = NEW.device_id) = 1
-BEGIN
+    -- Check for smartshift_support and insert if true
     INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
-    VALUES (NEW.configuration_id, 'Down', 'ToggleSmartShift', 0);
-END
-
-
--- ### QUERY_SEPARATOR ###
-CREATE TRIGGER add_scroll_left_action_toggle_smartshift
-AFTER INSERT ON Configurations
-FOR EACH ROW
-WHEN (SELECT has_thumbwheel FROM Devices WHERE device_id = NEW.device_id) = 1
-BEGIN
+    SELECT NEW.configuration_id, 'Left', 'ToggleSmartShift', 0
+    WHERE (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1;
     INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
-    VALUES (NEW.configuration_id, 'Left', 'ToggleSmartShift', 0);
-END
+    SELECT NEW.configuration_id, 'Right', 'ToggleSmartShift', 0
+    WHERE (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1;
 
-
--- ### QUERY_SEPARATOR ###
-CREATE TRIGGER add_scroll_right_action_toggle_smartshift
-AFTER INSERT ON Configurations
-FOR EACH ROW
-WHEN (SELECT has_thumbwheel FROM Devices WHERE device_id = NEW.device_id) = 1
-BEGIN
+    -- Check for hires_scroll_support and insert if true
     INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
-    VALUES (NEW.configuration_id, 'Right', 'ToggleSmartShift', 0);
-END
-
-
--- ### QUERY_SEPARATOR ###
-CREATE TRIGGER add_scroll_up_action_toggle_hiresscroll
-AFTER INSERT ON Configurations
-FOR EACH ROW
-WHEN (SELECT has_scrollwheel FROM Devices WHERE device_id = NEW.device_id) = 1
-BEGIN
+    SELECT NEW.configuration_id, 'Left', 'ToggleHiresScroll', 0
+    WHERE (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1;
     INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
-    VALUES (NEW.configuration_id, 'Up', 'ToggleHiresScroll', 0);
-END
-
--- ### QUERY_SEPARATOR ###
-CREATE TRIGGER add_scroll_down_action_toggle_hiresscroll
-AFTER INSERT ON Configurations
-FOR EACH ROW
-WHEN (SELECT has_scrollwheel FROM Devices WHERE device_id = NEW.device_id) = 1
-BEGIN
-    INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
-    VALUES (NEW.configuration_id, 'Down', 'ToggleHiresScroll', 0);
-END
-
--- ### QUERY_SEPARATOR ###
-CREATE TRIGGER add_scroll_left_action_toggle_hiresscroll
-AFTER INSERT ON Configurations
-FOR EACH ROW
-WHEN (SELECT has_thumbwheel FROM Devices WHERE device_id = NEW.device_id) = 1
-BEGIN
-    INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
-    VALUES (NEW.configuration_id, 'Left', 'ToggleHiresScroll', 0);
-END
-
--- ### QUERY_SEPARATOR ###
-CREATE TRIGGER add_scroll_right_action_toggle_hiresscroll
-AFTER INSERT ON Configurations
-FOR EACH ROW
-WHEN (SELECT has_thumbwheel FROM Devices WHERE device_id = NEW.device_id) = 1
-BEGIN
-    INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
-    VALUES (NEW.configuration_id, 'Right', 'ToggleHiresScroll', 0);
-END
+    SELECT NEW.configuration_id, 'Right', 'ToggleHiresScroll', 0
+    WHERE (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1;
+END;
 
 
 
 -- ### QUERY_SEPARATOR ###
-
-CREATE TRIGGER add_default_null_gesture_up
+CREATE TRIGGER add_gesture_properties_and_null_selection
 AFTER INSERT ON ButtonConfigs
 FOR EACH ROW
 WHEN NEW.action_type = 'Gestures'
 BEGIN
-    INSERT INTO Gestures(button_config_id, direction, gesture_action, threshold, mode, is_selected)
-    VALUES (NEW.button_config_id, 'Up', 'None', 0, NULL, 1);
+    INSERT INTO Gestures(button_config_id, direction, gesture_action, is_selected)
+    VALUES
+    (NEW.button_config_id, 'Up', 'None', 1),
+    (NEW.button_config_id, 'Down', 'None', 1),
+    (NEW.button_config_id, 'Left', 'None', 1),
+    (NEW.button_config_id, 'Right', 'None', 1),
+    (NEW.button_config_id, 'None', 'None', 1);
+
+    INSERT INTO GestureProperties(button_config_id, direction)
+    VALUES
+    (NEW.button_config_id, 'Up'),
+    (NEW.button_config_id, 'Down'),
+    (NEW.button_config_id, 'Left'),
+    (NEW.button_config_id, 'Right'),
+    (NEW.button_config_id, 'None');
 END
 
-
 -- ### QUERY_SEPARATOR ###
-
-CREATE TRIGGER add_default_null_gesture_down
-AFTER INSERT ON ButtonConfigs
-FOR EACH ROW
-WHEN NEW.action_type = 'Gestures'
-BEGIN
-    INSERT INTO Gestures(button_config_id, direction, gesture_action, threshold, mode, is_selected)
-    VALUES (NEW.button_config_id, 'Down', 'None', 0, NULL, 1);
-END
-
-
--- ### QUERY_SEPARATOR ###
-
-CREATE TRIGGER add_default_null_gesture_left
-AFTER INSERT ON ButtonConfigs
-FOR EACH ROW
-WHEN NEW.action_type = 'Gestures'
-BEGIN
-    INSERT INTO Gestures(button_config_id, direction, gesture_action, threshold, mode, is_selected)
-    VALUES (NEW.button_config_id, 'Left', 'None', 0, NULL, 1);
-END
-
-
--- ### QUERY_SEPARATOR ###
-
-CREATE TRIGGER add_default_null_gesture_right
-AFTER INSERT ON ButtonConfigs
-FOR EACH ROW
-WHEN NEW.action_type = 'Gestures'
-BEGIN
-    INSERT INTO Gestures(button_config_id, direction, gesture_action, threshold, mode, is_selected)
-    VALUES (NEW.button_config_id, 'Right', 'None', 0, NULL, 1);
-END
-
-
--- ### QUERY_SEPARATOR ###
-
-CREATE TRIGGER add_default_null_gesture_none
-AFTER INSERT ON ButtonConfigs
-FOR EACH ROW
-WHEN NEW.action_type = 'Gestures'
-BEGIN
-    INSERT INTO Gestures(button_config_id, direction, gesture_action, threshold, mode, is_selected)
-    VALUES (NEW.button_config_id, 'None', 'None', 0, NULL, 1);
-END
-
-
--- ### QUERY_SEPARATOR ###
-
-CREATE TRIGGER add_smartshift_option_gesture_up
+CREATE TRIGGER add_smartshift_gesture_option
 AFTER INSERT ON ButtonConfigs
 FOR EACH ROW
 WHEN NEW.action_type = 'Gestures' AND (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1
 BEGIN
-    INSERT INTO Gestures(button_config_id, direction, gesture_action, mode, is_selected)
-    VALUES (NEW.button_config_id, 'Up', 'ToggleSmartShift', NULL, 0);
+    INSERT INTO Gestures(button_config_id, direction, gesture_action, is_selected)
+    VALUES
+    (NEW.button_config_id, 'Up', 'ToggleSmartShift', 0),
+    (NEW.button_config_id, 'Down', 'ToggleSmartShift', 0),
+    (NEW.button_config_id, 'Left', 'ToggleSmartShift', 0),
+    (NEW.button_config_id, 'Right', 'ToggleSmartShift', 0),
+    (NEW.button_config_id, 'None', 'ToggleSmartShift', 0);
 END
 
-
 -- ### QUERY_SEPARATOR ###
-
-CREATE TRIGGER add_smartshift_option_gesture_down
-AFTER INSERT ON ButtonConfigs
-FOR EACH ROW
-WHEN NEW.action_type = 'Gestures' AND (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1
-BEGIN
-    INSERT INTO Gestures(button_config_id, direction, gesture_action, mode, is_selected)
-    VALUES (NEW.button_config_id, 'Down', 'ToggleSmartShift', NULL, 0);
-END
-
-
--- ### QUERY_SEPARATOR ###
-
-CREATE TRIGGER add_smartshift_option_gesture_left
-AFTER INSERT ON ButtonConfigs
-FOR EACH ROW
-WHEN NEW.action_type = 'Gestures' AND (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1
-BEGIN
-    INSERT INTO Gestures(button_config_id, direction, gesture_action, mode, is_selected)
-    VALUES (NEW.button_config_id, 'Left', 'ToggleSmartShift', NULL, 0);
-END
-
-
--- ### QUERY_SEPARATOR ###
-
-CREATE TRIGGER add_smartshift_option_gesture_right
-AFTER INSERT ON ButtonConfigs
-FOR EACH ROW
-WHEN NEW.action_type = 'Gestures' AND (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1
-BEGIN
-    INSERT INTO Gestures(button_config_id, direction, gesture_action, mode, is_selected)
-    VALUES (NEW.button_config_id, 'Right', 'ToggleSmartShift', NULL, 0);
-END
-
-
--- ### QUERY_SEPARATOR ###
-
-CREATE TRIGGER add_smartshift_option_gesture_none
-AFTER INSERT ON ButtonConfigs
-FOR EACH ROW
-WHEN NEW.action_type = 'Gestures' AND (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1
-BEGIN
-    INSERT INTO Gestures(button_config_id, direction, gesture_action, mode, is_selected)
-    VALUES (NEW.button_config_id, 'None', 'ToggleSmartShift', NULL, 0);
-END
-
-
--- ### QUERY_SEPARATOR ###
-
-CREATE TRIGGER add_hires_scroll_option_gesture_up
+CREATE TRIGGER add_hires_scroll_gesture_option
 AFTER INSERT ON ButtonConfigs
 FOR EACH ROW
 WHEN NEW.action_type = 'Gestures' AND (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1
 BEGIN
-    INSERT INTO Gestures(button_config_id, direction, gesture_action, mode, is_selected)
-    VALUES (NEW.button_config_id, 'Up', 'ToggleHiresScroll', NULL, 0);
+    INSERT INTO Gestures(button_config_id, direction, gesture_action, is_selected)
+    VALUES
+    (NEW.button_config_id, 'Up', 'ToggleHiresScroll', 0),
+    (NEW.button_config_id, 'Down', 'ToggleHiresScroll', 0),
+    (NEW.button_config_id, 'Left', 'ToggleHiresScroll', 0),
+    (NEW.button_config_id, 'Right', 'ToggleHiresScroll', 0),
+    (NEW.button_config_id, 'None', 'ToggleHiresScroll', 0);
 END
-
--- ### QUERY_SEPARATOR ###
-
-CREATE TRIGGER add_hires_scroll_option_gesture_down
-AFTER INSERT ON ButtonConfigs
-FOR EACH ROW
-WHEN NEW.action_type = 'Gestures' AND (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1
-BEGIN
-    INSERT INTO Gestures(button_config_id, direction, gesture_action, mode, is_selected)
-    VALUES (NEW.button_config_id, 'Down', 'ToggleHiresScroll', NULL, 0);
-END
-
--- ### QUERY_SEPARATOR ###
-
-CREATE TRIGGER add_hires_scroll_option_gesture_left
-AFTER INSERT ON ButtonConfigs
-FOR EACH ROW
-WHEN NEW.action_type = 'Gestures' AND (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1
-BEGIN
-    INSERT INTO Gestures(button_config_id, direction, gesture_action, mode, is_selected)
-    VALUES (NEW.button_config_id, 'Left', 'ToggleHiresScroll', NULL, 0);
-END
-
--- ### QUERY_SEPARATOR ###
-
-CREATE TRIGGER add_hires_scroll_option_gesture_right
-AFTER INSERT ON ButtonConfigs
-FOR EACH ROW
-WHEN NEW.action_type = 'Gestures' AND (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1
-BEGIN
-    INSERT INTO Gestures(button_config_id, direction, gesture_action, mode, is_selected)
-    VALUES (NEW.button_config_id, 'Right', 'ToggleHiresScroll', NULL, 0);
-END
-
--- ### QUERY_SEPARATOR ###
-
-CREATE TRIGGER add_hires_scroll_option_gesture_none
-AFTER INSERT ON ButtonConfigs
-FOR EACH ROW
-WHEN NEW.action_type = 'Gestures' AND (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1
-BEGIN
-    INSERT INTO Gestures(button_config_id, direction, gesture_action, mode, is_selected)
-    VALUES (NEW.button_config_id, 'None', 'ToggleHiresScroll', NULL, 0);
-END
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -724,31 +437,6 @@ END;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 -- ### QUERY_SEPARATOR ###
 
 CREATE TRIGGER IF NOT EXISTS button_configs_update_selected_after_update
@@ -817,3 +505,44 @@ BEGIN
 END;
 
 
+
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_axis_from_button_config
+AFTER INSERT ON ButtonConfigs
+FOR EACH ROW
+WHEN NEW.action_type = 'Axis'
+BEGIN
+    INSERT INTO Axes (configuration_id, action_id, source_table)
+    VALUES (NEW.configuration_id, NEW.button_config_id, 'ButtonConfigs');
+END;
+
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_axis_from_gestures
+AFTER INSERT ON Gestures
+FOR EACH ROW
+WHEN NEW.gesture_action = 'Axis'
+BEGIN
+    INSERT INTO Axes (configuration_id, action_id, source_table)
+    VALUES ((SELECT configuration_id FROM ButtonConfigs WHERE button_config_id = NEW.button_config_id), NEW.gesture_id, 'Gestures');
+END;
+
+
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_axis_from_scroll_actions
+AFTER INSERT ON ScrollActions
+FOR EACH ROW
+WHEN NEW.action_type = 'Axis'
+BEGIN
+    INSERT INTO Axes (configuration_id, action_id, source_table)
+    VALUES (NEW.configuration_id, NEW.scroll_action_id, 'ScrollActions');
+END;
+
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_axis_from_touch_tap_proxy
+AFTER INSERT ON TouchTapProxy
+FOR EACH ROW
+WHEN NEW.action_type = 'Axis'
+BEGIN
+    INSERT INTO Axes (configuration_id, action_id, source_table)
+    VALUES (NEW.configuration_id, NEW.touch_tap_proxy_id, 'TouchTapProxy');
+END;
