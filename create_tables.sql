@@ -67,9 +67,8 @@ FOREIGN KEY (device_id) REFERENCES Devices(device_id) ON DELETE CASCADE
 CREATE TABLE IF NOT EXISTS ScrollActions (
     scroll_action_id INTEGER PRIMARY KEY,
     configuration_id INTEGER NOT NULL,
-    scroll_direction TEXT CHECK (scroll_direction IN ('Up', 'Down', 'Left', 'Right')),
+    scroll_direction TEXT NOT NULL CHECK (scroll_direction IN ('Up', 'Down', 'Left', 'Right')),
     action_type TEXT NOT NULL CHECK (action_type IN ('Default', 'NoPress', 'ToggleSmartShift', 'ToggleHiresScroll', 'Keypress', 'Axis', 'CycleDPI', 'ChangeHost')),
-    action_id INTEGER,
     is_selected INTEGER NOT NULL DEFAULT 0 CHECK (is_selected IN (0, 1)),
     date_added TEXT,
     last_edited TEXT,
@@ -111,11 +110,10 @@ FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DE
 
 CREATE TABLE IF NOT EXISTS ButtonConfigs (
     button_config_id INTEGER PRIMARY KEY,
-    device_id INTEGER,
+    device_id INTEGER NOT NULL,
     button_id INTEGER NOT NULL,
     configuration_id INTEGER NOT NULL,
     action_type TEXT NOT NULL CHECK (action_type IN ('Default', 'NoPress', 'ToggleSmartShift', 'ToggleHiresScroll', 'Gestures', 'Keypress', 'Axis', 'CycleDPI', 'ChangeHost')),
-    action_id INTEGER,
     is_selected INTEGER NOT NULL DEFAULT 0 CHECK (is_selected IN (0,1)),
     date_added TEXT,
     last_edited TEXT,
@@ -137,7 +135,7 @@ CREATE TABLE IF NOT EXISTS Gestures (
     direction TEXT NOT NULL CHECK (direction IN ('Up', 'Down', 'Left', 'Right', 'None')),
     gesture_action TEXT NOT NULL CHECK (gesture_action IN ('None', 'Axis', 'Keypress', 'ToggleSmartShift', 'ToggleHiresScroll', 'CycleDPI', 'ChangeHost')),
     is_selected INTEGER NOT NULL DEFAULT 0 CHECK (is_selected IN (0,1)),
-    
+
     FOREIGN KEY (button_config_id) REFERENCES ButtonConfigs(button_config_id) ON DELETE CASCADE
 );
 
@@ -145,7 +143,7 @@ CREATE TABLE IF NOT EXISTS Gestures (
 
 CREATE TABLE IF NOT EXISTS GestureProperties (
     gesture_property_id INTEGER PRIMARY KEY,
-    button_config_id INTEGER,
+    button_config_id INTEGER NOT NULL,
     direction TEXT NOT NULL CHECK (direction IN ('Up', 'Down', 'Left', 'Right', 'None')),
     threshold INTEGER NOT NULL DEFAULT 50,
     mode TEXT NOT NULL DEFAULT 'OnRelease' CHECK (mode IN ('OnRelease', 'OnInterval', 'OnThreshold', 'Axis', 'NoPress')),
@@ -159,7 +157,7 @@ CREATE TABLE IF NOT EXISTS GestureProperties (
 
 CREATE TABLE IF NOT EXISTS Axes (
     axis_id INTEGER PRIMARY KEY,
-    configuration_id INTEGER,
+    configuration_id INTEGER NOT NULL,
     action_id INTEGER NOT NULL,
     source_table TEXT NOT NULL CHECK (source_table IN ('ButtonConfigs', 'Gestures', 'ScrollActions', 'TouchTapProxy')),
     axis_button TEXT,
@@ -173,9 +171,10 @@ FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DE
 
 CREATE TABLE IF NOT EXISTS CycleDPI (
     cycle_dpi_id INTEGER PRIMARY KEY,
-    configuration_id INTEGER,
-    action_id INTEGER,
-    dpi_array TEXT NOT NULL,
+    configuration_id INTEGER NOT NULL,
+    action_id INTEGER NOT NULL,
+    source_table TEXT NOT NULL CHECK (source_table IN ('ButtonConfigs', 'Gestures', 'ScrollActions', 'TouchTapProxy')),
+    dpi_array TEXT,
     sensor INTEGER,
 
 FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DELETE CASCADE
@@ -186,12 +185,12 @@ FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DE
 
 CREATE TABLE IF NOT EXISTS Keypresses (
     keypress_id INTEGER PRIMARY KEY,
-    configuration_id INTEGER,
-    action_id INTEGER,
-    keypresses TEXT NOT NULL,
+    configuration_id INTEGER NOT NULL,
+    action_id INTEGER NOT NULL,
+    source_table TEXT NOT NULL CHECK (source_table IN ('ButtonConfigs', 'Gestures', 'ScrollActions', 'TouchTapProxy')),
+    keypresses TEXT,
 
 FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DELETE CASCADE
-
 );
 
 
@@ -201,10 +200,10 @@ CREATE TABLE IF NOT EXISTS ChangeHost (
     host_id INTEGER PRIMARY KEY,
     configuration_id INTEGER,
     action_id INTEGER,
-    host_change TEXT NOT NULL DEFAULT 'next' CHECK (host_change IN ('prev', 'next', '1', '2', '3')),
+    source_table TEXT NOT NULL CHECK (source_table IN ('ButtonConfigs', 'Gestures', 'ScrollActions', 'TouchTapProxy')),
+    host_change TEXT DEFAULT 'next' CHECK (host_change IN ('prev', 'next', '1', '2', '3')),
     
 FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DELETE CASCADE
 );
-
 
 

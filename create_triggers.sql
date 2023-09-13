@@ -546,3 +546,333 @@ BEGIN
     INSERT INTO Axes (configuration_id, action_id, source_table)
     VALUES (NEW.configuration_id, NEW.touch_tap_proxy_id, 'TouchTapProxy');
 END;
+
+
+
+
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_keypress_from_button_config
+AFTER INSERT ON ButtonConfigs
+FOR EACH ROW
+WHEN NEW.action_type = 'Keypress'
+BEGIN
+    INSERT INTO Keypresses (configuration_id, action_id, source_table)
+    VALUES (NEW.configuration_id, NEW.button_config_id, 'ButtonConfigs');
+END;
+
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_keypress_from_gestures
+AFTER INSERT ON Gestures
+FOR EACH ROW
+WHEN NEW.gesture_action = 'Keypress'
+BEGIN
+    INSERT INTO Keypresses (configuration_id, action_id, source_table)
+    VALUES ((SELECT configuration_id FROM ButtonConfigs WHERE button_config_id = NEW.button_config_id), NEW.gesture_id, 'Gestures');
+END;
+
+
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_keypress_from_scroll_actions
+AFTER INSERT ON ScrollActions
+FOR EACH ROW
+WHEN NEW.action_type = 'Keypress'
+BEGIN
+    INSERT INTO Keypresses (configuration_id, action_id, source_table)
+    VALUES (NEW.configuration_id, NEW.scroll_action_id, 'ScrollActions');
+END;
+
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_keypress_from_touch_tap_proxy
+AFTER INSERT ON TouchTapProxy
+FOR EACH ROW
+WHEN NEW.action_type = 'Keypress'
+BEGIN
+    INSERT INTO Keypresses (configuration_id, action_id, source_table)
+    VALUES (NEW.configuration_id, NEW.touch_tap_proxy_id, 'TouchTapProxy');
+END;
+
+
+
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_cycledpi_from_button_config
+AFTER INSERT ON ButtonConfigs
+FOR EACH ROW
+WHEN NEW.action_type = 'CycleDPI'
+BEGIN
+    INSERT INTO CycleDPI (configuration_id, action_id, source_table)
+    VALUES (NEW.configuration_id, NEW.button_config_id, 'ButtonConfigs');
+END;
+
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_cycledpi_from_gestures
+AFTER INSERT ON Gestures
+FOR EACH ROW
+WHEN NEW.gesture_action = 'CycleDPI'
+BEGIN
+    INSERT INTO CycleDPI (configuration_id, action_id, source_table)
+    VALUES ((SELECT configuration_id FROM ButtonConfigs WHERE button_config_id = NEW.button_config_id), NEW.gesture_id, 'Gestures');
+END;
+
+
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_cycledpi_from_scroll_actions
+AFTER INSERT ON ScrollActions
+FOR EACH ROW
+WHEN NEW.action_type = 'CycleDPI'
+BEGIN
+    INSERT INTO CycleDPI (configuration_id, action_id, source_table)
+    VALUES (NEW.configuration_id, NEW.scroll_action_id, 'ScrollActions');
+END;
+
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_cycledpi_from_touch_tap_proxy
+AFTER INSERT ON TouchTapProxy
+FOR EACH ROW
+WHEN NEW.action_type = 'CycleDPI'
+BEGIN
+    INSERT INTO CycleDPI (configuration_id, action_id, source_table)
+    VALUES (NEW.configuration_id, NEW.touch_tap_proxy_id, 'TouchTapProxy');
+END;
+
+
+
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_changehost_from_button_config
+AFTER INSERT ON ButtonConfigs
+FOR EACH ROW
+WHEN NEW.action_type = 'ChangeHost'
+BEGIN
+    INSERT INTO ChangeHost (configuration_id, action_id, source_table)
+    VALUES (NEW.configuration_id, NEW.button_config_id, 'ButtonConfigs');
+END;
+
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_changehost_from_gestures
+AFTER INSERT ON Gestures
+FOR EACH ROW
+WHEN NEW.gesture_action = 'ChangeHost'
+BEGIN
+    INSERT INTO ChangeHost (configuration_id, action_id, source_table)
+    VALUES ((SELECT configuration_id FROM ButtonConfigs WHERE button_config_id = NEW.button_config_id), NEW.gesture_id, 'Gestures');
+END;
+
+
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_changehost_from_scroll_actions
+AFTER INSERT ON ScrollActions
+FOR EACH ROW
+WHEN NEW.action_type = 'ChangeHost'
+BEGIN
+    INSERT INTO ChangeHost (configuration_id, action_id, source_table)
+    VALUES (NEW.configuration_id, NEW.scroll_action_id, 'ScrollActions');
+END;
+
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_changehost_from_touch_tap_proxy
+AFTER INSERT ON TouchTapProxy
+FOR EACH ROW
+WHEN NEW.action_type = 'ChangeHost'
+BEGIN
+    INSERT INTO ChangeHost (configuration_id, action_id, source_table)
+    VALUES (NEW.configuration_id, NEW.touch_tap_proxy_id, 'TouchTapProxy');
+END;
+
+
+
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS delete_gesture_destination_axis
+AFTER DELETE ON Gestures 
+FOR EACH ROW
+WHEN OLD.gesture_action = 'Axis'
+BEGIN
+DELETE FROM Axes WHERE action_id = OLD.gesture_id AND source_table = 'Gestures';
+END;
+
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS delete_gesture_destination_keypress
+AFTER DELETE ON Gestures
+FOR EACH ROW
+WHEN OLD.gesture_action = 'Keypress'
+BEGIN
+DELETE FROM Keypresses WHERE action_id = OLD.gesture_id AND source_table = 'Gestures';
+END;
+
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS delete_gesture_destination_cycledpi
+AFTER DELETE ON Gestures
+FOR EACH ROW
+WHEN OLD.gesture_action = 'CycleDPI'
+BEGIN
+DELETE FROM CycleDPI WHERE action_id = OLD.gesture_id AND source_table = 'Gestures';
+END;
+
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS delete_gesture_destination_changehost
+AFTER DELETE ON Gestures
+FOR EACH ROW
+WHEN OLD.gesture_action = 'ChangeHost'
+BEGIN
+DELETE FROM ChangeHost WHERE action_id = OLD.gesture_id AND source_table = 'Gestures';
+END;
+
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS delete_button_config_destination_axes
+AFTER DELETE ON ButtonConfigs 
+FOR EACH ROW
+WHEN OLD.action_type = 'Axis'
+BEGIN
+DELETE FROM Axes WHERE action_id = OLD.button_config_id AND source_table = 'ButtonConfigs';
+END;
+
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS delete_button_config_destination_keypresses
+AFTER DELETE ON ButtonConfigs 
+FOR EACH ROW
+WHEN OLD.action_type = 'Keypress'
+BEGIN
+DELETE FROM Keypresses WHERE action_id = OLD.button_config_id AND source_table = 'ButtonConfigs';
+END;
+
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS delete_button_config_destination_cycledpi
+AFTER DELETE ON ButtonConfigs 
+FOR EACH ROW
+WHEN OLD.action_type = 'CycleDPI'
+BEGIN
+DELETE FROM CycleDPI WHERE action_id = OLD.button_config_id AND source_table = 'ButtonConfigs';
+END;
+
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS delete_button_config_destination_changehost
+AFTER DELETE ON ButtonConfigs 
+FOR EACH ROW
+WHEN OLD.action_type = 'ChangeHost'
+BEGIN
+DELETE FROM ChangeHost WHERE action_id = OLD.button_config_id AND source_table = 'ButtonConfigs';
+END;
+
+
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS delete_scroll_action_destination_axes
+AFTER DELETE ON ScrollActions 
+FOR EACH ROW
+WHEN OLD.action_type = 'Axis'
+BEGIN
+DELETE FROM Axes WHERE action_id = OLD.scroll_action_id AND source_table = 'ScrollActions';
+END;
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS delete_scroll_action_destination_keypresses
+AFTER DELETE ON ScrollActions 
+FOR EACH ROW
+WHEN OLD.action_type = 'Keypress'
+BEGIN
+DELETE FROM Keypresses WHERE action_id = OLD.scroll_action_id AND source_table = 'ScrollActions';
+END;
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS delete_scroll_action_destination_cycledpi
+AFTER DELETE ON ScrollActions 
+FOR EACH ROW
+WHEN OLD.action_type = 'CycleDPI'
+BEGIN
+DELETE FROM CycleDPI WHERE action_id = OLD.scroll_action_id AND source_table = 'ScrollActions';
+END;
+
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS delete_scroll_action_destination_changehost
+AFTER DELETE ON ScrollActions 
+FOR EACH ROW
+WHEN OLD.action_type = 'ChangeHost'
+BEGIN
+DELETE FROM ChangeHost WHERE action_id = OLD.scroll_action_id AND source_table = 'ScrollActions';
+END;
+
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS delete_scroll_action_destination_axes
+AFTER DELETE ON ScrollActions 
+FOR EACH ROW
+WHEN OLD.action_type = 'ButtonConfigs'
+BEGIN
+DELETE FROM Axes WHERE action_id = OLD.scroll_action_id AND source_table = 'ScrollActions';
+END;
+
+
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS delete_touch_tap_proxy_action_destination_axes
+AFTER DELETE ON TouchTapProxy 
+FOR EACH ROW
+WHEN OLD.action_type = 'Axis'
+BEGIN
+DELETE FROM Axes WHERE action_id = OLD.touch_tap_proxy_id AND source_table = 'TouchTapProxy';
+END;
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS delete_touch_tap_proxy_action_destination_keypresses
+AFTER DELETE ON TouchTapProxy 
+FOR EACH ROW
+WHEN OLD.action_type = 'Keypress'
+BEGIN
+DELETE FROM Keypresses WHERE action_id = OLD.touch_tap_proxy_id AND source_table = 'TouchTapProxy';
+END;
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS delete_touch_tap_proxy_action_destination_cycledpi
+AFTER DELETE ON TouchTapProxy 
+FOR EACH ROW
+WHEN OLD.action_type = 'CycleDPI'
+BEGIN
+DELETE FROM CycleDPI WHERE action_id = OLD.touch_tap_proxy_id AND source_table = 'TouchTapProxy';
+END;
+
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS delete_touch_tap_proxy_action_destination_changehost
+AFTER DELETE ON TouchTapProxy 
+FOR EACH ROW
+WHEN OLD.action_type = 'ChangeHost'
+BEGIN
+DELETE FROM ChangeHost WHERE action_id = OLD.touch_tap_proxy_id AND source_table = 'TouchTapProxy';
+END;
+
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS delete_touch_tap_proxy_action_destination_axes
+AFTER DELETE ON TouchTapProxy 
+FOR EACH ROW
+WHEN OLD.action_type = 'ButtonConfigs'
+BEGIN
+DELETE FROM Axes WHERE action_id = OLD.touch_tap_proxy_id AND source_table = 'TouchTapProxy';
+END;
+
+
