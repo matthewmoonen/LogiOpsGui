@@ -313,7 +313,6 @@ class MainPage(ctk.CTkFrame):
 
 
 
-
 class EditPage(ctk.CTkFrame):
     def __init__(self, master, main_page, configuration=None, #TODO: UPDATE NONETYPE
                  config_id=None, device_name=None # TODO: REMOVE THESE

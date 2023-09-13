@@ -310,7 +310,7 @@ def get_object():
     conn.close()
 
 
-    return user_devices[1]
+    return user_devices[0]
 
 
 
