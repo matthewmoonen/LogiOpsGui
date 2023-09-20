@@ -175,8 +175,9 @@ class DeviceConfig:
                  scroll_right_action,
                  proxy_action,
                  tap_action,
-                 touch_action):
-        
+                 touch_action
+                 ):
+
         self.configuration_id = configuration_id
         self.configuration_name = configuration_name
         self.dpi = dpi
@@ -290,7 +291,7 @@ class DeviceButton:
         self.button_cid = button_cid
         self.button_name = button_name
         self.gesture_support = gesture_support
- 
+
 
 # TODO: a better name for this class.
 class InitialiseButtonsDatabase(DeviceButton):

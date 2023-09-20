@@ -75,17 +75,14 @@ class UserConfigs:
 
 class ButtonConfig:
     def __init__(self,
+                 
                  button_config_id,
                  button_id,
                  config_id,
                  action,
                  button_cid,
-                 button_name,
-                 reprog,
-                 fn_key,
-                 mouse_key,
-                 gesture_support,
-                 accessible
+                 
+
                  ):
         self.button_config_id = button_config_id
         self.button_id = button_id
