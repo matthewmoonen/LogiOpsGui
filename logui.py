@@ -9,8 +9,8 @@ from typing import Union, Callable
 import main_page_elements
 import edit_page_elements
 import gui_variables
-
-
+import Classes
+from CTkMessagebox import CTkMessagebox
 
 
 
@@ -196,6 +196,8 @@ class MainPage(ctk.CTkFrame):
         
         create_and_update_device_dropdown()
          
+
+
         devices_frame = ctk.CTkScrollableFrame(master=self,
                                               border_width=2,
                                                 corner_radius=0,
@@ -211,20 +213,176 @@ class MainPage(ctk.CTkFrame):
             )
 
 
-        user_devices_and_configs = execute_db_queries.get_user_devices_and_configs()
-        for device in user_devices_and_configs:
+
+        # Create a dictionary to store UI elements by configuration ID
+        config_ui_elements = {}
+        device_ui_elements = {}
+
+        def create_config_ui(device, configuration):
+            # Create the UI elements
+            radio_button = ctk.CTkRadioButton(master=devices_frame,
+                                            text=f"{configuration.configuration_id}: {configuration.configuration_name}",
+                                            variable=selected_configurations[device],
+                                            value=configuration.configuration_id,
+                                            command=lambda c=configuration: select_configuration(c),
+                                            radiobutton_width=24,
+                                            radiobutton_height=24,
+                                            corner_radius=10,
+                                            border_width_unchecked=6,
+                                            border_width_checked=9,
+                                            hover_color=gui_variables.primary_colour
+                                            )
+
+            edit_configuration_button = ctk.CTkButton(
+                master=devices_frame,
+                height=40,
+                width=120,
+                text="Edit Configuration",
+            )
+
+            delete_configuration_button = ctk.CTkButton(
+                master=devices_frame,
+                height=40,
+                width=120,
+                text="Delete Configuration",
+                command=lambda c=configuration.configuration_id: config_deletion_warning(c)
+            )
+
+            # Pack the UI elements
+            radio_button.pack()
+            if configuration.is_selected:
+                radio_button.select()
+            edit_configuration_button.pack()
+            delete_configuration_button.pack()
+
+            # Store UI elements in the dictionary
+            config_ui_elements[configuration.configuration_id] = {
+                "radio_button": radio_button,
+                "edit_button": edit_configuration_button,
+                "delete_button": delete_configuration_button,
+            }
+
+        def config_deletion_warning(configuration_id):
+            msg = CTkMessagebox(title="Delete Config?",
+                                message="Are you sure you want to delete?",
+                                option_1="Delete",
+                                option_2="Cancel",
+                                width=600,
+                                height=300,
+                                fade_in_duration=200
+                                )
+            if msg.get() == "Delete":
+                execute_db_queries.delete_configuration(configuration_id)
+                # Remove the UI elements associated with the deleted configuration
+                ui_elements = config_ui_elements.get(configuration_id)
+                if ui_elements:
+                    ui_elements["radio_button"].destroy()
+                    ui_elements["edit_button"].destroy()
+                    ui_elements["delete_button"].destroy()
+
+
+        def create_device_ui(device):
+
             device_label = ctk.CTkLabel(master=devices_frame,
                                         text=device.device_name,
                                         font=ctk.CTkFont(
-                                                family="Roboto",
-                                                weight="bold",
-                                                size=20,
-                                                    ),
+                                            family="Roboto",
+                                            weight="bold",
+                                            size=20,
+                                        ),
                                         )
             device_label.pack()
+            
+            delete_device_button = ctk.CTkButton(master=devices_frame,
+                                                 text="Delete Device",
+                                                command=lambda d=device.device_id: device_deletion_warning(d)
+                                                 )
+            delete_device_button.pack()
+
+            device_ui_elements[device.device_id] = {
+                "device_label": device_label,
+                "delete_device_button": delete_device_button,
+            }
+
+            
+        def device_deletion_warning(device_id):
+            msg = CTkMessagebox(title="Delete Device?",
+                                message="Deleting device will also delete all its configurations.",
+                                option_1="Delete",
+                                option_2="Cancel",
+                                width=600,
+                                height=300,
+                                fade_in_duration=200
+                                )
+            if msg.get() == "Delete":
+                # Iterate through devices and configurations to find the device
+                for device in user_devices_and_configs:
+                    if device.device_id == device_id:
+                        # Delete all configurations associated with the device
+                        for configuration in device.configurations:
+                            execute_db_queries.delete_configuration(configuration.configuration_id)
+                            # Remove the UI elements associated with the deleted configuration
+                            ui_elements = config_ui_elements.get(configuration.configuration_id)
+                            if ui_elements:
+                                ui_elements["radio_button"].destroy()
+                                ui_elements["edit_button"].destroy()
+                                ui_elements["delete_button"].destroy()
+
+                        # Remove the UI elements associated with the deleted device
+                        ui_elements = device_ui_elements.get(device_id)
+                        if ui_elements:
+                            ui_elements["device_label"].destroy()
+                            ui_elements["delete_device_button"].destroy()
+
+                        # Finally, delete the device itself
+                        execute_db_queries.delete_device(device_id)
+                        break
 
 
-        
+        user_devices_and_configs = Classes.get_main_page_user_devices()
+        selected_configurations = {}
+
+        for device in user_devices_and_configs:
+            
+            create_device_ui(device)
+            
+            def select_configuration(configuration):
+                execute_db_queries.update_selected_configuration(configuration.configuration_id)
+
+            selected_configurations[device] = ctk.StringVar()
+
+            for configuration in device.configurations:
+                # Create and pack UI elements, and store references
+                create_config_ui(device, configuration)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
         bottom_frame = ctk.CTkFrame(
@@ -359,6 +517,7 @@ def setup_gui(root):
     root.geometry("1280x1280")
     root.resizable(True, True)
     root.title("LogiOpsGUI")
+    ctk.DrawEngine.preferred_drawing_method = "circle_shapes"
 
     main_page = MainPage(root)
     main_page.pack(fill="both", expand=True)

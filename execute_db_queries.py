@@ -3,6 +3,7 @@ import sqlite3
 import DeviceData
 import ConfigClasses
 
+
 def execute_queries(cursor, queries, placeholders=None, data=None):
     try:
         if placeholders and data:
@@ -20,6 +21,7 @@ def create_db_connection():
     try:
         conn = sqlite3.connect('app_data/app_records.db')
         cursor = conn.cursor()
+        conn.execute("PRAGMA foreign_keys = ON")  # Enable foreign key constraints
         return conn, cursor
     except sqlite3.Error as e:
         logging.error(e)
@@ -32,6 +34,18 @@ def commit_changes_and_close(conn):
 
 def close_without_committing_changes(conn):
     conn.close()
+
+
+
+def delete_device(device_id):
+    conn, cursor = create_db_connection()
+
+    cursor.execute("""
+                UPDATE Devices
+                SET is_user_device = 0
+                WHERE device_id = ?
+        """, (device_id,))
+    commit_changes_and_close(conn)
 
 
 def get_button_configs(config_id, button_id):
@@ -57,6 +71,21 @@ def get_button_configs(config_id, button_id):
 
     return button_configs_array
 
+
+def get_user_device_objects():
+    
+    conn, cursor = create_db_connection()
+
+    cursor.execute("""
+        SELECT device_id, device_name, is_activated
+        FROM Devices
+        WHERE is_user_device = 1
+        ORDER BY date_added DESC
+                   """)
+
+    devices = cursor.fetchall()
+
+    
 
 def get_user_devices_and_configs():
         
@@ -107,6 +136,22 @@ def get_user_devices_and_configs():
     #             f"Config Name: {config.configuration_name}, "
     #             f"Is Selected: {config.is_selected}"
     #         )
+
+
+
+def update_selected_configuration(selected_configuration_id):
+    print(selected_configuration_id)
+
+    conn, cursor = create_db_connection()
+
+    cursor.execute("""
+        UPDATE Configurations
+        SET is_selected = 1
+        WHERE configuration_id = ?
+""", (selected_configuration_id,))
+
+    commit_changes_and_close(conn)
+    
 
 def get_existing_device_config(config_id):
     conn, cursor = create_db_connection()
@@ -311,6 +356,21 @@ def get_object():
 
 
     return user_devices[0]
+
+
+
+
+def delete_configuration(configuration_id):
+    conn, cursor = create_db_connection()
+
+    cursor.execute("""
+                   DELETE FROM Configurations
+                   WHERE configuration_id = ?
+                    """, (configuration_id,))
+
+
+
+    commit_changes_and_close(conn)
 
 
 
