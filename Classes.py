@@ -181,84 +181,249 @@ class DeviceProperties(Device):
 
 
 
-class DeviceConfig(UserDevice, DeviceProperties, ConfigurationSettings):
+
+
+
+
+class DeviceConfig:
     def __init__(
-            self,
-            device_id,
-            device_name,
-            is_user_device,
-            date_device_added,
-            date_device_last_edited,
-            buttons,
-            min_dpi,
-            max_dpi,
-            default_dpi,
-            has_scrollwheel,
-            smartshift_support,
-            hires_scroll_support,
-            has_thumbwheel,
-            thumbwheel_tap_support,
-            thumbwheel_proxy_support,
-            thumbwheel_touch_support,
-            thumbwheel_timestamp_support,
-            number_of_sensors,
-            device_is_activated,
+        self,
+        device_id,
+        device_name,
+        is_user_device,
+        is_activated,
+        buttons,
+        min_dpi,
+        max_dpi,
+        default_dpi,
+        has_scrollwheel,
+        smartshift_support,
+        hires_scroll_support,
+        has_thumbwheel,
+        thumbwheel_tap_support,
+        thumbwheel_proxy_support,
+        thumbwheel_touch_support,
+        thumbwheel_timestamp_support,
+        number_of_sensors,
+        device_pids,
+        configuration_id,
+        configuration_name,
+        date_configuration_added,
+        date_configuration_last_modified,
+        is_selected,
+        dpi,
+        smartshift_on,
+        smartshift_threshold,
+        smartshift_torque,
+        hiresscroll_hires,
+        hiresscroll_invert,
+        hiresscroll_target,
+        thumbwheel_divert,
+        thumbwheel_invert,
+        device_is_activated,
+        date_device_added=None,
+        date_device_last_edited=None,
+        configurations=None,
+    ):
+        self.device_id=device_id
+        self.device_name=device_name
+        self.is_user_device=is_user_device
+        self.date_device_added=date_device_added
+        self.date_device_last_edited=date_device_last_edited
+        self.buttons=buttons
+        self.min_dpi=min_dpi
+        self.max_dpi=max_dpi
+        self.default_dpi=default_dpi
+        self.has_scrollwheel=has_scrollwheel
+        self.smartshift_support = bool(smartshift_support)
+        self.hires_scroll_support=hires_scroll_support
+        self.has_thumbwheel=has_thumbwheel
+        self.thumbwheel_tap_support=thumbwheel_tap_support
+        self.thumbwheel_proxy_support=thumbwheel_proxy_support
+        self.thumbwheel_touch_support=thumbwheel_touch_support
+        self.thumbwheel_timestamp_support=thumbwheel_timestamp_support
+        self.number_of_sensors=number_of_sensors
+        self.device_is_activated=device_is_activated
+        self.configuration_id=configuration_id
+        self.configuration_name=configuration_name
+        self.date_configuration_added=date_configuration_added
+        self.date_configuration_last_modified=date_configuration_last_modified
+        self.is_selected=is_selected
+        self.dpi=dpi
+        self.smartshift_on = bool(smartshift_on)
+        self.smartshift_threshold=smartshift_threshold
+        self.smartshift_torque=smartshift_torque
+        self.hiresscroll_hires=hiresscroll_hires
+        self.hiresscroll_invert=hiresscroll_invert
+        self.hiresscroll_target=hiresscroll_target
+        self.thumbwheel_divert=thumbwheel_divert
+        self.thumbwheel_invert=thumbwheel_invert
+        self.is_activated=True
+        self.device_pids=None
 
-            configuration_id,
-            configuration_name,
-            date_configuration_added,
-            date_configuration_last_modified,
-            is_selected,
-            dpi,
-            smartshift_on,
-            smartshift_threshold,
-            smartshift_torque,
-            hiresscroll_hires,
-            hiresscroll_invert,
-            hiresscroll_target,
-            thumbwheel_divert,
-            thumbwheel_invert,
-            config_file_device_name = None,
-            device_pids = None,
-    ): 
 
-        super().__init__(
-            device_id,
-            device_name,
-            is_user_device,
-            date_device_added,
-            date_device_last_edited,
-            buttons,
-            min_dpi,
-            max_dpi,
-            default_dpi,
-            has_scrollwheel,
-            smartshift_support,
-            hires_scroll_support,
-            has_thumbwheel,
-            thumbwheel_tap_support,
-            thumbwheel_proxy_support,
-            thumbwheel_touch_support,
-            thumbwheel_timestamp_support,
-            number_of_sensors,
-            device_is_activated,
-            configuration_id,
-            configuration_name,
-            date_configuration_added,
-            date_configuration_last_modified,
-            is_selected,
-            dpi,
-            smartshift_on,
-            smartshift_threshold,
-            smartshift_torque,
-            hiresscroll_hires,
-            hiresscroll_invert,
-            hiresscroll_target,
-            thumbwheel_divert,
-            thumbwheel_invert,
-            )
+
+
+
+
+
+
+
         
 
+def get_device_config(configuration_id):
+
+    conn, cursor = execute_db_queries.create_db_connection()
+
+
+    cursor.execute("""
+    SELECT *
+    FROM Configurations AS C
+    JOIN Devices AS D ON C.device_id = D.device_id
+    WHERE C.configuration_id = ?;
+
+                    """, (configuration_id,))
+
+
+    configuration_query_result = cursor.fetchone()
+
+    configuration_id, device_id, configuration_name, date_configuration_added, date_configuration_last_modified, is_selected, \
+    dpi, smartshift_on, smartshift_threshold, smartshift_torque, hiresscroll_hires, hiresscroll_invert, hiresscroll_target, \
+    thumbwheel_divert, thumbwheel_invert, configuration_id, device_name, is_user_device, config_file_device_name, device_pids, \
+    min_dpi, max_dpi, default_dpi, has_scrollwheel, has_thumbwheel, thumbwheel_tap_support, thumbwheel_proxy_support, \
+    thumbwheel_touch_support, thumbwheel_timestamp_support, smartshift_support, hires_scroll_support, number_of_sensors, \
+    date_device_added, date_device_last_edited, device_is_activated = configuration_query_result
+
+    buttons = []
+
+
+    cursor.execute("""
+    SELECT *
+    FROM Buttons
+    WHERE device_id = ?
+                    """, (device_id,))
+
+    device_buttons = cursor.fetchall()
+
+    print(device_buttons)
+
+
+
+
+    configuration = DeviceConfig(
+                                    device_id=device_id,
+                                    device_name=device_name,
+                                    is_user_device=is_user_device,
+                                    date_device_added=date_device_added,
+                                    date_device_last_edited=date_device_last_edited,
+                                    buttons=buttons,
+                                    min_dpi=min_dpi,
+                                    max_dpi=max_dpi,
+                                    default_dpi=default_dpi,
+                                    has_scrollwheel =bool(has_scrollwheel),
+                                    smartshift_support = bool(smartshift_support),
+                                    hires_scroll_support = bool(hires_scroll_support),
+                                    has_thumbwheel = bool(has_thumbwheel),
+                                    thumbwheel_tap_support = bool(thumbwheel_tap_support),
+                                    thumbwheel_proxy_support = bool(thumbwheel_proxy_support),
+                                    thumbwheel_touch_support = bool(thumbwheel_touch_support),
+                                    thumbwheel_timestamp_support = bool(thumbwheel_timestamp_support),
+                                    number_of_sensors=number_of_sensors,
+                                    device_is_activated=device_is_activated,
+                                    configuration_id=configuration_id,
+                                    configuration_name=configuration_name,
+                                    date_configuration_added=date_configuration_added,
+                                    date_configuration_last_modified=date_configuration_last_modified,
+                                    is_selected=is_selected,
+                                    dpi=dpi,
+                                    smartshift_on=smartshift_on,
+                                    smartshift_threshold=smartshift_threshold,
+                                    smartshift_torque=smartshift_torque,
+                                    hiresscroll_hires=hiresscroll_hires,
+                                    hiresscroll_invert=hiresscroll_invert,
+                                    hiresscroll_target=hiresscroll_target,
+                                    thumbwheel_divert=bool(thumbwheel_divert),
+                                    thumbwheel_invert=bool(thumbwheel_invert),
+                                    is_activated=True,
+                                    device_pids=None
+    )
+
+    execute_db_queries.close_without_committing_changes(conn)
+
+    return configuration
+
+
+
+
+    # device_id,
+    # button_cid, 
+    # button_name,
+    # button_id,
+    # gesture_support,
+    # configuration_id,
+    # gestures,
+    # button_actions,
+
+
+
+
+
+
+                    # button_cid, 
+                    # button_name,
+                    # button_id,
+                    # gesture_support,
+                    # gestures,
+                    # button_actions,
+
+
+
+
+    # configuration = DeviceConfig()
+
+
+"""
+        SELECT device_id, configuration_name, date_added, last_modified, is_selected, dpi, smartshift_on, smartshift_threshold, smartshift_torque, hiresscroll_hires, hiresscroll_invert, hiresscroll_target, thumbwheel_target, thumbwheel_divert, thumbwheel_invert
+        FROM Configurations
+        WHERE configuration_id = ?
+
+
+        SELECT device_id, device_name, is_activated, is_user_device, date_device_added,            
+
+            is_user_device,
+            date_device_added,
+            date_device_last_edited,
+            buttons,
+            min_dpi,
+            max_dpi,
+            default_dpi,
+            has_scrollwheel,
+            smartshift_support,
+            hires_scroll_support,
+            has_thumbwheel,
+            thumbwheel_tap_support,
+            thumbwheel_proxy_support,
+            thumbwheel_touch_support,
+            thumbwheel_timestamp_support,
+            number_of_sensors,
+            device_is_activated,
+            configuration_id,
+            configuration_name,
+            date_configuration_added,
+            date_configuration_last_modified,
+            is_selected,
+            dpi,
+            smartshift_on,
+            smartshift_threshold,
+            smartshift_torque,
+            hiresscroll_hires,
+            hiresscroll_invert,
+            hiresscroll_target,
+            thumbwheel_divert,
+            thumbwheel_invert,
+
+
+"""
 
 
 class Button:
@@ -482,7 +647,7 @@ class Axis(Action):
 
         self.button_config_id = button_config_id
         self.device_id = device_id
-        self.button_id = button_id        
+        self.button_id = button_id
         self.configuration_id = configuration_id
         self.is_selected = is_selected
 

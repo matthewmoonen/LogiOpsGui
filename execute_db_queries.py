@@ -2,6 +2,7 @@ import logging
 import sqlite3
 import DeviceData
 import ConfigClasses
+import re
 
 
 def execute_queries(cursor, queries, placeholders=None, data=None):
@@ -35,7 +36,112 @@ def commit_changes_and_close(conn):
 def close_without_committing_changes(conn):
     conn.close()
 
+def get_next_sequential_name(name_to_match, similar_names):
+    if len(similar_names) == 0 or name_to_match not in similar_names:
+        return name_to_match
 
+    else:
+        pattern = rf'{re.escape(name_to_match)}(?: \((\d+)\))?'
+        numbers = []
+
+        for similar_name in similar_names:
+            match = re.match(pattern, similar_name)
+            if match:
+                number_str = match.group(1)
+                if number_str:
+                    number = int(number_str)
+                    if number >= 2:
+                        numbers.append(number)
+
+        if len(numbers) == 0:
+            return f"{name_to_match} (2)"
+
+        numbers.sort()
+
+        for i in range(1):
+            if numbers[0] < 2:
+                del numbers[0]
+                if len(numbers) == 0:
+                    return f"{name_to_match} (2)"
+
+        new_highest_number = 2
+            
+        for i in numbers:
+            if i == new_highest_number:
+                new_highest_number += 1
+                continue
+            else:
+                break
+
+        return f"{name_to_match} ({new_highest_number})"
+
+def new_empty_configuration(device_id, device_name):
+    conn, cursor = create_db_connection()
+
+    cursor.execute("""
+                SELECT configuration_name
+                FROM Configurations
+                WHERE device_id = ? AND configuration_name LIKE ? || '%'
+""", (device_id, device_name))
+    
+    similar_names = cursor.fetchall()
+    
+    similar_names_as_strings = [str(row[0]) for row in similar_names]
+    print(similar_names_as_strings)
+
+    next_config_name = get_next_sequential_name(device_name, similar_names_as_strings)
+
+    print(f"next config name: {next_config_name}")
+
+    cursor.execute("""
+                SELECT smartshift_support, hires_scroll_support, has_thumbwheel
+                FROM Devices
+                WHERE device_id = ?
+""", (device_id,))
+
+    smartshift_support, hires_scroll_support, has_thumbwheel = cursor.fetchone()
+
+    if bool(smartshift_support) == True:
+        smartshift_on = 1
+        smartshift_threshold = smartshift_torque = 10
+    else:
+        smartshift_on = smartshift_threshold = smartshift_torque = None
+
+    if bool(hires_scroll_support) == True:
+        hiresscroll_hires = hiresscroll_invert = hiresscroll_target = True
+
+    else:
+        hiresscroll_hires = hiresscroll_invert = hiresscroll_target = None
+
+    if bool(has_thumbwheel) == True:
+        thumbwheel_divert = thumbwheel_invert = True
+
+    else:
+        thumbwheel_divert = thumbwheel_invert = None
+
+    cursor.execute("""
+    INSERT INTO Configurations (
+        device_id,
+        configuration_name,
+        last_modified,
+        is_selected,
+        smartshift_on,
+        smartshift_threshold,
+        smartshift_torque,
+        hiresscroll_hires,
+        hiresscroll_invert,
+        hiresscroll_target,
+        thumbwheel_divert,
+        thumbwheel_invert
+    ) VALUES (?, ?, NULL, 0, ?, ?, ?, ?, ?, ?, ?, ?)
+""", (device_id, next_config_name, smartshift_on, smartshift_threshold, smartshift_torque, hiresscroll_hires, hiresscroll_invert, hiresscroll_target, thumbwheel_divert, thumbwheel_invert)) 
+
+    commit_changes_and_close(conn)
+    
+
+    # TODO: can't import the appropriate class from Classes.py as this would create a circular import, 
+    # however I would prefer to use classes. Need to restructure to fix this.
+    # Also, parts of this could be replaced with triggers on the DB - have a think about what is more simple.
 
 def delete_device(device_id):
     conn, cursor = create_db_connection()

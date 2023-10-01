@@ -238,6 +238,7 @@ class MainPage(ctk.CTkFrame):
                 height=40,
                 width=120,
                 text="Edit Configuration",
+                command=lambda: self.edit_configuration(configuration.configuration_id)
             )
 
             delete_configuration_button = ctk.CTkButton(
@@ -293,6 +294,12 @@ class MainPage(ctk.CTkFrame):
                                         )
             device_label.pack()
             
+            new_configuration_button = ctk.CTkButton(master=devices_frame,
+                                                     text="Add New Config",
+                                                     command=lambda d=device.device_id, n=device.device_name: add_new_configuration(d, n))
+            new_configuration_button.pack()
+
+
             delete_device_button = ctk.CTkButton(master=devices_frame,
                                                  text="Delete Device",
                                                 command=lambda d=device.device_id: device_deletion_warning(d)
@@ -302,8 +309,14 @@ class MainPage(ctk.CTkFrame):
             device_ui_elements[device.device_id] = {
                 "device_label": device_label,
                 "delete_device_button": delete_device_button,
+                "new_configuration_button": new_configuration_button
             }
 
+
+        def add_new_configuration(device_id, device_name):
+
+            print(f"TODO: make a new configuration for {device_id}")
+            execute_db_queries.new_empty_configuration(device_id, device_name)
             
         def device_deletion_warning(device_id):
             msg = CTkMessagebox(title="Delete Device?",
@@ -333,6 +346,7 @@ class MainPage(ctk.CTkFrame):
                         if ui_elements:
                             ui_elements["device_label"].destroy()
                             ui_elements["delete_device_button"].destroy()
+                            ui_elements["new_configuration_button"].destroy()
 
                         # Finally, delete the device itself
                         execute_db_queries.delete_device(device_id)
@@ -354,8 +368,6 @@ class MainPage(ctk.CTkFrame):
             for configuration in device.configurations:
                 # Create and pack UI elements, and store references
                 create_config_ui(device, configuration)
-
-
 
 
 
@@ -417,23 +429,6 @@ class MainPage(ctk.CTkFrame):
             sticky="e"
         )
 
-        # thechosen = "TODO: update object to pass in"
-
-        edit1 = ctk.CTkButton(
-            master=bottom_frame,
-            height=40,
-            width=120,
-            text="edit 1",
-            command=lambda: self.edit_configuration("TODO: update object to pass in")
-            # text_color_disabled=("#9FA5AB"),
-        )
-        edit1.grid(
-            # row=0,
-            # column=2,
-            # padx=(20, 20),
-            pady=30,
-            sticky="e"
-        )
 
 
 
@@ -443,16 +438,22 @@ class MainPage(ctk.CTkFrame):
 
 
     def edit_configuration(self, 
-                           selected_config
+                           configuration_id
                            ):
-        print(selected_config)
-        config_to_edit = execute_db_queries.get_object()
-        self.edit_page = EditPage(self.master, configuration=config_to_edit, main_page=self.show)
+
+        configuration = Classes.get_device_config(configuration_id)
+
+        self.edit_page = EditPage(self.master, configuration=configuration, main_page=self.show)
+        
         self.pack_forget()
+        
         self.edit_page.pack(fill="both", expand=True)
         
     def show(self):
         self.pack(fill="both", expand=True)
+
+
+
 
     def create_edit_page(self, device_dropdown_name):
         self.edit_page = EditPage(self.master, 
@@ -485,9 +486,250 @@ class EditPage(ctk.CTkFrame):
         edit_page_title = configuration.device_name
         edit_page_elements.create_name_device_label(self, edit_page_title)
 
+        edit_page_elements.device_configuration_widgets(self, configuration)
+        print(configuration.configuration_name)
 
-        if configuration is not None:
-            print("we've got a config!!!!")
+
+
+
+
+
+
+
+
+        dpi_label = ctk.CTkLabel(
+                                master=self,
+                                                                    text=("DPI"),
+                                                font=ctk.CTkFont(
+                                                        family="Roboto",
+                                                            # weight="bold",
+                                                        size=18,
+                                                        ),
+                                                        # text_color="#1F538D",
+                                        # pady=30,
+                                        # anchor='s'
+        )
+        dpi_label.pack()
+
+
+        dpi_spinbox = IntSpinbox(master=self,
+                                width=200,
+                                step_size=50,
+                                min_value=configuration.min_dpi,
+                                max_value=configuration.max_dpi
+                                )
+        
+        dpi_spinbox.set(configuration.dpi) #TODO: Update
+        dpi_spinbox.pack()
+
+
+
+
+
+
+        print(configuration.smartshift_support)
+
+        if configuration.smartshift_support == True:
+
+            smartshift_options_label = ctk.CTkLabel(
+                                    master=self,
+                                                                        text=("SmartShift Options"),
+                                                    font=ctk.CTkFont(
+                                                            family="Roboto",
+                                                                # weight="bold",
+                                                            size=18,
+                                                            ),
+                                                            # text_color="#1F538D",
+                                            # pady=30,
+                                            # anchor='s'
+            )
+            smartshift_options_label.pack()
+
+            def checkbox_event():
+                print("checkbox toggled, current value:", check_var.get())
+
+            check_var = ctk.BooleanVar(value=configuration.smartshift_on)
+            checkbox = ctk.CTkCheckBox(master=self, text="SmartShift On", command=checkbox_event,
+                                                variable=check_var, onvalue=True, offvalue=False)
+            checkbox.pack()
+
+
+
+
+
+
+            smartshift_options_label = ctk.CTkLabel(
+                                    master=self,
+                                                                        text=("SmartShift Options"),
+                                                    font=ctk.CTkFont(
+                                                            family="Roboto",
+                                                                # weight="bold",
+                                                            size=18,
+                                                            ),
+                                                            # text_color="#1F538D",
+                                            # pady=30,
+                                            # anchor='s'
+            )
+            smartshift_options_label.pack()
+            
+
+            
+            smartshift_threshold_label = ctk.CTkLabel(
+                                    master=self,
+                                                                        text=("SmartShift Threshold"),
+                                                    font=ctk.CTkFont(
+                                                            family="Roboto",
+                                                                # weight="bold",
+                                                            size=12,
+                                                            ),
+                                                            # text_color="#1F538D",
+                                            # pady=30,
+                                            # anchor='s'
+            )
+            smartshift_threshold_label.pack()
+
+            smartshift_threshold_spinbox = IntSpinbox(master=self,
+                                    width=140,
+                                    step_size=5,
+                                    min_value=1,
+                                    max_value=255,
+                                    )
+            
+            smartshift_threshold_spinbox.set(configuration.smartshift_threshold) #TODO: Update
+            smartshift_threshold_spinbox.pack()
+
+
+
+            smartshift_torque_label = ctk.CTkLabel(
+                                    master=self,
+                                                                        text=("SmartShift Torque"),
+                                                    font=ctk.CTkFont(
+                                                            family="Roboto",
+                                                                # weight="bold",
+                                                            size=12,
+                                                            ),
+                                                            # text_color="#1F538D",
+                                            # pady=30,
+                                            # anchor='s'
+            )
+            smartshift_torque_label.pack()
+
+            smartshift_torque_spinbox = IntSpinbox(master=self,
+                                    width=140,
+                                    step_size=5,
+                                    min_value=1,
+                                    max_value=255,
+                                    )
+            
+            smartshift_torque_spinbox.set(configuration.smartshift_torque) #TODO: Update
+            smartshift_torque_spinbox.pack()
+
+            # TODO: Smartshift threshold, smartshift torque
+
+
+        if configuration.hires_scroll_support == True:
+
+            hiresscroll_options_label = ctk.CTkLabel(
+                                    master=self,
+                                                                        text=("HiRes Scroll Options"),
+                                                    font=ctk.CTkFont(
+                                                            family="Roboto",
+                                                                # weight="bold",
+                                                            size=18,
+                                                            ),
+                                                            # text_color="#1F538D",
+                                            # pady=30,
+                                            # anchor='s'
+            )
+            hiresscroll_options_label.pack()
+
+            def hiresscroll_hires_event():
+                print("checkbox toggled, current value:", check_var.get())
+
+            hiresscroll_hires_var = ctk.BooleanVar(value=configuration.hiresscroll_hires)
+            hirescroll_hires_checkbox = ctk.CTkCheckBox(master=self, text="HiRes Scroll On", command=hiresscroll_hires_event,
+                                                variable=hiresscroll_hires_var, onvalue=True, offvalue=False)
+            hirescroll_hires_checkbox.pack()
+
+
+            def hiresscroll_invert_event():
+                print("checkbox toggled, current value:", check_var.get())
+
+            hiresscroll_invert_var = ctk.BooleanVar(value=configuration.hiresscroll_invert)
+            hirescroll_invert_checkbox = ctk.CTkCheckBox(master=self, text="Scroll Invert", command=hiresscroll_invert_event,
+                                                variable=hiresscroll_invert_var, onvalue=True, offvalue=False)
+            hirescroll_invert_checkbox.pack()
+
+
+            def hiresscroll_target_event():
+                print("checkbox toggled, current value:", check_var.get())
+
+            hiresscroll_target_var = ctk.BooleanVar(value=configuration.hiresscroll_target)
+            hirescroll_target_checkbox = ctk.CTkCheckBox(master=self, text="Scroll target", command=hiresscroll_target_event,
+                                                variable=hiresscroll_target_var, onvalue=True, offvalue=False)
+            hirescroll_target_checkbox.pack()
+
+
+        if configuration.has_scrollwheel == True:
+            
+            if configuration.has_thumbwheel == True:
+                scrollwheel_label_text = "Vertical Scrollwheel"
+            else:
+                scrollwheel_label_text = "Scrollwheel"
+
+            scrollwheel_label = ctk.CTkLabel(
+                                    master=self,
+                                                                        text=(scrollwheel_label_text),
+                                                    font=ctk.CTkFont(
+                                                            family="Roboto",
+                                                                # weight="bold",
+                                                            size=18,
+                                                            ),
+                                                            # text_color="#1F538D",
+                                            # pady=30,
+                                            # anchor='s'
+            )
+            scrollwheel_label.pack()
+
+
+        if configuration.has_thumbwheel == True:
+            thumbwheel_label = ctk.CTkLabel(
+                                    master=self,
+                                                                        text=("Thumbwheel"),
+                                                    font=ctk.CTkFont(
+                                                            family="Roboto",
+                                                                # weight="bold",
+                                                            size=18,
+                                                            ),
+                                                            # text_color="#1F538D",
+                                            # pady=30,
+                                            # anchor='s'
+            )
+            thumbwheel_label.pack()
+
+            
+            def thumbwheel_divert_event():
+                print("checkbox toggled, current value:", check_var.get())
+
+            thumbwheel_divert_var = ctk.BooleanVar(value=configuration.thumbwheel_divert)
+            thumbwheel_divert_checkbox = ctk.CTkCheckBox(master=self, text="Thumbwheel Divert", command=thumbwheel_divert_event,
+                                                variable=thumbwheel_divert_var, onvalue=True, offvalue=False)
+            thumbwheel_divert_checkbox.pack()
+
+
+            def thumbwheel_invert_event():
+                print("checkbox toggled, current value:", check_var.get())
+
+            thumbwheel_invert_var = ctk.BooleanVar(value=configuration.thumbwheel_invert)
+            thumbwheel_invert_checkbox = ctk.CTkCheckBox(master=self, text="Thumbwheel Invert", command=thumbwheel_invert_event,
+                                                variable=thumbwheel_invert_var, onvalue=True, offvalue=False)
+            thumbwheel_invert_checkbox.pack()
+
+
+
+
+
+
 
 
 
