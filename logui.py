@@ -10,6 +10,7 @@ import main_page_elements
 import edit_page_elements
 import gui_variables
 import Classes
+import Classes2
 from CTkMessagebox import CTkMessagebox
 
 
@@ -441,7 +442,9 @@ class MainPage(ctk.CTkFrame):
                            configuration_id
                            ):
 
-        configuration = Classes.get_device_config(configuration_id)
+        configuration = Classes.DeviceConfig.create_from_configuration_id(configuration_id)
+
+
 
         self.edit_page = EditPage(self.master, configuration=configuration, main_page=self.show)
         

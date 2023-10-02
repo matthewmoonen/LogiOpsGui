@@ -117,7 +117,7 @@ def add_devices(cursor):
                                 
                                 device.device_id,
                                 button.button_cid,
-                                DeviceData.cid_button_functions.get(button.button_cid, "Unknown Button"),
+                                button.button_name,
                                 button.reprogrammable,
                                 button.fn_key,
                                 button.mouse_key,
