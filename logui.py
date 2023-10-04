@@ -14,6 +14,8 @@ import Classes2
 from CTkMessagebox import CTkMessagebox
 
 
+import inspect
+
 
 
 class IntSpinbox(ctk.CTkFrame):
@@ -120,7 +122,7 @@ class IntSpinbox(ctk.CTkFrame):
 
     def toggle_enable(self, new_enabled_state):
         self.enabled = new_enabled_state
-        print(self.enabled)
+        # print(self.enabled)
         state = "normal" if self.enabled else "disabled"
         self.entry.configure(state=state)
         self.add_button.configure(state=state)
@@ -196,8 +198,7 @@ class MainPage(ctk.CTkFrame):
                                         )
         
         create_and_update_device_dropdown()
-         
-
+   
 
         devices_frame = ctk.CTkScrollableFrame(master=self,
                                               border_width=2,
@@ -212,7 +213,6 @@ class MainPage(ctk.CTkFrame):
             fill="both",
             expand=True,
             )
-
 
 
         # Create a dictionary to store UI elements by configuration ID
@@ -316,7 +316,7 @@ class MainPage(ctk.CTkFrame):
 
         def add_new_configuration(device_id, device_name):
 
-            print(f"TODO: make a new configuration for {device_id}")
+            # print(f"TODO: make a new configuration for {device_id}")
             execute_db_queries.new_empty_configuration(device_id, device_name)
             
         def device_deletion_warning(device_id):
@@ -376,28 +376,6 @@ class MainPage(ctk.CTkFrame):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         bottom_frame = ctk.CTkFrame(
             master=self,
             fg_color="transparent"
@@ -445,7 +423,6 @@ class MainPage(ctk.CTkFrame):
         configuration = Classes.DeviceConfig.create_from_configuration_id(configuration_id)
 
 
-
         self.edit_page = EditPage(self.master, configuration=configuration, main_page=self.show)
         
         self.pack_forget()
@@ -484,19 +461,18 @@ class EditPage(ctk.CTkFrame):
 
         self.master = master
         self.main_page = main_page
-    
 
         edit_page_title = configuration.device_name
         edit_page_elements.create_name_device_label(self, edit_page_title)
 
         edit_page_elements.device_configuration_widgets(self, configuration)
-        print(configuration.configuration_name)
+        # print(configuration.configuration_name)
 
 
 
 
 
-
+        
 
 
 
@@ -526,12 +502,6 @@ class EditPage(ctk.CTkFrame):
         dpi_spinbox.pack()
 
 
-
-
-
-
-        print(configuration.smartshift_support)
-
         if configuration.smartshift_support == True:
 
             smartshift_options_label = ctk.CTkLabel(
@@ -548,15 +518,13 @@ class EditPage(ctk.CTkFrame):
             )
             smartshift_options_label.pack()
 
-            def checkbox_event():
-                print("checkbox toggled, current value:", check_var.get())
+            def smartshift_checkbox_toggled():
+                configuration.smartshift_on = not(configuration.smartshift_on)
 
             check_var = ctk.BooleanVar(value=configuration.smartshift_on)
-            checkbox = ctk.CTkCheckBox(master=self, text="SmartShift On", command=checkbox_event,
+            checkbox = ctk.CTkCheckBox(master=self, text="SmartShift On", command=smartshift_checkbox_toggled,
                                                 variable=check_var, onvalue=True, offvalue=False)
             checkbox.pack()
-
-
 
 
 
@@ -646,35 +614,40 @@ class EditPage(ctk.CTkFrame):
             )
             hiresscroll_options_label.pack()
 
-            def hiresscroll_hires_event():
-                print("checkbox toggled, current value:", check_var.get())
+            def hiresscroll_hires_toggle():
+                configuration.hiresscroll_hires = not(configuration.hiresscroll_hires)
+
 
             hiresscroll_hires_var = ctk.BooleanVar(value=configuration.hiresscroll_hires)
-            hirescroll_hires_checkbox = ctk.CTkCheckBox(master=self, text="HiRes Scroll On", command=hiresscroll_hires_event,
+            hirescroll_hires_checkbox = ctk.CTkCheckBox(master=self, text="HiRes Scroll On", command=hiresscroll_hires_toggle,
                                                 variable=hiresscroll_hires_var, onvalue=True, offvalue=False)
             hirescroll_hires_checkbox.pack()
 
 
-            def hiresscroll_invert_event():
-                print("checkbox toggled, current value:", check_var.get())
+            def hiresscroll_invert_toggle():
+                configuration.hiresscroll_invert = not(configuration.hiresscroll_invert)
+
 
             hiresscroll_invert_var = ctk.BooleanVar(value=configuration.hiresscroll_invert)
-            hirescroll_invert_checkbox = ctk.CTkCheckBox(master=self, text="Scroll Invert", command=hiresscroll_invert_event,
+            hirescroll_invert_checkbox = ctk.CTkCheckBox(master=self, text="Scroll Invert", command=hiresscroll_invert_toggle,
                                                 variable=hiresscroll_invert_var, onvalue=True, offvalue=False)
             hirescroll_invert_checkbox.pack()
 
 
-            def hiresscroll_target_event():
-                print("checkbox toggled, current value:", check_var.get())
+            def hiresscroll_target_toggle():
+                configuration.hiresscroll_target = not(configuration.hiresscroll_target)
 
             hiresscroll_target_var = ctk.BooleanVar(value=configuration.hiresscroll_target)
-            hirescroll_target_checkbox = ctk.CTkCheckBox(master=self, text="Scroll target", command=hiresscroll_target_event,
+            hirescroll_target_checkbox = ctk.CTkCheckBox(master=self, text="Scroll target", command=hiresscroll_target_toggle,
                                                 variable=hiresscroll_target_var, onvalue=True, offvalue=False)
             hirescroll_target_checkbox.pack()
 
 
+
         if configuration.has_scrollwheel == True:
             
+            scroll_properties = Classes.ScrollProperties.create_from_configuration_id(configuration.configuration_id)
+
             if configuration.has_thumbwheel == True:
                 scrollwheel_label_text = "Vertical Scrollwheel"
             else:
@@ -694,6 +667,80 @@ class EditPage(ctk.CTkFrame):
             )
             scrollwheel_label.pack()
 
+            scrollwheel_up_threshold_label = ctk.CTkLabel(
+                master= self,
+                text = "Scrollwheel Up Threshold"
+            )
+            scrollwheel_up_threshold_label.pack()
+
+            scrollwheel_up_spinbox = IntSpinbox(master=self,
+                                    width=200,
+                                    step_size=5,
+                                    min_value=1,
+                                    max_value=9999
+                                    )
+            
+            scrollwheel_up_spinbox.set(scroll_properties.scroll_up_threshold)
+            scrollwheel_up_spinbox.pack()
+
+            scrollwheel_up_mode_label = ctk.CTkLabel(
+                master= self,
+                text = "Scrollwheel Up Mode"
+            )
+            scrollwheel_up_mode_label.pack()
+
+            def update_scroll_up_mode(new_mode):
+                scroll_properties.scroll_up_mode = new_mode
+
+            scroll_up_mode_dropdown = ctk.CTkOptionMenu(master=self,
+                                                    variable=ctk.StringVar(value=scroll_properties.scroll_up_mode),
+                                                    values=["OnInterval", "OnThreshold"],
+                                                    state="normal",
+                                                    width=400,
+                                                    height=36,
+                                                    command=update_scroll_up_mode)
+            scroll_up_mode_dropdown.pack()
+
+
+
+            scrollwheel_down_threshold_label = ctk.CTkLabel(
+                master= self,
+                text = "Scrollwheel Down Threshold"
+            )
+            scrollwheel_down_threshold_label.pack()
+
+            scrollwheel_down_spinbox = IntSpinbox(master=self,
+                                    width=200,
+                                    step_size=5,
+                                    min_value=1,
+                                    max_value=9999
+                                    )
+            
+            scrollwheel_down_spinbox.set(scroll_properties.scroll_down_threshold)
+            scrollwheel_down_spinbox.pack()
+
+            scrollwheel_down_mode_label = ctk.CTkLabel(
+                master= self,
+                text = "Scrollwheel Down Mode"
+            )
+            scrollwheel_down_mode_label.pack()
+
+            def update_scroll_down_mode(new_mode):
+                scroll_properties.scroll_down_mode = new_mode
+
+            scroll_down_mode_dropdown = ctk.CTkOptionMenu(master=self,
+                                                    variable=ctk.StringVar(value=scroll_properties.scroll_down_mode),
+                                                    values=["OnInterval", "OnThreshold"],
+                                                    state="normal",
+                                                    width=400,
+                                                    height=36,
+                                                    command=update_scroll_down_mode)
+            scroll_down_mode_dropdown.pack()
+
+
+
+
+
 
         if configuration.has_thumbwheel == True:
             thumbwheel_label = ctk.CTkLabel(
@@ -712,7 +759,8 @@ class EditPage(ctk.CTkFrame):
 
             
             def thumbwheel_divert_event():
-                print("checkbox toggled, current value:", check_var.get())
+                configuration.thumbwheel_divert = not(configuration.thumbwheel_divert)
+
 
             thumbwheel_divert_var = ctk.BooleanVar(value=configuration.thumbwheel_divert)
             thumbwheel_divert_checkbox = ctk.CTkCheckBox(master=self, text="Thumbwheel Divert", command=thumbwheel_divert_event,
@@ -721,12 +769,107 @@ class EditPage(ctk.CTkFrame):
 
 
             def thumbwheel_invert_event():
-                print("checkbox toggled, current value:", check_var.get())
+                configuration.thumbwheel_invert = not(configuration.thumbwheel_invert)
+
 
             thumbwheel_invert_var = ctk.BooleanVar(value=configuration.thumbwheel_invert)
             thumbwheel_invert_checkbox = ctk.CTkCheckBox(master=self, text="Thumbwheel Invert", command=thumbwheel_invert_event,
                                                 variable=thumbwheel_invert_var, onvalue=True, offvalue=False)
             thumbwheel_invert_checkbox.pack()
+
+
+
+            thumbwheel_left_threshold_label = ctk.CTkLabel(
+                master= self,
+                text = "Thumbwheel Left Threshold"
+            )
+            thumbwheel_left_threshold_label.pack()
+
+            thumbwheel_left_spinbox = IntSpinbox(master=self,
+                                    width=200,
+                                    step_size=5,
+                                    min_value=1,
+                                    max_value=9999
+                                    )
+            
+            thumbwheel_left_spinbox.set(scroll_properties.scroll_left_threshold)
+            thumbwheel_left_spinbox.pack()
+
+            thumbwheel_left_mode_label = ctk.CTkLabel(
+                master= self,
+                text = "Thumbwheel Left Mode"
+            )
+            thumbwheel_left_mode_label.pack()
+
+            def update_scroll_left_mode(new_mode):
+                scroll_properties.scroll_left_mode = new_mode
+
+            scroll_left_mode_dropdown = ctk.CTkOptionMenu(master=self,
+                                                    variable=ctk.StringVar(value=scroll_properties.scroll_left_mode),
+                                                    values=["OnInterval", "OnThreshold"],
+                                                    state="normal",
+                                                    width=400,
+                                                    height=36,
+                                                    command=update_scroll_left_mode)
+            scroll_left_mode_dropdown.pack()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            thumbwheel_right_threshold_label = ctk.CTkLabel(
+                master= self,
+                text = "Thumbwheel Right Threshold"
+            )
+            thumbwheel_right_threshold_label.pack()
+
+            thumbwheel_right_spinbox = IntSpinbox(master=self,
+                                    width=200,
+                                    step_size=5,
+                                    min_value=1,
+                                    max_value=9999
+                                    )
+            
+            thumbwheel_right_spinbox.set(scroll_properties.scroll_right_threshold)
+            thumbwheel_right_spinbox.pack()
+
+            thumbwheel_right_mode_label = ctk.CTkLabel(
+                master= self,
+                text = "Thumbwheel Right Mode"
+            )
+            thumbwheel_right_mode_label.pack()
+
+            def update_scroll_right_mode(new_mode):
+                scroll_properties.scroll_right_mode = new_mode
+
+            scroll_right_mode_dropdown = ctk.CTkOptionMenu(master=self,
+                                                    variable=ctk.StringVar(value=scroll_properties.scroll_right_mode),
+                                                    values=["OnInterval", "OnThreshold"],
+                                                    state="normal",
+                                                    width=400,
+                                                    height=36,
+                                                    command=update_scroll_right_mode)
+            scroll_right_mode_dropdown.pack()
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -743,9 +886,22 @@ class EditPage(ctk.CTkFrame):
         bottom_frame.pack()
 
         back_button = ctk.CTkButton(master=bottom_frame, 
-                                            text="Cancel",
-                                            command=self.go_back)
+                                            text="Back",
+                                            command=lambda: [self.go_back(), update_spinboxes_in_db()])
         back_button.pack(pady=20)
+
+
+        def update_spinboxes_in_db():
+            configuration.dpi = dpi_spinbox.get()
+            if configuration.smartshift_support == True:
+                configuration.smartshift_threshold = smartshift_threshold_spinbox.get()
+                configuration.smartshift_torque = smartshift_torque_spinbox.get()
+            if configuration.has_scrollwheel == True:
+                scroll_properties.scroll_up_threshold = scrollwheel_up_spinbox.get()
+                scroll_properties.scroll_down_threshold = scrollwheel_down_spinbox.get()
+            if configuration.has_thumbwheel == True:
+                scroll_properties.scroll_left_threshold = thumbwheel_left_spinbox.get()
+                scroll_properties.scroll_right_threshold = thumbwheel_right_spinbox.get()
 
 
 

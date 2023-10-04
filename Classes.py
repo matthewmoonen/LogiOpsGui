@@ -51,18 +51,34 @@ class ButtonSettings(Button):
                     gesture_support,
                     configuration_id,
                     gestures,
-                    button_actions = [],
+                    button_default = {"button_config_id": None, "is_selected": None},
+                    button_nopress = {"button_config_id": None, "is_selected": None},
+                    button_togglesmartshift = {"button_config_id": None, "is_selected": None},
+                    button_togglehiresscroll = {"button_config_id": None, "is_selected": None},
+                    button_gestures = {"button_config_id": None, "is_selected": None},
+                    button_axes = [],
+                    button_changehost = [],
+                    button_cycledpi = []
     ):
         super().__init__(
             device_id,
             button_cid,
             button_name,
-            button_id
+            button_id,
         )
         self.gesture_support = gesture_support
         self.configuration_id = configuration_id
         self.gestures = gestures
-        self.button_actions = button_actions
+        self.button_default = button_default
+        self.button_nopress = button_nopress
+        self.button_togglesmartshift = button_togglesmartshift
+        self.button_togglehiresscroll = button_togglehiresscroll
+        self.button_gestures = button_gestures
+        self.button_axes = button_axes
+        self.button_changehost = button_changehost
+        self.button_cycledpi = button_cycledpi
+        
+
 
 
 
@@ -223,8 +239,265 @@ class ConfigurationSettings(Configuration):
 
 
 
+class ScrollProperties:
+    def __init__(
+            self,
+            configuration_id = None,
+            scroll_up_threshold = None,
+            scroll_up_mode = None,
+            scroll_down_threshold = None,
+            scroll_down_mode = None,
+            scroll_left_threshold = None,
+            scroll_left_mode = None,
+            scroll_right_threshold = None,
+            scroll_right_mode = None
+    ):
+            self.configuration_id = configuration_id
+            self.scroll_up_threshold = scroll_up_threshold
+            self.scroll_down_threshold = scroll_down_threshold
+            self.scroll_up_mode = scroll_up_mode
+            self.scroll_down_mode = scroll_down_mode
+            self.scroll_left_mode = scroll_left_mode
+            self.scroll_right_mode = scroll_right_mode
+            self.scroll_right_threshold = scroll_right_threshold
+            self.scroll_left_threshold = scroll_left_threshold
 
 
+    @classmethod
+    def create_from_configuration_id(cls, configuration_id):
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+        SELECT scroll_direction, threshold, mode
+        FROM ScrollActionProperties
+        WHERE configuration_id = ?;
+        """, (configuration_id,))
+
+        scroll_property_query_results = cursor.fetchall()
+
+        scroll_properties = cls()
+
+        scroll_properties.configuration_id = configuration_id
+
+        for i in scroll_property_query_results:
+            scroll_direction, threshold, mode = i
+            if scroll_direction == "Up":
+                scroll_properties.scroll_up_threshold = threshold
+                scroll_properties.scroll_up_mode = mode
+            elif scroll_direction == "Down":
+                scroll_properties.scroll_down_threshold = threshold
+                scroll_properties.scroll_down_mode = mode
+            elif scroll_direction == "Left":
+                scroll_properties.scroll_left_threshold = threshold
+                scroll_properties.scroll_left_mode = mode
+            elif scroll_direction == "Right":
+                scroll_properties.scroll_right_threshold = threshold
+                scroll_properties.scroll_right_mode = mode
+
+        execute_db_queries.close_without_committing_changes(conn)
+
+        return scroll_properties
+
+
+    @property
+    def scroll_up_threshold(self):
+        return self._scroll_up_threshold
+
+    @scroll_up_threshold.setter
+    def scroll_up_threshold(self, value):
+        self._scroll_up_threshold = value
+
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+        UPDATE ScrollActionProperties
+        SET threshold = ?
+        WHERE configuration_id = ? AND scroll_direction = 'Up'
+        """, (self._scroll_up_threshold, self.configuration_id))
+
+        conn.commit()
+        conn.close()
+
+    @property
+    def scroll_down_threshold(self):
+        return self._scroll_down_threshold
+
+    @scroll_down_threshold.setter
+    def scroll_down_threshold(self, value):
+        self._scroll_down_threshold = value
+
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+        UPDATE ScrollActionProperties
+        SET threshold = ?
+        WHERE configuration_id = ? AND scroll_direction = 'Down'
+        """, (self._scroll_down_threshold, self.configuration_id))
+
+        conn.commit()
+        conn.close()
+
+
+    @property
+    def scroll_left_threshold(self):
+        return self._scroll_left_threshold
+
+    @scroll_left_threshold.setter
+    def scroll_left_threshold(self, value):
+        self._scroll_left_threshold = value
+
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+        UPDATE ScrollActionProperties
+        SET threshold = ?
+        WHERE configuration_id = ? AND scroll_direction = 'Left'
+        """, (self._scroll_left_threshold, self.configuration_id))
+
+        conn.commit()
+        conn.close()
+
+
+    @property
+    def scroll_right_threshold(self):
+        return self._scroll_right_threshold
+
+    @scroll_right_threshold.setter
+    def scroll_right_threshold(self, value):
+        self._scroll_right_threshold = value
+
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+        UPDATE ScrollActionProperties
+        SET threshold = ?
+        WHERE configuration_id = ? AND scroll_direction = 'Right'
+        """, (self._scroll_right_threshold, self.configuration_id))
+
+        conn.commit()
+        conn.close()
+
+
+    @property
+    def scroll_up_mode(self):
+        return self._scroll_up_mode
+
+    @scroll_up_mode.setter
+    def scroll_up_mode(self, value):
+        self._scroll_up_mode = value
+
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+        UPDATE ScrollActionProperties
+        SET mode = ?
+        WHERE configuration_id = ? AND scroll_direction = 'Up'
+        """, (self._scroll_up_mode, self.configuration_id))
+
+        conn.commit()
+        conn.close()
+
+
+    @property
+    def scroll_down_mode(self):
+        return self._scroll_down_mode
+
+    @scroll_down_mode.setter
+    def scroll_down_mode(self, value):
+        self._scroll_down_mode = value
+
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+        UPDATE ScrollActionProperties
+        SET mode = ?
+        WHERE configuration_id = ? AND scroll_direction = 'Down'
+        """, (self._scroll_down_mode, self.configuration_id))
+
+        conn.commit()
+        conn.close()
+
+
+    @property
+    def scroll_left_mode(self):
+        return self._scroll_left_mode
+
+    @scroll_left_mode.setter
+    def scroll_left_mode(self, value):
+        self._scroll_left_mode = value
+
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+        UPDATE ScrollActionProperties
+        SET mode = ?
+        WHERE configuration_id = ? AND scroll_direction = 'Left'
+        """, (self._scroll_left_mode, self.configuration_id))
+
+        conn.commit()
+        conn.close()
+
+
+
+    @property
+    def scroll_right_mode(self):
+        return self._scroll_right_mode
+
+    @scroll_right_mode.setter
+    def scroll_right_mode(self, value):
+        self._scroll_right_mode = value
+
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+        UPDATE ScrollActionProperties
+        SET mode = ?
+        WHERE configuration_id = ? AND scroll_direction = 'Right'
+        """, (self._scroll_right_mode, self.configuration_id))
+
+        conn.commit()
+        conn.close()
+
+
+
+
+# class ButtonSettings(Button):
+#     def __init__(
+#                     self,
+#                     device_id,
+#                     button_cid, 
+#                     button_name,
+#                     button_id,
+#                     gesture_support,
+#                     configuration_id,
+#                     gestures,
+#                     button_default = {"button_config_id": None, "is_selected": None},
+#                     button_nopress = {"button_config_id": None, "is_selected": None},
+#                     button_togglesmartshift = {"button_config_id": None, "is_selected": None},
+#                     button_togglehiresscroll = {"button_config_id": None, "is_selected": None},
+#                     button_gestures = {"button_config_id": None, "is_selected": None},
+#                     button_axes = [],
+#                     button_changehost = [],
+#                     button_cycledpi = []
+#     ):
+#         super().__init__(
+#             device_id,
+#             button_cid,
+#             button_name,
+#             button_id,
+#         )
+#         self.gesture_support = gesture_support
+#         self.configuration_id = configuration_id
+#         self.gestures = gestures
+#         self.button_default = button_default
+#         self.button_nopress = button_nopress
+#         self.button_togglesmartshift = button_togglesmartshift
+#         self.button_togglehiresscroll = button_togglehiresscroll
+#         self.button_gestures = button_gestures
+#         self.button_axes = button_axes
+#         self.button_changehost = button_changehost
+#         self.button_cycledpi = button_cycledpi
+        
 
 
 class DeviceConfig:
@@ -316,7 +589,7 @@ class DeviceConfig:
             # Extract values from the query result and set them as attributes
         config.configuration_id, config.device_id, config.configuration_name, config.date_configuration_added, config.date_configuration_last_modified, is_selected, \
         config.dpi, smartshift_on, config.smartshift_threshold, config.smartshift_torque, hiresscroll_hires, hiresscroll_invert, hiresscroll_target, \
-        thumbwheel_divert, thumbwheel_invert, config.configuration_id, config.device_name, is_user_device, config_file_device_name, device_pids, \
+        thumbwheel_divert, thumbwheel_invert, repeat_device_id, config.device_name, is_user_device, config_file_device_name, device_pids, \
         config.min_dpi, config.max_dpi, config.default_dpi, has_scrollwheel, has_thumbwheel, thumbwheel_tap_support, thumbwheel_proxy_support, \
         thumbwheel_touch_support, thumbwheel_timestamp_support, smartshift_support, hires_scroll_support, config.number_of_sensors, \
         config.date_device_added, config.date_device_last_edited, is_activated = configuration_query_result
@@ -347,13 +620,211 @@ class DeviceConfig:
         return config
 
 
+    @property
+    def smartshift_on(self):
+        return self._smartshift_on
+
+    @smartshift_on.setter
+    def smartshift_on(self, value):
+        self._smartshift_on = value
+
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+        UPDATE Configurations
+        SET smartshift_on = ?
+        WHERE configuration_id = ?;
+        """, (self._smartshift_on, self.configuration_id))
+
+        conn.commit()
+        conn.close()
 
 
-def test(config):
-    # config = DeviceConfig()
-    print(config.configuration_id)
-    config.set_configuration_by_id(1)
-    print(config.configuration_id)
+    @property
+    def hiresscroll_hires(self):
+        return self._hiresscroll_hires
+
+    @hiresscroll_hires.setter
+    def hiresscroll_hires(self, value):
+        self._hiresscroll_hires = value
+
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+        UPDATE Configurations
+        SET hiresscroll_hires = ?
+        WHERE configuration_id = ?;
+        """, (self._hiresscroll_hires, self.configuration_id))
+
+        conn.commit()
+        conn.close()
+
+
+    @property
+    def hiresscroll_invert(self):
+        return self._hiresscroll_invert
+
+    @hiresscroll_invert.setter
+    def hiresscroll_invert(self, value):
+        self._hiresscroll_invert = value
+
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+        UPDATE Configurations
+        SET hiresscroll_invert = ?
+        WHERE configuration_id = ?;
+        """, (self._hiresscroll_invert, self.configuration_id))
+
+        conn.commit()
+        conn.close()
+
+
+    @property
+    def hiresscroll_target(self):
+        return self._hiresscroll_target
+
+    @hiresscroll_target.setter
+    def hiresscroll_target(self, value):
+        self._hiresscroll_target = value
+
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+        UPDATE Configurations
+        SET hiresscroll_target = ?
+        WHERE configuration_id = ?;
+        """, (self._hiresscroll_target, self.configuration_id))
+
+        conn.commit()
+        conn.close()
+
+
+    @property
+    def thumbwheel_divert(self):
+        return self._thumbwheel_divert
+
+    @thumbwheel_divert.setter
+    def thumbwheel_divert(self, value):
+        self._thumbwheel_divert = value
+
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+        UPDATE Configurations
+        SET thumbwheel_divert = ?
+        WHERE configuration_id = ?;
+        """, (self._thumbwheel_divert, self.configuration_id))
+
+        conn.commit()
+        conn.close()
+
+    @property
+    def thumbwheel_invert(self):
+        return self._thumbwheel_invert
+
+    @thumbwheel_invert.setter
+    def thumbwheel_invert(self, value):
+        self._thumbwheel_invert = value
+
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+        UPDATE Configurations
+        SET thumbwheel_invert = ?
+        WHERE configuration_id = ?;
+        """, (self._thumbwheel_invert, self.configuration_id))
+
+        conn.commit()
+        conn.close()
+
+
+    @property
+    def dpi(self):
+        return self._dpi
+
+    @dpi.setter
+    def dpi(self, value):
+        self._dpi = value
+
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+        UPDATE Configurations
+        SET dpi = ?
+        WHERE configuration_id = ?;
+        """, (self._dpi, self.configuration_id))
+
+        conn.commit()
+        conn.close()
+
+    @property
+    def smartshift_threshold(self):
+        return self._smartshift_threshold
+
+    @smartshift_threshold.setter
+    def smartshift_threshold(self, value):
+
+        self._smartshift_threshold = value
+
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+        UPDATE Configurations
+        SET smartshift_threshold = ?
+        WHERE configuration_id = ?;
+        """, (self._smartshift_threshold, self.configuration_id))
+
+        conn.commit()
+        conn.close()
+
+
+    @property
+    def smartshift_torque(self):
+        return self._smartshift_torque
+
+    @smartshift_torque.setter
+    def smartshift_torque(self, value):
+        
+        self._smartshift_torque = value
+
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+        UPDATE Configurations
+        SET smartshift_torque = ?
+        WHERE configuration_id = ?;
+        """, (self._smartshift_torque, self.configuration_id))
+
+        conn.commit()
+        conn.close()
+
+
+    @property
+    def configuration_name(self):
+        return self._configuration_name
+
+    @configuration_name.setter
+    def configuration_name(self, value):
+        
+        self._configuration_name = value
+
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+        UPDATE Configurations
+        SET configuration_name = ?
+        WHERE configuration_id = ?;
+        """, (self._configuration_name, self.configuration_id))
+
+        conn.commit()
+        conn.close()
+
+
+
+
+
+
 
 
 def get_device_config(configuration_id):
@@ -382,15 +853,15 @@ def get_device_config(configuration_id):
     buttons = []
 
 
-    # cursor.execute("""
-    # SELECT *
-    # FROM Buttons
-    # WHERE device_id = ?
-    #                 """, (device_id,))
+    cursor.execute("""
+    SELECT *
+    FROM Buttons
+    WHERE device_id = ?
+                    """, (device_id,))
 
-    # device_buttons = cursor.fetchall()
+    device_buttons = cursor.fetchall()
 
-    # print(device_buttons)
+    print(device_buttons)
 
 
 
@@ -713,10 +1184,11 @@ class ChangeHost:
 
 
 def main():
+    pass
     # x = get_device_config(2)
     # test(x)
-    config = DeviceConfig.create_from_configuration_id(1)
-    print(f"{config.configuration_id}, {config.configuration_name}, {config.smartshift_on}")
+    # config = DeviceConfig.create_from_configuration_id(1)
+    # print(f"{config.configuration_id}, {config.configuration_name}, {config.smartshift_on}")
 
 
 if __name__ == "__main__":
