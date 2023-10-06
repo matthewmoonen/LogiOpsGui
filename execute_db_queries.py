@@ -404,6 +404,32 @@ def get_configured_devices():
     close_without_committing_changes(conn)
     return [row[0] for row in user_devices]
 
+
+def add_new_device(new_device_name):
+
+    conn, cursor = create_db_connection()
+
+    cursor.execute("""
+        UPDATE Devices
+        SET is_user_device = 1
+        WHERE device_name = ?
+""", (new_device_name,))
+
+    print(new_device_name)
+
+    cursor.execute("""
+        SELECT Configurations.configuration_id
+        FROM Configurations
+        JOIN Devices ON Configurations.device_id = Devices.device_id
+        WHERE Devices.device_name = ?;
+""", (new_device_name,))
+    
+    new_configuration_id = cursor.fetchone()[0]
+
+    commit_changes_and_close(conn)
+
+    return new_configuration_id
+
 def get_unconfigured_devices():
     
     conn, cursor = create_db_connection()

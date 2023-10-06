@@ -1,4 +1,4 @@
-import Classes2
+import Classes
 
 
 #   Accessible refers to whether the button is physically accessible on the mouse when in normal use.
@@ -8,7 +8,7 @@ import Classes2
 # Creating instances of LogitechDevice for each device
 logitech_devices = [ 
 
-Classes2.DeviceDatabase(
+Classes.DeviceDatabase(
 device_id = 1,
 device_name = "MX Master 3S for Mac",
 config_file_device_name = "MX Master 3S for Mac",
@@ -17,14 +17,14 @@ max_dpi = 8000,
 default_dpi = 1000,
 has_scrollwheel=True,
 buttons = [
-Classes2.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00c3", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
+Classes.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00c3", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
 ],
 has_thumbwheel = True,
 thumbwheel_tap_support = True,
@@ -40,7 +40,7 @@ device_pids = [
 ),
 
 
-Classes2.DeviceDatabase(
+Classes.DeviceDatabase(
 device_id = 2,
 device_name = "MX Master 3S",
 config_file_device_name = "MX Master 3S",
@@ -51,14 +51,14 @@ default_dpi =              1000,
 has_scrollwheel=True,
 
 buttons =      [
-Classes2.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00c3", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
+Classes.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00c3", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
 ],
 
 has_thumbwheel = True,
@@ -76,7 +76,7 @@ device_pids = [
 ),
 
 
-Classes2.DeviceDatabase(
+Classes.DeviceDatabase(
 device_id = 3,
 device_name = "MX Master 3 for Mac",
 config_file_device_name = "MX Master 3 for Mac",
@@ -87,14 +87,14 @@ default_dpi =         1000,
 has_scrollwheel=True,
 
 buttons =     [
-Classes2.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00c3", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
+Classes.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00c3", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
 ],
 
 has_thumbwheel = True,
@@ -114,7 +114,7 @@ device_pids = [
 ),
 
 
-Classes2.DeviceDatabase(
+Classes.DeviceDatabase(
 device_id = 4,
 device_name = "MX Master 3",
 config_file_device_name = "Wireless Mouse MX Master 3",
@@ -126,14 +126,14 @@ default_dpi =           1000,
 has_scrollwheel=True,
 
 buttons =      [
-Classes2.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00c3", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
+Classes.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00c3", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
 ],
 
 has_thumbwheel = True,
@@ -151,7 +151,7 @@ device_pids = [
 
 ),
 
-Classes2.DeviceDatabase(
+Classes.DeviceDatabase(
 device_id = 5,
 device_name = "MX Master 2S",
 config_file_device_name = "Wireless Mouse MX Master 2S",
@@ -163,14 +163,14 @@ default_dpi = 1000,
 has_scrollwheel=True,
 
 buttons =      [
-Classes2.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00c3", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
+Classes.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00c3", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
 ],
 
 has_thumbwheel = True,
@@ -188,7 +188,7 @@ device_pids = [
 
 ),    
 
-Classes2.DeviceDatabase(
+Classes.DeviceDatabase(
 device_id = 6,
 device_name = "MX Master",
 config_file_device_name = "Wireless Mouse MX Master",
@@ -200,14 +200,14 @@ default_dpi = 1000,
 has_scrollwheel=True,
 
 buttons =     [
-Classes2.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00c3", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
+Classes.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00c3", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
 ],
 
 has_thumbwheel = True,
@@ -225,7 +225,7 @@ device_pids = [
 
 ),    
 
-Classes2.DeviceDatabase(
+Classes.DeviceDatabase(
 device_id = 7,
 device_name = "MX Anywhere 3S",
 config_file_device_name = "MX Anywhere 3S",
@@ -237,15 +237,15 @@ default_dpi = 1000,
 has_scrollwheel=True,
 
 buttons =         [
-Classes2.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x005b", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x005d", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
+Classes.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x005b", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x005d", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
 ], 
 
 has_thumbwheel = False,
@@ -265,7 +265,7 @@ device_pids = [
 ],
 ),
 
-Classes2.DeviceDatabase(
+Classes.DeviceDatabase(
 device_id = 8,
 device_name = "MX Anywhere 3",
 config_file_device_name = "MX Anywhere 3",
@@ -276,15 +276,15 @@ default_dpi = 1000,
 has_scrollwheel=True,
 
 buttons =       [
-Classes2.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x005b", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x005d", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
+Classes.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x005b", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x005d", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
 ], 
 
 has_thumbwheel = False,
@@ -303,7 +303,7 @@ device_pids = [
 
 ),
 
-Classes2.DeviceDatabase(
+Classes.DeviceDatabase(
 device_id = 9,
 device_name = "MX Anywhere 2", 
 config_file_device_name = "Wireless Mouse MX Anywhere 2",   
@@ -315,15 +315,15 @@ default_dpi = 1000,
 has_scrollwheel=True,
 
 buttons =      [
-Classes2.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x005b", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x005d", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
+Classes.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x005b", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x005d", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
 ], 
 
 has_thumbwheel = False,
@@ -341,7 +341,7 @@ device_pids = [
 
 ),
 
-Classes2.DeviceDatabase(
+Classes.DeviceDatabase(
 device_id = 10,
 device_name = "MX Anywhere 2S",
 config_file_device_name = "Wireless Mobile Mouse MX Anywhere 2S",
@@ -350,15 +350,15 @@ min_dpi =   200, max_dpi = 4000, default_dpi =1000,
 has_scrollwheel=True,
 
 buttons =       [
-Classes2.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x005b", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x005d", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
+Classes.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x005b", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x005d", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00c4", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
 ], 
 
 has_thumbwheel = False,
@@ -377,7 +377,7 @@ device_pids = [
 
 ),
 
-Classes2.DeviceDatabase(
+Classes.DeviceDatabase(
 device_id = 11,
 device_name = "MX Vertical", 
 config_file_device_name = "MX Vertical Advanced Ergonomic Mouse",
@@ -387,12 +387,12 @@ min_dpi =   400, max_dpi = 4000, default_dpi =1000,
 has_scrollwheel=True,
 
 buttons =    [
-Classes2.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00fd", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00fd", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
 ],
 
 has_thumbwheel = False,
@@ -410,7 +410,7 @@ device_pids = [
 
 ),
 
-Classes2.DeviceDatabase(
+Classes.DeviceDatabase(
 device_id = 12,
 device_name = "MX Ergo", 
 config_file_device_name = "MX Ergo Multi-Device Trackball",
@@ -419,14 +419,14 @@ min_dpi =   512, max_dpi = 2048, default_dpi = 1000,
 has_scrollwheel=True,
 
 buttons =    [
-Classes2.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x005b", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x005d", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00ed", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True), # TODO: Get confirmation that this is correct for this button
+Classes.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x005b", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x005d", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00ed", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True), # TODO: Get confirmation that this is correct for this button
 
 ],
 
@@ -446,7 +446,7 @@ device_pids = [
 
 ),
 
-Classes2.DeviceDatabase(
+Classes.DeviceDatabase(
 device_id = 13,
 device_name = "MX Ergo M575",
 config_file_device_name = "ERGO M575 Trackball",
@@ -456,10 +456,10 @@ min_dpi =    400, max_dpi = 2000, default_dpi =1000,
 has_scrollwheel=True,
 
 buttons =    [
-Classes2.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True), # TODO: are there any more buttons on this mouse?
+Classes.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True), # TODO: are there any more buttons on this mouse?
 ],
 
 has_thumbwheel = False,
@@ -478,7 +478,7 @@ device_pids = [
 
 ),
 
-Classes2.DeviceDatabase(
+Classes.DeviceDatabase(
 device_id = 14,
 device_name = "M720 Triathlon", 
 config_file_device_name = "M720 Triathlon Multi-Device Mouse",
@@ -487,15 +487,15 @@ min_dpi =    200, max_dpi = 3200,default_dpi = 1000,
 has_scrollwheel=True,
 
 buttons =    [
-Classes2.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x005b", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x005d", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00d0", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False), # TODO: Check accessibility!
+Classes.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0052", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x005b", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x005d", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00d0", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False), # TODO: Check accessibility!
 ],
 
 has_thumbwheel = False,
@@ -514,7 +514,7 @@ device_pids = [
 
 ),
 
-Classes2.DeviceDatabase(
+Classes.DeviceDatabase(
 device_id = 15,
 device_name = "M585/M590", 
 config_file_device_name = "M585/M590 Multi-Device Mouse",
@@ -523,13 +523,13 @@ min_dpi =        1000, max_dpi = 2000,default_dpi = 1000,
 has_scrollwheel=True,
 
 buttons =    [
-Classes2.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x005b", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x005d", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
-Classes2.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
+Classes.ButtonProperties(button_cid="0x0050", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0051", reprogrammable=False, fn_key=False, mouse_key=True, gesture_support=False, accessible=True),
+Classes.ButtonProperties(button_cid="0x0053", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x0056", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x005b", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x005d", reprogrammable=True, fn_key=False, mouse_key=True, gesture_support=True, accessible=True),
+Classes.ButtonProperties(button_cid="0x00d7", reprogrammable=True, fn_key=False, mouse_key=False, gesture_support=True, accessible=False),
 ],
 
 has_thumbwheel = False,

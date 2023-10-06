@@ -594,6 +594,7 @@ class DeviceConfig:
         thumbwheel_touch_support, thumbwheel_timestamp_support, smartshift_support, hires_scroll_support, config.number_of_sensors, \
         config.date_device_added, config.date_device_last_edited, is_activated = configuration_query_result
 
+
         config.is_selected = bool(is_selected)
         config.smartshift_on = bool(smartshift_on)
         config.hiresscroll_hires = bool(hiresscroll_hires)
@@ -925,8 +926,10 @@ def get_main_page_user_devices():
 
     user_devices_objects = []
     for device in devices:
+
         device_id, device_name, is_activated = device
-        
+
+
         cursor.execute("""
             SELECT configuration_id, configuration_name, is_selected
             FROM Configurations
@@ -935,14 +938,15 @@ def get_main_page_user_devices():
         """, (device_id,))
 
         configs_data = cursor.fetchall()
+        print(configs_data)
 
         configs = []
 
         for config_data in configs_data:
         
             config_id, configuration_name, is_selected = config_data
-        
-            user_config = Configuration(config_id, device_id, configuration_name, is_selected)
+            
+            user_config = Configuration(configuration_id=config_id, configuration_name=configuration_name, is_selected=is_selected)
 
             configs.append(user_config)
 

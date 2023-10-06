@@ -10,11 +10,10 @@ import main_page_elements
 import edit_page_elements
 import gui_variables
 import Classes
-import Classes2
 from CTkMessagebox import CTkMessagebox
 
 
-import inspect
+
 
 
 
@@ -151,18 +150,19 @@ class MainPage(ctk.CTkFrame):
         top_frame.grid_columnconfigure((0), weight=1)
 
         def device_dropdown(new_device):
-            self.selected_device = new_device  # Store the selected device name
-            self.create_edit_page(self.selected_device)
+            self.selected_device = new_device
+
             button_for_adding_devices.configure(state="normal", fg_color="#208637")
             button_for_adding_devices.configure(
-                command=reset_button_after_click
+                command=add_device_button_clicked
                 ) 
 
-        def reset_button_after_click():
-            create_and_update_device_dropdown()
-            button_for_adding_devices.configure(state="disabled", fg_color=("#545B62"))
-            self.show_edit_page()
+        def add_device_button_clicked():
 
+            button_for_adding_devices.configure(state="disabled", fg_color=("#545B62"))
+            new_configuration_id = execute_db_queries.add_new_device(self.selected_device)
+            create_and_update_device_dropdown()
+            self.edit_configuration(new_configuration_id)
 
 
         def create_and_update_device_dropdown():
@@ -183,6 +183,7 @@ class MainPage(ctk.CTkFrame):
                                     )
 
 
+
         button_for_adding_devices = ctk.CTkButton(master=top_frame,
                                         height=40,
                                         width=120,
@@ -190,7 +191,9 @@ class MainPage(ctk.CTkFrame):
                                         text="Add Device",
                                         text_color_disabled=("#9FA5AB"),
                                         fg_color=("#545B62"),
-                                        hover_color=("#28A745"))
+                                        hover_color=("#28A745")
+                                        )
+            
         button_for_adding_devices.grid(
                                         padx=(20,20),
                                         row=0,
@@ -367,6 +370,7 @@ class MainPage(ctk.CTkFrame):
             selected_configurations[device] = ctk.StringVar()
 
             for configuration in device.configurations:
+                # print(configuration)
                 # Create and pack UI elements, and store references
                 create_config_ui(device, configuration)
 
@@ -434,14 +438,6 @@ class MainPage(ctk.CTkFrame):
 
 
 
-
-    def create_edit_page(self, device_dropdown_name):
-        self.edit_page = EditPage(self.master, 
-                                  device_name=device_dropdown_name,
-                                    main_page=self.show)
-        self.edit_page.pack_forget()
-
-
     def show_edit_page(self):
         # self.create_and_update_device_dropdown()  # Corrected function name and using 'self'
         # self.button_for_adding_devices.configure(state="disabled", fg_color=("#545B62"))
@@ -466,40 +462,37 @@ class EditPage(ctk.CTkFrame):
         edit_page_elements.create_name_device_label(self, edit_page_title)
 
         edit_page_elements.device_configuration_widgets(self, configuration)
-        # print(configuration.configuration_name)
-
-
-
-
-
-        
-
-
-
-        dpi_label = ctk.CTkLabel(
-                                master=self,
-                                                                    text=("DPI"),
-                                                font=ctk.CTkFont(
-                                                        family="Roboto",
-                                                            # weight="bold",
-                                                        size=18,
-                                                        ),
-                                                        # text_color="#1F538D",
-                                        # pady=30,
-                                        # anchor='s'
-        )
-        dpi_label.pack()
 
 
         dpi_spinbox = IntSpinbox(master=self,
-                                width=200,
-                                step_size=50,
-                                min_value=configuration.min_dpi,
-                                max_value=configuration.max_dpi
-                                )
-        
-        dpi_spinbox.set(configuration.dpi) #TODO: Update
-        dpi_spinbox.pack()
+                                            width=200,
+                                            step_size=50,
+                                            min_value=configuration.min_dpi,
+                                            max_value=configuration.max_dpi
+                                            )
+
+        def create_dpi_widgets():
+
+            dpi_label = ctk.CTkLabel(
+                                    master=self,
+                                                                        text=("DPI"),
+                                                    font=ctk.CTkFont(
+                                                            family="Roboto",
+                                                                # weight="bold",
+                                                            size=18,
+                                                            ),
+                                                            # text_color="#1F538D",
+                                            # pady=30,
+                                            # anchor='s'
+            )
+            dpi_label.pack()
+
+            
+            dpi_spinbox.set(configuration.dpi) #TODO: Update
+            dpi_spinbox.pack()
+
+        create_dpi_widgets()
+
 
 
         if configuration.smartshift_support == True:
