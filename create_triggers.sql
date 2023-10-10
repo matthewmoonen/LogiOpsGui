@@ -399,6 +399,19 @@ END;
 
 -- ### QUERY_SEPARATOR ###
 
+CREATE TRIGGER IF NOT EXISTS configuration_update_selected_after_insert_where_not_seleted
+AFTER INSERT ON Configurations
+WHEN (SELECT COUNT(*) FROM Configurations WHERE device_id = NEW.device_id) = 1
+BEGIN
+    UPDATE Configurations
+    SET is_selected = 1
+    WHERE device_id = NEW.device_id
+END;
+
+
+
+-- ### QUERY_SEPARATOR ###
+
 CREATE TRIGGER IF NOT EXISTS configuration_update_selected_after_update
 AFTER UPDATE ON Configurations
 FOR EACH ROW
