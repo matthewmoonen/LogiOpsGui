@@ -160,7 +160,7 @@ class MainPage(ctk.CTkFrame):
 
             button_for_adding_devices.configure(state="disabled", fg_color=("#545B62"))
             new_configuration_id = execute_db_queries.add_new_device(self.selected_device)
-            self.edit_configuration(configuration_id=new_configuration_id, is_new_device=True)
+            self.edit_configuration(configuration_id=new_configuration_id, is_new_device=True, devices_scrollable_frame=devices_scrollable_frame, create_devices_inner_frame=create_devices_inner_frame)
 
             for widget in devices_scrollable_frame.winfo_children():
                 widget.destroy()
@@ -943,7 +943,7 @@ class EditPage(ctk.CTkFrame):
         if is_new_device == True:
             cancel_button_new_device = ctk.CTkButton(master=bottom_frame,
                                       text="Cancel Adding Device",
-                                      command=lambda d=configuration.device_id: self.go_back_dont_save_new_device(d)
+                                      command=lambda d=configuration.device_id, s=devices_scrollable_frame, c=create_devices_inner_frame: self.go_back_dont_save_new_device(d, s, c)
                                       )
             cancel_button_new_device.pack(pady=20)
             # print(configuration.device_id)
@@ -970,8 +970,11 @@ class EditPage(ctk.CTkFrame):
                 scroll_properties.scroll_left_threshold = thumbwheel_left_spinbox.get()
                 scroll_properties.scroll_right_threshold = thumbwheel_right_spinbox.get()
 
-    def go_back_dont_save_new_device(self, device_id):
+    def go_back_dont_save_new_device(self, device_id, devices_scrollable_frame, create_devices_inner_frame):
         execute_db_queries.delete_device(device_id)
+        for widget in devices_scrollable_frame.winfo_children():
+            widget.destroy()
+        create_devices_inner_frame()
         self.pack_forget()
         self.show_main_page()
         
