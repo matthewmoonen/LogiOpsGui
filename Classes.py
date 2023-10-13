@@ -862,7 +862,7 @@ def get_device_config(configuration_id):
 
     device_buttons = cursor.fetchall()
 
-    print(device_buttons)
+    # print(device_buttons)
 
 
 
@@ -938,7 +938,7 @@ def get_main_page_user_devices():
         """, (device_id,))
 
         configs_data = cursor.fetchall()
-        print(configs_data)
+        # print(configs_data)
 
         configs = []
 

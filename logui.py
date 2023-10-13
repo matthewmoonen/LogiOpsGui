@@ -11,7 +11,7 @@ import edit_page_elements
 import gui_variables
 import Classes
 from CTkMessagebox import CTkMessagebox
-
+import inspect
 
 
 
@@ -121,7 +121,6 @@ class IntSpinbox(ctk.CTkFrame):
 
     def toggle_enable(self, new_enabled_state):
         self.enabled = new_enabled_state
-        # print(self.enabled)
         state = "normal" if self.enabled else "disabled"
         self.entry.configure(state=state)
         self.add_button.configure(state=state)
@@ -161,20 +160,32 @@ class MainPage(ctk.CTkFrame):
 
             button_for_adding_devices.configure(state="disabled", fg_color=("#545B62"))
             new_configuration_id = execute_db_queries.add_new_device(self.selected_device)
+            self.edit_configuration(configuration_id=new_configuration_id, is_new_device=True)
+
+            for widget in devices_scrollable_frame.winfo_children():
+                widget.destroy()
+            create_devices_inner_frame()
+
             create_and_update_device_dropdown()
-            self.edit_configuration(new_configuration_id)
 
 
         def create_and_update_device_dropdown():
 
             options = execute_db_queries.get_unconfigured_devices()
-            selected_option_var = ctk.StringVar(value='Select Device To Add')
+            selected_option_var = ctk.StringVar(value='   Select Device To Add')
             add_device_dropdown = ctk.CTkOptionMenu(master=top_frame,
                                                     variable=selected_option_var,
                                                     values=options,
                                                     state="normal",
                                                     width=400,
-                                                    height=36,
+                                                    height=40,
+                                                    corner_radius=6.5,
+                                                    dropdown_font=ctk.CTkFont(
+                                                            family="Roboto",
+                                                                # weight="bold",
+                                                            size=20,
+                                                            
+                                                            ),
                                                     command=device_dropdown)
             add_device_dropdown.grid(row=0,
                                     column=1,
@@ -203,182 +214,182 @@ class MainPage(ctk.CTkFrame):
         create_and_update_device_dropdown()
    
 
-        devices_frame = ctk.CTkScrollableFrame(master=self,
-                                              border_width=2,
+        devices_scrollable_frame = ctk.CTkScrollableFrame(master=self,
+                                              border_width=3,
+                                              border_color=gui_variables.secondary_colour,
                                                 corner_radius=0,
-                                                scrollbar_fg_color="#474747",
+                                                scrollbar_fg_color=gui_variables.secondary_colour,
                                                 scrollbar_button_color=gui_variables.primary_colour,
                                                 # label_fg_color="red"
                                               )
-        devices_frame.pack(
-            padx=20,
+        devices_scrollable_frame.pack(
+            padx=0,
             # pady=(0, 20),
             fill="both",
             expand=True,
             )
 
 
-        # Create a dictionary to store UI elements by configuration ID
-        config_ui_elements = {}
-        device_ui_elements = {}
 
-        def create_config_ui(device, configuration):
-            # Create the UI elements
-            radio_button = ctk.CTkRadioButton(master=devices_frame,
-                                            text=f"{configuration.configuration_id}: {configuration.configuration_name}",
-                                            variable=selected_configurations[device],
-                                            value=configuration.configuration_id,
-                                            command=lambda c=configuration: select_configuration(c),
-                                            radiobutton_width=24,
-                                            radiobutton_height=24,
-                                            corner_radius=10,
-                                            border_width_unchecked=6,
-                                            border_width_checked=9,
-                                            hover_color=gui_variables.primary_colour
-                                            )
-
-            edit_configuration_button = ctk.CTkButton(
-                master=devices_frame,
-                height=40,
-                width=120,
-                text="Edit Configuration",
-                command=lambda: self.edit_configuration(configuration.configuration_id)
-            )
-
-            delete_configuration_button = ctk.CTkButton(
-                master=devices_frame,
-                height=40,
-                width=120,
-                text="Delete Configuration",
-                command=lambda c=configuration.configuration_id: config_deletion_warning(c)
-            )
-
-            # Pack the UI elements
-            radio_button.pack()
-            if configuration.is_selected:
-                radio_button.select()
-            edit_configuration_button.pack()
-            delete_configuration_button.pack()
-
-            # Store UI elements in the dictionary
-            config_ui_elements[configuration.configuration_id] = {
-                "radio_button": radio_button,
-                "edit_button": edit_configuration_button,
-                "delete_button": delete_configuration_button,
-            }
-
-        def config_deletion_warning(configuration_id):
-            msg = CTkMessagebox(title="Delete Config?",
-                                message="Are you sure you want to delete?",
-                                option_1="Delete",
-                                option_2="Cancel",
-                                width=600,
-                                height=300,
-                                fade_in_duration=200
-                                )
-            if msg.get() == "Delete":
-                execute_db_queries.delete_configuration(configuration_id)
-                # Remove the UI elements associated with the deleted configuration
-                ui_elements = config_ui_elements.get(configuration_id)
-                if ui_elements:
-                    ui_elements["radio_button"].destroy()
-                    ui_elements["edit_button"].destroy()
-                    ui_elements["delete_button"].destroy()
-
-
-        def create_device_ui(device):
-
-            device_label = ctk.CTkLabel(master=devices_frame,
-                                        text=device.device_name,
-                                        font=ctk.CTkFont(
-                                            family="Roboto",
-                                            weight="bold",
-                                            size=20,
-                                        ),
-                                        )
-            device_label.pack()
-            
-            new_configuration_button = ctk.CTkButton(master=devices_frame,
-                                                     text="Add New Config",
-                                                     command=lambda d=device.device_id, n=device.device_name: add_new_configuration(d, n))
-            new_configuration_button.pack()
-
-
-            delete_device_button = ctk.CTkButton(master=devices_frame,
-                                                 text="Delete Device",
-                                                command=lambda d=device.device_id: device_deletion_warning(d)
-                                                 )
-            delete_device_button.pack()
-
-            device_ui_elements[device.device_id] = {
-                "device_label": device_label,
-                "delete_device_button": delete_device_button,
-                "new_configuration_button": new_configuration_button
-            }
-
-
-        def add_new_configuration(device_id, device_name):
-
-            # print(f"TODO: make a new configuration for {device_id}")
-            execute_db_queries.new_empty_configuration(device_id, device_name)
-            
-        def device_deletion_warning(device_id):
-            msg = CTkMessagebox(title="Delete Device?",
-                                message="Deleting device will also delete all its configurations.",
-                                option_1="Delete",
-                                option_2="Cancel",
-                                width=600,
-                                height=300,
-                                fade_in_duration=200
-                                )
-            if msg.get() == "Delete":
-                # Iterate through devices and configurations to find the device
-                for device in user_devices_and_configs:
-                    if device.device_id == device_id:
-                        # Delete all configurations associated with the device
-                        for configuration in device.configurations:
-                            execute_db_queries.delete_configuration(configuration.configuration_id)
-                            # Remove the UI elements associated with the deleted configuration
-                            ui_elements = config_ui_elements.get(configuration.configuration_id)
-                            if ui_elements:
-                                ui_elements["radio_button"].destroy()
-                                ui_elements["edit_button"].destroy()
-                                ui_elements["delete_button"].destroy()
-
-                        # Remove the UI elements associated with the deleted device
-                        ui_elements = device_ui_elements.get(device_id)
-                        if ui_elements:
-                            ui_elements["device_label"].destroy()
-                            ui_elements["delete_device_button"].destroy()
-                            ui_elements["new_configuration_button"].destroy()
-
-                        # Finally, delete the device itself
-                        execute_db_queries.delete_device(device_id)
-                        break
-
-
-        user_devices_and_configs = Classes.get_main_page_user_devices()
         selected_configurations = {}
 
-        for device in user_devices_and_configs:
+
+
+        def create_devices_inner_frame():
+
+
+            # Calling destroy() and then rebuilding the CTkScrollableFrame creates various issues. This is an inner frame that can be manipulated more easily
+            devices_inner_frame = ctk.CTkFrame(master=devices_scrollable_frame)
+            devices_inner_frame.pack(padx=0, pady=0, fill="both", expand=True)
+            # self.devices_inner_frame = devices_inner_frame
+
+            def refresh_devices_inner_frame():
+                # Destroy the full frame of devices and configurations and then recursively call the function to recreate 
+                devices_inner_frame.destroy()
+                create_devices_inner_frame()
             
-            create_device_ui(device)
-            
-            def select_configuration(configuration):
+
+            def create_config_ui(device_id, configuration, device_configs_frame, grid_x_position):
+
+                config_frame = ctk.CTkFrame(master=device_configs_frame)
+                config_frame.pack(fill="x", expand=True,)
+
+                radio_button = ctk.CTkRadioButton(master=config_frame,
+                                                text=f"{configuration.configuration_name}",
+                                                variable=selected_configurations[device_id],
+                                                value=str(configuration.configuration_id),
+                                                command=lambda c=configuration, d=device_id: select_configuration(c, d),
+                                                radiobutton_width=24.5,
+                                                radiobutton_height=24.5,
+                                                corner_radius=2.5,
+                                                border_width_unchecked=6,
+                                                border_width_checked=6,
+                                                hover_color=gui_variables.primary_colour
+                                                )
+
+                radio_button.grid(row=grid_x_position, column=0, sticky="w")
+
+
+                edit_configuration_button = ctk.CTkButton(
+                    master=config_frame,
+                    height=40,
+                    width=120,
+                    text="Edit Configuration",
+                    command=lambda: self.edit_configuration(configuration.configuration_id, devices_scrollable_frame, create_devices_inner_frame)
+                )
+                edit_configuration_button.grid(row=grid_x_position, column=1, sticky="e")
+
+                delete_configuration_button = ctk.CTkButton(
+                    master=config_frame,
+                    height=40,
+                    width=120,
+                    text="Delete Configuration",
+                    command=lambda c=configuration.configuration_id, f=config_frame: configuration_deletion_warning(c, f)
+                )
+                delete_configuration_button.grid(row=grid_x_position, column=2, sticky="e")
+
+            def select_configuration(configuration, device_id):
+                selected_configurations[device_id] = configuration.configuration_id
                 execute_db_queries.update_selected_configuration(configuration.configuration_id)
 
-            selected_configurations[device] = ctk.StringVar()
+            def create_device_ui(device, row=None):
 
-            for configuration in device.configurations:
-                # print(configuration)
-                # Create and pack UI elements, and store references
-                create_config_ui(device, configuration)
+                device_frame = ctk.CTkFrame(master=devices_inner_frame)
+                device_frame.pack(fill="both", expand=True)
+
+                device_label = ctk.CTkLabel(master=device_frame,
+                                            text=device.device_name,
+                                            font=ctk.CTkFont(
+                                                family="Roboto",
+                                                weight="bold",
+                                                size=20,
+                                                
+                                            ),
+                                            )
+                
+                device_label.pack()
+
+                devicewide_actions_frame = ctk.CTkFrame(
+                    master=device_frame,
+                )
+                devicewide_actions_frame.pack(
+                    fill="x", 
+                    expand=False)
+
+                new_configuration_button = ctk.CTkButton(master=devicewide_actions_frame,
+                                                         text="Add Configuration",
+                                                         command=lambda d=device.device_id, n=device.device_name: add_new_configuration(d, n))
+                new_configuration_button.grid(row=0, column=0)
+
+
+                delete_device_button = ctk.CTkButton(master=devicewide_actions_frame,
+                                                     text="Delete Device",
+                                                    command=lambda d=device.device_id, f=device_frame: device_deletion_warning(d, f)
+                                                     )
+                delete_device_button.grid(row=0, column=1)
+
+                device_configs_frame = ctk.CTkFrame(master=device_frame)
+                device_configs_frame.pack(fill="x")
+
+                for configuration in device.configurations:
+                    # Loop through once and find the selected configuration to store in the dictionary
+                    if configuration.is_selected == True:
+                        selected_configurations[device.device_id] = ctk.StringVar()
+                        selected_configurations[device.device_id].set(str(configuration.configuration_id))
+
+                for row, configuration in enumerate(device.configurations):
+                    # 
+                    create_config_ui(device.device_id, configuration, device_configs_frame, row)
+
+                return device_frame
+
+
+            def add_new_configuration(device_id, device_name):
+                newest_configuration_id = execute_db_queries.new_empty_configuration(device_id, device_name)
+                self.edit_configuration(configuration_id = newest_configuration_id)
+                for widget in devices_scrollable_frame.winfo_children():
+                    widget.destroy()
+                create_devices_inner_frame()
 
 
 
+            def configuration_deletion_warning(configuration_id, config_frame):
+                msg = CTkMessagebox(title="Delete Device?",
+                                    message="Delete configuration?",
+                                    option_1="Delete",
+                                    option_2="Cancel",
+                                    width=600,
+                                    height=300,
+                                    fade_in_duration=200
+                                    )
+                if msg.get() == "Delete":
+                    config_frame.destroy()
+
+                    execute_db_queries.delete_configuration(configuration_id)
+
+            def device_deletion_warning(device_id, device_frame):
+                msg = CTkMessagebox(title="Delete Device?",
+                                    message="Deleting device will also delete all its configurations.",
+                                    option_1="Delete",
+                                    option_2="Cancel",
+                                    width=600,
+                                    height=300,
+                                    fade_in_duration=200
+                                    )
+                if msg.get() == "Delete":
+                    device_frame.destroy()
+                    execute_db_queries.delete_device(device_id)
+                    create_and_update_device_dropdown()
 
 
+            user_devices_and_configs = Classes.get_main_page_user_devices()
 
+
+            for device in user_devices_and_configs:
+
+                create_device_ui(device)
+
+        create_devices_inner_frame()
 
         bottom_frame = ctk.CTkFrame(
             master=self,
@@ -389,12 +400,6 @@ class MainPage(ctk.CTkFrame):
                         pady=(0, 0),
                         fill="x",
         )
-
-
-
-
-
-
 
 
         save_devices_button = ctk.CTkButton(
@@ -418,16 +423,18 @@ class MainPage(ctk.CTkFrame):
         bottom_frame.grid_columnconfigure((0), weight=1)
 
 
-
-
     def edit_configuration(self, 
-                           configuration_id
+                           configuration_id,
+                            devices_scrollable_frame=None,
+                            create_devices_inner_frame=None,
+                            is_new_device=False,
+                            is_new_config=False
                            ):
 
         configuration = Classes.DeviceConfig.create_from_configuration_id(configuration_id)
 
 
-        self.edit_page = EditPage(self.master, configuration=configuration, main_page=self.show)
+        self.edit_page = EditPage(self.master, configuration=configuration, is_new_config=is_new_config, is_new_device=is_new_device, main_page=self, devices_scrollable_frame=devices_scrollable_frame, create_devices_inner_frame=create_devices_inner_frame, show_main_page=self.show)
         
         self.pack_forget()
         
@@ -436,12 +443,7 @@ class MainPage(ctk.CTkFrame):
     def show(self):
         self.pack(fill="both", expand=True)
 
-
-
     def show_edit_page(self):
-        # self.create_and_update_device_dropdown()  # Corrected function name and using 'self'
-        # self.button_for_adding_devices.configure(state="disabled", fg_color=("#545B62"))
-
         if self.edit_page:
             self.pack_forget()
             self.edit_page.pack(fill="both", expand=True)
@@ -449,32 +451,101 @@ class MainPage(ctk.CTkFrame):
 
 
 class EditPage(ctk.CTkFrame):
-    def __init__(self, master, main_page, configuration=None, #TODO: UPDATE NONETYPE
-                 config_id=None, device_name=None # TODO: REMOVE THESE
+    def __init__(self, master, show_main_page, main_page, configuration=None,
+                 devices_scrollable_frame = None,
+                 create_devices_inner_frame= None,
+                is_new_device=False,
+                is_new_config=False
                  ):
         super().__init__(master)
 
 
         self.master = master
-        self.main_page = main_page
-
-        edit_page_title = configuration.device_name
-        edit_page_elements.create_name_device_label(self, edit_page_title)
-
-        edit_page_elements.device_configuration_widgets(self, configuration)
+        self.show_main_page = show_main_page
 
 
-        dpi_spinbox = IntSpinbox(master=self,
+
+        device_name_label = ctk.CTkLabel(master=self,
+                                                text=configuration.device_name,
+                                                font=ctk.CTkFont(
+                                                family="Roboto",
+                                                weight="bold",
+                                                size=40,
+                                                    ),
+                                                text_color=gui_variables.primary_colour,
+                                                pady=(20),
+
+                                    # anchor='s'
+                                                )
+        device_name_label.pack()
+
+        edit_page_scrollable_frame = ctk.CTkScrollableFrame(master=self, )
+        edit_page_scrollable_frame.pack(fill="both", expand=True)
+
+
+        # def device_configuration_widgets():
+        
+        def focus_next_widget(event):
+            # Make TAB key push focus to next widget rather than inserting tabs
+            current_widget = event.widget
+            next_widget = current_widget.tk_focusNext() 
+            
+            if next_widget:
+                next_widget.focus_set()
+            return "break"  # Prevent the tab from inserting a tab character
+
+
+        def update_config_name_in_db(event):
+            # Update the DB on focus out from the textbox
+
+            if configuration_name_textbox.get("1.0", "end-1c").strip() == "": #Prevent empty configuration name being inserted
+                configuration_name_textbox.insert("0.0", configuration.configuration_name)
+            
+            elif configuration_name_textbox.get("1.0", "end-1c").strip() == configuration.configuration_name:
+                pass
+            else:
+                config_name_stripped = configuration_name_textbox.get("1.0", "end-1c").strip()
+                configuration.configuration_name = config_name_stripped
+                configuration_name_textbox.delete("0.0", "end")
+                configuration_name_textbox.insert("0.0", config_name_stripped)
+                
+                # TODO: make this target the desired widget more specifically. Now it's
+                for widget in devices_scrollable_frame.winfo_children():
+                    widget.destroy()
+                create_devices_inner_frame()
+
+        configuration_name_label = ctk.CTkLabel(master=edit_page_scrollable_frame,
+                                                text="Configuration Name",
+                                                )
+        configuration_name_label.pack()
+
+        configuration_name_textbox = ctk.CTkTextbox(master=edit_page_scrollable_frame,
+                                                    height=10,
+                                                    width=500,
+                                                    corner_radius=1
+                                                    )
+        configuration_name_textbox.pack()
+
+        configuration_name_textbox.insert("0.0", configuration.configuration_name)
+
+        configuration_name_textbox.bind("<Tab>", focus_next_widget)
+        configuration_name_textbox.bind("<FocusOut>", update_config_name_in_db)
+
+
+
+
+        dpi_spinbox = IntSpinbox(master=edit_page_scrollable_frame,
                                             width=200,
                                             step_size=50,
                                             min_value=configuration.min_dpi,
                                             max_value=configuration.max_dpi
                                             )
+        # device_configuration_widgets()
 
         def create_dpi_widgets():
 
             dpi_label = ctk.CTkLabel(
-                                    master=self,
+                                    master=edit_page_scrollable_frame,
                                                                         text=("DPI"),
                                                     font=ctk.CTkFont(
                                                             family="Roboto",
@@ -494,11 +565,10 @@ class EditPage(ctk.CTkFrame):
         create_dpi_widgets()
 
 
-
         if configuration.smartshift_support == True:
 
             smartshift_options_label = ctk.CTkLabel(
-                                    master=self,
+                                    master=edit_page_scrollable_frame,
                                                                         text=("SmartShift Options"),
                                                     font=ctk.CTkFont(
                                                             family="Roboto",
@@ -510,36 +580,22 @@ class EditPage(ctk.CTkFrame):
                                             # anchor='s'
             )
             smartshift_options_label.pack()
+
+            smartshift_frame = ctk.CTkFrame(master=edit_page_scrollable_frame)
+            smartshift_frame.pack(fill="y")
+
 
             def smartshift_checkbox_toggled():
                 configuration.smartshift_on = not(configuration.smartshift_on)
 
             check_var = ctk.BooleanVar(value=configuration.smartshift_on)
-            checkbox = ctk.CTkCheckBox(master=self, text="SmartShift On", command=smartshift_checkbox_toggled,
+            checkbox = ctk.CTkCheckBox(master=smartshift_frame, text="SmartShift On", command=smartshift_checkbox_toggled,
                                                 variable=check_var, onvalue=True, offvalue=False)
-            checkbox.pack()
-
-
-
-
-            smartshift_options_label = ctk.CTkLabel(
-                                    master=self,
-                                                                        text=("SmartShift Options"),
-                                                    font=ctk.CTkFont(
-                                                            family="Roboto",
-                                                                # weight="bold",
-                                                            size=18,
-                                                            ),
-                                                            # text_color="#1F538D",
-                                            # pady=30,
-                                            # anchor='s'
-            )
-            smartshift_options_label.pack()
-            
+            checkbox.grid(row=0, column=0)
 
             
             smartshift_threshold_label = ctk.CTkLabel(
-                                    master=self,
+                                    master=smartshift_frame,
                                                                         text=("SmartShift Threshold"),
                                                     font=ctk.CTkFont(
                                                             family="Roboto",
@@ -550,9 +606,9 @@ class EditPage(ctk.CTkFrame):
                                             # pady=30,
                                             # anchor='s'
             )
-            smartshift_threshold_label.pack()
+            smartshift_threshold_label.grid(row=0, column=1)
 
-            smartshift_threshold_spinbox = IntSpinbox(master=self,
+            smartshift_threshold_spinbox = IntSpinbox(master=smartshift_frame,
                                     width=140,
                                     step_size=5,
                                     min_value=1,
@@ -560,12 +616,12 @@ class EditPage(ctk.CTkFrame):
                                     )
             
             smartshift_threshold_spinbox.set(configuration.smartshift_threshold) #TODO: Update
-            smartshift_threshold_spinbox.pack()
+            smartshift_threshold_spinbox.grid(row=1, column=1)
 
 
 
             smartshift_torque_label = ctk.CTkLabel(
-                                    master=self,
+                                    master=smartshift_frame,
                                                                         text=("SmartShift Torque"),
                                                     font=ctk.CTkFont(
                                                             family="Roboto",
@@ -576,9 +632,9 @@ class EditPage(ctk.CTkFrame):
                                             # pady=30,
                                             # anchor='s'
             )
-            smartshift_torque_label.pack()
+            smartshift_torque_label.grid(row=0, column=2)
 
-            smartshift_torque_spinbox = IntSpinbox(master=self,
+            smartshift_torque_spinbox = IntSpinbox(master=smartshift_frame,
                                     width=140,
                                     step_size=5,
                                     min_value=1,
@@ -586,7 +642,7 @@ class EditPage(ctk.CTkFrame):
                                     )
             
             smartshift_torque_spinbox.set(configuration.smartshift_torque) #TODO: Update
-            smartshift_torque_spinbox.pack()
+            smartshift_torque_spinbox.grid(row=1, column=2)
 
             # TODO: Smartshift threshold, smartshift torque
 
@@ -594,7 +650,7 @@ class EditPage(ctk.CTkFrame):
         if configuration.hires_scroll_support == True:
 
             hiresscroll_options_label = ctk.CTkLabel(
-                                    master=self,
+                                    master=edit_page_scrollable_frame,
                                                                         text=("HiRes Scroll Options"),
                                                     font=ctk.CTkFont(
                                                             family="Roboto",
@@ -607,14 +663,19 @@ class EditPage(ctk.CTkFrame):
             )
             hiresscroll_options_label.pack()
 
+
+            hiresscroll_frame = ctk.CTkFrame(master=edit_page_scrollable_frame)
+            hiresscroll_frame.pack()
+
+
             def hiresscroll_hires_toggle():
                 configuration.hiresscroll_hires = not(configuration.hiresscroll_hires)
 
 
             hiresscroll_hires_var = ctk.BooleanVar(value=configuration.hiresscroll_hires)
-            hirescroll_hires_checkbox = ctk.CTkCheckBox(master=self, text="HiRes Scroll On", command=hiresscroll_hires_toggle,
+            hirescroll_hires_checkbox = ctk.CTkCheckBox(master=hiresscroll_frame, text="HiRes Scroll On", command=hiresscroll_hires_toggle,
                                                 variable=hiresscroll_hires_var, onvalue=True, offvalue=False)
-            hirescroll_hires_checkbox.pack()
+            hirescroll_hires_checkbox.grid(row=0, column=0)
 
 
             def hiresscroll_invert_toggle():
@@ -622,18 +683,18 @@ class EditPage(ctk.CTkFrame):
 
 
             hiresscroll_invert_var = ctk.BooleanVar(value=configuration.hiresscroll_invert)
-            hirescroll_invert_checkbox = ctk.CTkCheckBox(master=self, text="Scroll Invert", command=hiresscroll_invert_toggle,
+            hirescroll_invert_checkbox = ctk.CTkCheckBox(master=hiresscroll_frame, text="Scroll Invert", command=hiresscroll_invert_toggle,
                                                 variable=hiresscroll_invert_var, onvalue=True, offvalue=False)
-            hirescroll_invert_checkbox.pack()
+            hirescroll_invert_checkbox.grid(row=0, column=1)
 
 
             def hiresscroll_target_toggle():
                 configuration.hiresscroll_target = not(configuration.hiresscroll_target)
 
             hiresscroll_target_var = ctk.BooleanVar(value=configuration.hiresscroll_target)
-            hirescroll_target_checkbox = ctk.CTkCheckBox(master=self, text="Scroll target", command=hiresscroll_target_toggle,
+            hirescroll_target_checkbox = ctk.CTkCheckBox(master=hiresscroll_frame, text="Scroll target", command=hiresscroll_target_toggle,
                                                 variable=hiresscroll_target_var, onvalue=True, offvalue=False)
-            hirescroll_target_checkbox.pack()
+            hirescroll_target_checkbox.grid(row=0, column=2)
 
 
 
@@ -647,7 +708,7 @@ class EditPage(ctk.CTkFrame):
                 scrollwheel_label_text = "Scrollwheel"
 
             scrollwheel_label = ctk.CTkLabel(
-                                    master=self,
+                                    master=edit_page_scrollable_frame,
                                                                         text=(scrollwheel_label_text),
                                                     font=ctk.CTkFont(
                                                             family="Roboto",
@@ -660,13 +721,17 @@ class EditPage(ctk.CTkFrame):
             )
             scrollwheel_label.pack()
 
+
+            vertical_scrollwheel_frame = ctk.CTkFrame(master=edit_page_scrollable_frame)
+            vertical_scrollwheel_frame.pack()
+
             scrollwheel_up_threshold_label = ctk.CTkLabel(
-                master= self,
+                master= vertical_scrollwheel_frame,
                 text = "Scrollwheel Up Threshold"
             )
-            scrollwheel_up_threshold_label.pack()
+            scrollwheel_up_threshold_label.grid(row=0, column=0)
 
-            scrollwheel_up_spinbox = IntSpinbox(master=self,
+            scrollwheel_up_spinbox = IntSpinbox(master=vertical_scrollwheel_frame,
                                     width=200,
                                     step_size=5,
                                     min_value=1,
@@ -674,35 +739,35 @@ class EditPage(ctk.CTkFrame):
                                     )
             
             scrollwheel_up_spinbox.set(scroll_properties.scroll_up_threshold)
-            scrollwheel_up_spinbox.pack()
+            scrollwheel_up_spinbox.grid(row=1, column=0)
 
             scrollwheel_up_mode_label = ctk.CTkLabel(
-                master= self,
+                master=vertical_scrollwheel_frame,
                 text = "Scrollwheel Up Mode"
             )
-            scrollwheel_up_mode_label.pack()
+            scrollwheel_up_mode_label.grid(row=0,column=1)
 
             def update_scroll_up_mode(new_mode):
                 scroll_properties.scroll_up_mode = new_mode
 
-            scroll_up_mode_dropdown = ctk.CTkOptionMenu(master=self,
+            scroll_up_mode_dropdown = ctk.CTkOptionMenu(master=vertical_scrollwheel_frame,
                                                     variable=ctk.StringVar(value=scroll_properties.scroll_up_mode),
                                                     values=["OnInterval", "OnThreshold"],
                                                     state="normal",
-                                                    width=400,
+                                                    width=200,
                                                     height=36,
                                                     command=update_scroll_up_mode)
-            scroll_up_mode_dropdown.pack()
+            scroll_up_mode_dropdown.grid(row=1, column=1)
 
 
 
             scrollwheel_down_threshold_label = ctk.CTkLabel(
-                master= self,
+                master=vertical_scrollwheel_frame,
                 text = "Scrollwheel Down Threshold"
             )
-            scrollwheel_down_threshold_label.pack()
+            scrollwheel_down_threshold_label.grid(row=0, column=2)
 
-            scrollwheel_down_spinbox = IntSpinbox(master=self,
+            scrollwheel_down_spinbox = IntSpinbox(master=vertical_scrollwheel_frame,
                                     width=200,
                                     step_size=5,
                                     min_value=1,
@@ -710,25 +775,25 @@ class EditPage(ctk.CTkFrame):
                                     )
             
             scrollwheel_down_spinbox.set(scroll_properties.scroll_down_threshold)
-            scrollwheel_down_spinbox.pack()
+            scrollwheel_down_spinbox.grid(row=1, column=2)
 
             scrollwheel_down_mode_label = ctk.CTkLabel(
-                master= self,
+                master=vertical_scrollwheel_frame,
                 text = "Scrollwheel Down Mode"
             )
-            scrollwheel_down_mode_label.pack()
+            scrollwheel_down_mode_label.grid(row=0, column=3)
 
             def update_scroll_down_mode(new_mode):
                 scroll_properties.scroll_down_mode = new_mode
 
-            scroll_down_mode_dropdown = ctk.CTkOptionMenu(master=self,
+            scroll_down_mode_dropdown = ctk.CTkOptionMenu(master=vertical_scrollwheel_frame,
                                                     variable=ctk.StringVar(value=scroll_properties.scroll_down_mode),
                                                     values=["OnInterval", "OnThreshold"],
                                                     state="normal",
-                                                    width=400,
+                                                    width=200,
                                                     height=36,
                                                     command=update_scroll_down_mode)
-            scroll_down_mode_dropdown.pack()
+            scroll_down_mode_dropdown.grid(row=1, column=3)
 
 
 
@@ -737,7 +802,7 @@ class EditPage(ctk.CTkFrame):
 
         if configuration.has_thumbwheel == True:
             thumbwheel_label = ctk.CTkLabel(
-                                    master=self,
+                                    master=edit_page_scrollable_frame,
                                                                         text=("Thumbwheel"),
                                                     font=ctk.CTkFont(
                                                             family="Roboto",
@@ -750,15 +815,19 @@ class EditPage(ctk.CTkFrame):
             )
             thumbwheel_label.pack()
 
+
+            thumbwheel_frame = ctk.CTkFrame(master=edit_page_scrollable_frame)
+            thumbwheel_frame.pack()
+
             
             def thumbwheel_divert_event():
                 configuration.thumbwheel_divert = not(configuration.thumbwheel_divert)
 
 
             thumbwheel_divert_var = ctk.BooleanVar(value=configuration.thumbwheel_divert)
-            thumbwheel_divert_checkbox = ctk.CTkCheckBox(master=self, text="Thumbwheel Divert", command=thumbwheel_divert_event,
+            thumbwheel_divert_checkbox = ctk.CTkCheckBox(master=thumbwheel_frame, text="Thumbwheel Divert", command=thumbwheel_divert_event,
                                                 variable=thumbwheel_divert_var, onvalue=True, offvalue=False)
-            thumbwheel_divert_checkbox.pack()
+            thumbwheel_divert_checkbox.grid(row=0, column=0)
 
 
             def thumbwheel_invert_event():
@@ -766,19 +835,19 @@ class EditPage(ctk.CTkFrame):
 
 
             thumbwheel_invert_var = ctk.BooleanVar(value=configuration.thumbwheel_invert)
-            thumbwheel_invert_checkbox = ctk.CTkCheckBox(master=self, text="Thumbwheel Invert", command=thumbwheel_invert_event,
+            thumbwheel_invert_checkbox = ctk.CTkCheckBox(master=thumbwheel_frame, text="Thumbwheel Invert", command=thumbwheel_invert_event,
                                                 variable=thumbwheel_invert_var, onvalue=True, offvalue=False)
-            thumbwheel_invert_checkbox.pack()
+            thumbwheel_invert_checkbox.grid(row=0, column=1)
 
 
 
             thumbwheel_left_threshold_label = ctk.CTkLabel(
-                master= self,
+                master= thumbwheel_frame,
                 text = "Thumbwheel Left Threshold"
             )
-            thumbwheel_left_threshold_label.pack()
+            thumbwheel_left_threshold_label.grid(row=1, column=0)
 
-            thumbwheel_left_spinbox = IntSpinbox(master=self,
+            thumbwheel_left_spinbox = IntSpinbox(master=thumbwheel_frame,
                                     width=200,
                                     step_size=5,
                                     min_value=1,
@@ -786,25 +855,25 @@ class EditPage(ctk.CTkFrame):
                                     )
             
             thumbwheel_left_spinbox.set(scroll_properties.scroll_left_threshold)
-            thumbwheel_left_spinbox.pack()
+            thumbwheel_left_spinbox.grid(row=2, column=0)
 
             thumbwheel_left_mode_label = ctk.CTkLabel(
-                master= self,
+                master= thumbwheel_frame,
                 text = "Thumbwheel Left Mode"
             )
-            thumbwheel_left_mode_label.pack()
+            thumbwheel_left_mode_label.grid(row=1, column=1)
 
             def update_scroll_left_mode(new_mode):
                 scroll_properties.scroll_left_mode = new_mode
 
-            scroll_left_mode_dropdown = ctk.CTkOptionMenu(master=self,
+            scroll_left_mode_dropdown = ctk.CTkOptionMenu(master=thumbwheel_frame,
                                                     variable=ctk.StringVar(value=scroll_properties.scroll_left_mode),
                                                     values=["OnInterval", "OnThreshold"],
                                                     state="normal",
-                                                    width=400,
+                                                    width=200,
                                                     height=36,
                                                     command=update_scroll_left_mode)
-            scroll_left_mode_dropdown.pack()
+            scroll_left_mode_dropdown.grid(row=2, column=1)
 
 
 
@@ -820,12 +889,12 @@ class EditPage(ctk.CTkFrame):
 
 
             thumbwheel_right_threshold_label = ctk.CTkLabel(
-                master= self,
+                master= thumbwheel_frame,
                 text = "Thumbwheel Right Threshold"
             )
-            thumbwheel_right_threshold_label.pack()
+            thumbwheel_right_threshold_label.grid(row=1, column=2)
 
-            thumbwheel_right_spinbox = IntSpinbox(master=self,
+            thumbwheel_right_spinbox = IntSpinbox(master=thumbwheel_frame,
                                     width=200,
                                     step_size=5,
                                     min_value=1,
@@ -833,40 +902,25 @@ class EditPage(ctk.CTkFrame):
                                     )
             
             thumbwheel_right_spinbox.set(scroll_properties.scroll_right_threshold)
-            thumbwheel_right_spinbox.pack()
+            thumbwheel_right_spinbox.grid(row=2, column=2)
 
             thumbwheel_right_mode_label = ctk.CTkLabel(
-                master= self,
+                master= thumbwheel_frame,
                 text = "Thumbwheel Right Mode"
             )
-            thumbwheel_right_mode_label.pack()
+            thumbwheel_right_mode_label.grid(row=1, column=3)
 
             def update_scroll_right_mode(new_mode):
                 scroll_properties.scroll_right_mode = new_mode
 
-            scroll_right_mode_dropdown = ctk.CTkOptionMenu(master=self,
+            scroll_right_mode_dropdown = ctk.CTkOptionMenu(master=thumbwheel_frame,
                                                     variable=ctk.StringVar(value=scroll_properties.scroll_right_mode),
                                                     values=["OnInterval", "OnThreshold"],
                                                     state="normal",
-                                                    width=400,
+                                                    width=200,
                                                     height=36,
                                                     command=update_scroll_right_mode)
-            scroll_right_mode_dropdown.pack()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            scroll_right_mode_dropdown.grid(row=2, column=3)
 
 
 
@@ -878,11 +932,31 @@ class EditPage(ctk.CTkFrame):
         )
         bottom_frame.pack()
 
+
+
         back_button = ctk.CTkButton(master=bottom_frame, 
                                             text="Back",
-                                            command=lambda: [self.go_back(), update_spinboxes_in_db()])
+                                            command=lambda: [self.go_back(), update_spinboxes_in_db(), update_config_file_name_test()])
         back_button.pack(pady=20)
 
+
+        if is_new_device == True:
+            cancel_button_new_device = ctk.CTkButton(master=bottom_frame,
+                                      text="Cancel Adding Device",
+                                      command=lambda d=configuration.device_id: self.go_back_dont_save_new_device(d)
+                                      )
+            cancel_button_new_device.pack(pady=20)
+            # print(configuration.device_id)
+
+
+        def update_config_file_name_test():
+            print("test")
+            config_name_stripped = configuration_name_textbox.get("1.0", "end-1c").strip()
+            configuration.configuration_name = config_name_stripped
+            for widget in devices_scrollable_frame.winfo_children():
+                widget.destroy()
+            create_devices_inner_frame()
+            # print(configuration_name_textbox.get("1.0", "end-1c").strip())
 
         def update_spinboxes_in_db():
             configuration.dpi = dpi_spinbox.get()
@@ -896,11 +970,15 @@ class EditPage(ctk.CTkFrame):
                 scroll_properties.scroll_left_threshold = thumbwheel_left_spinbox.get()
                 scroll_properties.scroll_right_threshold = thumbwheel_right_spinbox.get()
 
-
+    def go_back_dont_save_new_device(self, device_id):
+        execute_db_queries.delete_device(device_id)
+        self.pack_forget()
+        self.show_main_page()
+        
 
     def go_back(self):
         self.pack_forget()
-        self.main_page()
+        self.show_main_page()
 
 
 

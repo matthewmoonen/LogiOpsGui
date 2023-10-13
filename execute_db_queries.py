@@ -87,11 +87,11 @@ def new_empty_configuration(device_id, device_name):
     similar_names = cursor.fetchall()
     
     similar_names_as_strings = [str(row[0]) for row in similar_names]
-    print(similar_names_as_strings)
+    # print(similar_names_as_strings)
 
     next_config_name = get_next_sequential_name(device_name, similar_names_as_strings)
 
-    print(f"next config name: {next_config_name}")
+    # print(f"next config name: {next_config_name}")
 
     cursor.execute("""
                 SELECT smartshift_support, hires_scroll_support, has_thumbwheel
@@ -106,6 +106,7 @@ def new_empty_configuration(device_id, device_name):
         smartshift_threshold = smartshift_torque = 10
     else:
         smartshift_on = smartshift_threshold = smartshift_torque = None
+
 
     if bool(hires_scroll_support) == True:
         hiresscroll_hires = hiresscroll_invert = hiresscroll_target = True
@@ -136,8 +137,12 @@ def new_empty_configuration(device_id, device_name):
     ) VALUES (?, ?, NULL, 0, ?, ?, ?, ?, ?, ?, ?, ?)
 """, (device_id, next_config_name, smartshift_on, smartshift_threshold, smartshift_torque, hiresscroll_hires, hiresscroll_invert, hiresscroll_target, thumbwheel_divert, thumbwheel_invert)) 
 
+    newest_configuration_id = cursor.lastrowid
+
     commit_changes_and_close(conn)
     
+    return newest_configuration_id
+
 
     # TODO: can't import the appropriate class from Classes.py as this would create a circular import, 
     # however I would prefer to use classes. Need to restructure to fix this.
@@ -246,7 +251,7 @@ def get_user_devices_and_configs():
 
 
 def update_selected_configuration(selected_configuration_id):
-    print(selected_configuration_id)
+    # print(selected_configuration_id)
 
     conn, cursor = create_db_connection()
 
@@ -415,7 +420,7 @@ def add_new_device(new_device_name):
         WHERE device_name = ?
 """, (new_device_name,))
 
-    print(new_device_name)
+    # print(new_device_name)
 
     cursor.execute("""
         SELECT Configurations.configuration_id
