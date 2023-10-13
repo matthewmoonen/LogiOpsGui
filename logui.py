@@ -284,7 +284,7 @@ class MainPage(ctk.CTkFrame):
                     height=40,
                     width=120,
                     text="Delete Configuration",
-                    command=lambda c=configuration.configuration_id, f=config_frame: configuration_deletion_warning(c, f)
+                    command=lambda c=configuration.configuration_id, f=config_frame, s=configuration.is_selected: configuration_deletion_warning(c, f, s)
                 )
                 delete_configuration_button.grid(row=grid_x_position, column=2, sticky="e")
 
@@ -346,14 +346,14 @@ class MainPage(ctk.CTkFrame):
 
             def add_new_configuration(device_id, device_name):
                 newest_configuration_id = execute_db_queries.new_empty_configuration(device_id, device_name)
-                self.edit_configuration(configuration_id = newest_configuration_id)
+                self.edit_configuration(configuration_id = newest_configuration_id, is_new_config=True, devices_scrollable_frame=devices_scrollable_frame, create_devices_inner_frame=create_devices_inner_frame)
                 for widget in devices_scrollable_frame.winfo_children():
                     widget.destroy()
                 create_devices_inner_frame()
 
 
 
-            def configuration_deletion_warning(configuration_id, config_frame):
+            def configuration_deletion_warning(configuration_id, config_frame, is_selected):
                 msg = CTkMessagebox(title="Delete Device?",
                                     message="Delete configuration?",
                                     option_1="Delete",
@@ -363,9 +363,13 @@ class MainPage(ctk.CTkFrame):
                                     fade_in_duration=200
                                     )
                 if msg.get() == "Delete":
-                    config_frame.destroy()
-
-                    execute_db_queries.delete_configuration(configuration_id)
+                    if is_selected == True:
+                        execute_db_queries.delete_configuration(configuration_id)
+                        devices_inner_frame.destroy()
+                        create_devices_inner_frame()
+                    else:
+                        config_frame.destroy()
+                        execute_db_queries.delete_configuration(configuration_id)
 
             def device_deletion_warning(device_id, device_frame):
                 msg = CTkMessagebox(title="Delete Device?",
@@ -943,12 +947,21 @@ class EditPage(ctk.CTkFrame):
 
 
         if is_new_device == True:
+            print(devices_scrollable_frame)
             cancel_button_new_device = ctk.CTkButton(master=bottom_frame,
                                       text="Cancel Adding Device",
                                       command=lambda d=configuration.device_id, s=devices_scrollable_frame, c=create_devices_inner_frame, u=create_and_update_device_dropdown: self.go_back_dont_save_new_device(d, s, c, u)
                                       )
             cancel_button_new_device.pack(pady=20)
             # print(configuration.device_id)
+        elif is_new_config == True:
+            # print(configuration.configuration_id)
+            print(devices_scrollable_frame)
+            cancel_button_new_config = ctk.CTkButton(master=bottom_frame,
+                                                     text="Cancel Adding Config",
+                                                     command=lambda i=configuration.configuration_id, s=devices_scrollable_frame, c=create_devices_inner_frame: self.go_back_dont_save_new_config(i, s, c)
+                                                     )
+            cancel_button_new_config.pack(pady=20)
 
 
         def update_config_file_name_test():
@@ -974,6 +987,7 @@ class EditPage(ctk.CTkFrame):
 
     def go_back_dont_save_new_device(self, device_id, devices_scrollable_frame, create_devices_inner_frame, create_and_update_device_dropdown):
         execute_db_queries.delete_device(device_id)
+        print(devices_scrollable_frame)
         for widget in devices_scrollable_frame.winfo_children():
             widget.destroy()
         create_devices_inner_frame()
@@ -981,6 +995,15 @@ class EditPage(ctk.CTkFrame):
         self.pack_forget()
         self.show_main_page()
         
+    def go_back_dont_save_new_config(self, configuration_id, devices_scrollable_frame, create_devices_inner_frame):
+
+        execute_db_queries.delete_configuration(configuration_id)
+        # TODO: this can be achieved more gracefully; the frame for the configuration can be passed in and removed, rather than refreshing the whole page
+        for widget in devices_scrollable_frame.winfo_children():
+            widget.destroy()
+        create_devices_inner_frame()
+        self.pack_forget()
+        self.show_main_page()
 
     def go_back(self):
         self.pack_forget()
