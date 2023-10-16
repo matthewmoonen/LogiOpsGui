@@ -16,3 +16,13 @@ __pycache__
 /app_data7
 /app_data8
 /app_data9
+CTkScrollableDropdown/ctk_scrollable_dropdown_frame.py
+CTkScrollableDropdown/ctk_scrollable_dropdown.py
+CTkScrollableDropdown/__init__.py
+CTkScrollableDropdown-main/README.md
+CTkScrollableDropdown-main/LICENSE
+CTkScrollableDropdown-main/example.py
+CTkScrollableDropdown-main/CTkScrollableDropdown/ctk_scrollable_dropdown_frame.py
+CTkScrollableDropdown-main/CTkScrollableDropdown/ctk_scrollable_dropdown.py
+CTkScrollableDropdown-main/CTkScrollableDropdown/__init__.py
+app_records.db
