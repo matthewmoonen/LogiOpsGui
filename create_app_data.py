@@ -34,6 +34,20 @@ def initialise_database():
         conn.close()
 
 
+db_original_path = 'app_data/app_records.db'
+db_copy_path = 'app_data/app_records_editing.db'
+
+def copy_database():
+
+
+    if not os.path.exists(db_copy_path):
+        os.system(f'cp "{db_original_path}" "{db_copy_path}"')
+
+def replace_database_with_copy():
+
+    if os.path.exists(db_copy_path) and os.path.exists(db_original_path):
+        os.system(f'mv "{db_copy_path}" "{db_original_path}"')
+
 
 def parse_sql_file_into_array(sql_file_path):
     with open (sql_file_path , "r") as sql_file:
@@ -138,3 +152,9 @@ def add_devices(cursor):
 
 
 
+def main():
+    # copy_database()
+    delete_database_copy()
+
+if __name__ == "__main__":
+    main()
