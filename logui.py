@@ -935,13 +935,74 @@ class EditPage(ctk.CTkFrame):
         buttons_frame = ctk.CTkFrame(master=edit_page_scrollable_frame)
         buttons_frame.pack()
         for button in configuration.buttons:
+
+
+
+            def update_selected_button_configuration(new_selected_button_configuration):
+
+                print(new_selected_button_configuration)
+
+
+            selected_button_configuration = ctk.StringVar()
+
+
+
+
             button_label = ctk.CTkLabel(master=buttons_frame, text=f"{button.button_name} ({button.button_cid})")            
             button_label.pack()
 
-        
+
+            radio_buttons_to_create = []
+
+            if button.button_default is not None:
+                radio_buttons_to_create.append(["Default", button.button_default])
+            if button.button_nopress is not None:
+                radio_buttons_to_create.append(["No Press", button.button_nopress])
+            if button.button_togglesmartshift is not None:
+                radio_buttons_to_create.append(["Toggle Smart Shift", button.button_togglesmartshift])
+            if button.button_togglehiresscroll is not None:
+                radio_buttons_to_create.append(["Toggle Hi Res Scroll", button.button_togglehiresscroll])
 
 
 
+            for button_config in radio_buttons_to_create:
+                button_config_radio_button = ctk.CTkRadioButton(master=buttons_frame,
+                                                text=button_config[0],
+                                                value=str(button_config[1]),
+                                                variable=selected_button_configuration,
+                                                command=lambda b= button_config[1]: update_selected_button_configuration(b),
+                                                radiobutton_width=24.5,
+                                                radiobutton_height=24.5,
+                                                corner_radius=2.5,
+                                                border_width_unchecked=6,
+                                                border_width_checked=6,
+                                                hover_color=gui_variables.primary_colour
+                                                )
+
+                button_config_radio_button.pack()
+
+                if button_config[1] == button.selected_button_config_id:
+                    selected_button_configuration.set(str(button_config[1]))
+
+
+
+# if configuration.is_selected == True:
+                        # selected_configurations[device.device_id] = ctk.StringVar()
+                        # selected_configurations[device.device_id].set(str(configuration.configuration_id))
+
+
+#                radio_button = ctk.CTkRadioButton(master=config_frame,
+#                                                 text=f"{configuration.configuration_name}",
+#                                                 variable=selected_configurations[device_id],
+#                                                 value=str(configuration.configuration_id),
+#                                                 command=lambda c=configuration, d=device_id: select_configuration(c, d),
+#                                                 radiobutton_width=24.5,
+#                                                 radiobutton_height=24.5,
+#                                                 corner_radius=2.5,
+#                                                 border_width_unchecked=6,
+#                                                 border_width_checked=6,
+#                                                 hover_color=gui_variables.primary_colour
+#                                                 )
 
 
 
@@ -956,21 +1017,19 @@ class EditPage(ctk.CTkFrame):
 
         back_button = ctk.CTkButton(master=bottom_frame, 
                                             text="Back",
-                                            command=lambda: [self.go_back(), update_spinboxes_in_db(), update_config_file_name_test()])
+                                            command=lambda: [self.go_back(), update_spinboxes_in_db(), update_config_file_name()])
         back_button.pack(pady=20)
 
 
         if is_new_device == True:
-            print(devices_scrollable_frame)
+
             cancel_button_new_device = ctk.CTkButton(master=bottom_frame,
                                       text="Cancel Adding Device",
                                       command=lambda d=configuration.device_id, s=devices_scrollable_frame, c=create_devices_inner_frame, u=create_and_update_device_dropdown: self.go_back_dont_save_new_device(d, s, c, u)
                                       )
             cancel_button_new_device.pack(pady=20)
-            # print(configuration.device_id)
+
         elif is_new_config == True:
-            # print(configuration.configuration_id)
-            print(devices_scrollable_frame)
             cancel_button_new_config = ctk.CTkButton(master=bottom_frame,
                                                      text="Cancel Adding Config",
                                                      command=lambda i=configuration.configuration_id, s=devices_scrollable_frame, c=create_devices_inner_frame: self.go_back_dont_save_new_config(i, s, c)
@@ -978,14 +1037,13 @@ class EditPage(ctk.CTkFrame):
             cancel_button_new_config.pack(pady=20)
 
 
-        def update_config_file_name_test():
-            print("test")
+        def update_config_file_name():
             config_name_stripped = configuration_name_textbox.get("1.0", "end-1c").strip()
             configuration.configuration_name = config_name_stripped
             for widget in devices_scrollable_frame.winfo_children():
                 widget.destroy()
             create_devices_inner_frame()
-            # print(configuration_name_textbox.get("1.0", "end-1c").strip())
+
 
         def update_spinboxes_in_db():
             configuration.dpi = dpi_spinbox.get()
@@ -1001,7 +1059,7 @@ class EditPage(ctk.CTkFrame):
 
     def go_back_dont_save_new_device(self, device_id, devices_scrollable_frame, create_devices_inner_frame, create_and_update_device_dropdown):
         execute_db_queries.delete_device(device_id)
-        print(devices_scrollable_frame)
+
         for widget in devices_scrollable_frame.winfo_children():
             widget.destroy()
         create_devices_inner_frame()

@@ -632,23 +632,21 @@ class DeviceConfig:
                 cursor.execute("""
                             SELECT button_config_id
                             FROM ButtonConfigs
-                            WHERE button_id = ? AND action_type = ?
-                """, (button_id, key))
+                            WHERE button_id = ? AND action_type = ? AND configuration_id = ?
+                """, (button_id, key, configuration_id))
                 result = cursor.fetchone()
 
                 if result:
                     one_config_values[key] = result[0]
     
-        # if one_config_values["Default"] is not None:
+
             default = one_config_values["Default"]
-        # if one_config_values["Gestures"] is not None:
             gestures = one_config_values["Gestures"]
-        # if one_config_values["NoPress"] is not None:
             nopress = one_config_values["NoPress"]
-        # if one_config_values["ToggleHiresScroll"] is not None:
             togglehiresscroll = one_config_values["ToggleHiresScroll"]
-        # if one_config_values["ToggleSmartShift"] is not None:
             togglesmartshift = one_config_values["ToggleSmartShift"]
+
+
 
             cursor.execute("""
                             SELECT 
@@ -739,6 +737,9 @@ class DeviceConfig:
                             """, (configuration_id, button_id))
 
             selected_button_config_id = cursor.fetchone()[0]
+
+
+            # print(f"Button ID: {button_id}, Configuration ID: {configuration_id}, Selected button config id: {selected_button_config_id}")
 
 
             button_to_add = ButtonSettings(button_cid=button_cid, button_name=button_name, button_id=button_id, gesture_support=gesture_support, gestures=None, selected_button_config_id=selected_button_config_id, button_default=default, button_nopress=nopress, button_gestures=gestures, button_togglehiresscroll=togglehiresscroll, 
@@ -1100,9 +1101,15 @@ def get_main_page_user_devices():
 class Gesture:
     def __init__(
             self,
-            gesture_id,
             button_config_id,
-            direction,
+            gesture_up_threshold,
+            gesture_up_mode,
+            gesture_down_threshold,
+            gesture_down_mode,
+            gesture_left_threshold,
+            gesture_left_mode,
+            gesture_right_threshold,
+            gesture_right_mode,
             gesture_action,
             gesture_mode,
             gesture_threshold
