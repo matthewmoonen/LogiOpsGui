@@ -41,35 +41,32 @@ class ButtonProperties(Button):
         self.button_name = button_cid_names.names.get(button_cid, 'Button Name Undefined')
 
 
-class ButtonSettings(Button):
+class ButtonSettings:
     def __init__(
                     self,
-                    device_id,
+                    button_id,
                     button_cid, 
                     button_name,
-                    button_id,
                     gesture_support,
-                    configuration_id,
                     gestures,
-                    button_default = {"button_config_id": None, "is_selected": None},
-                    button_nopress = {"button_config_id": None, "is_selected": None},
-                    button_togglesmartshift = {"button_config_id": None, "is_selected": None},
-                    button_togglehiresscroll = {"button_config_id": None, "is_selected": None},
-                    button_gestures = {"button_config_id": None, "is_selected": None},
+                    selected_button_config_id,
+                    button_default = None,
+                    button_nopress = None,
+                    button_togglesmartshift = None,
+                    button_togglehiresscroll = None,
+                    button_gestures = None,
                     button_keypresses = [],
                     button_axes = [],
                     button_changehost = [],
                     button_cycledpi = []
     ):
-        super().__init__(
-            device_id,
-            button_cid,
-            button_name,
-            button_id,
-        )
+
+        self.button_id = button_id
+        self.button_cid = button_cid
+        self.button_name = button_name
         self.gesture_support = gesture_support
-        self.configuration_id = configuration_id
         self.gestures = gestures
+        self.selected_button_config_id = selected_button_config_id
         self.button_default = button_default
         self.button_nopress = button_nopress
         self.button_togglesmartshift = button_togglesmartshift
@@ -615,26 +612,44 @@ class DeviceConfig:
 
 
         cursor.execute("""
-            SELECT button_id
+            SELECT button_id, button_name, button_cid, gesture_support
             FROM Buttons
             WHERE device_id = ? AND reprog = 1 AND accessible = 1
         """, (config.device_id,))
         button_id_list = cursor.fetchall()
 
-        for [i] in button_id_list:
-            
+        config.buttons = []
+
+        for i in button_id_list:
+            button_id = i[0]
+            button_name = i[1]
+            button_cid = i[2]
+            gesture_support = bool(i[3])
+
+    
             one_config_values = {"Default":None, "Gestures":None, "NoPress":None, "ToggleHiresScroll":None, "ToggleSmartShift":None}
             for key in one_config_values:
                 cursor.execute("""
                             SELECT button_config_id
                             FROM ButtonConfigs
                             WHERE button_id = ? AND action_type = ?
-                """, (i, key))
+                """, (button_id, key))
                 result = cursor.fetchone()
 
                 if result:
                     one_config_values[key] = result[0]
-        
+    
+        # if one_config_values["Default"] is not None:
+            default = one_config_values["Default"]
+        # if one_config_values["Gestures"] is not None:
+            gestures = one_config_values["Gestures"]
+        # if one_config_values["NoPress"] is not None:
+            nopress = one_config_values["NoPress"]
+        # if one_config_values["ToggleHiresScroll"] is not None:
+            togglehiresscroll = one_config_values["ToggleHiresScroll"]
+        # if one_config_values["ToggleSmartShift"] is not None:
+            togglesmartshift = one_config_values["ToggleSmartShift"]
+
             cursor.execute("""
                             SELECT 
                                 ButtonConfigs.button_config_id,
@@ -649,7 +664,7 @@ class DeviceConfig:
                                 AND ButtonConfigs.button_id = ?
                                 AND ButtonConfigs.action_type = 'Keypress' 
                                 AND Keypresses.source_table = 'ButtonConfigs';
-                            """, (configuration_id, i))
+                            """, (configuration_id, button_id))
             
             keypress_list = cursor.fetchall()
             if len(keypress_list) != 0:
@@ -669,7 +684,7 @@ class DeviceConfig:
                                 AND ButtonConfigs.button_id = ?
                                 AND ButtonConfigs.action_type = 'Keypress'
                                 AND ChangeHost.source_table = 'ButtonConfigs';
-                            """, (configuration_id, i))
+                            """, (configuration_id, button_id))
             changehost_list = cursor.fetchall()
             if len(changehost_list) != 0:
                 print(changehost_list)
@@ -689,7 +704,7 @@ class DeviceConfig:
                                 AND ButtonConfigs.button_id = ?
                                 AND ButtonConfigs.action_type = 'CycleDPI'
                                 AND CycleDPI.source_table = 'ButtonConfigs';
-                            """, (configuration_id, i))
+                            """, (configuration_id, button_id))
             cycledpi_list = cursor.fetchall()
             if len(cycledpi_list) != 0:
                 print(cycledpi_list)
@@ -710,12 +725,26 @@ class DeviceConfig:
                                 AND ButtonConfigs.button_id = ?
                                 AND ButtonConfigs.action_type = 'Keypress'
                                 AND Axes.source_table = 'ButtonConfigs';
-                            """, (configuration_id, i))
+                            """, (configuration_id, button_id))
             axes_list = cursor.fetchall()
             if len(axes_list) != 0:
                 print(axes_list)
 
+            cursor.execute("""
+                            SELECT button_config_id
+                            FROM ButtonConfigs
+                            WHERE is_selected = 1
+                            AND configuration_id = ?
+                            AND button_id = ?
+                            """, (configuration_id, button_id))
 
+            selected_button_config_id = cursor.fetchone()[0]
+
+
+            button_to_add = ButtonSettings(button_cid=button_cid, button_name=button_name, button_id=button_id, gesture_support=gesture_support, gestures=None, selected_button_config_id=selected_button_config_id, button_default=default, button_nopress=nopress, button_gestures=gestures, button_togglehiresscroll=togglehiresscroll, 
+                                           button_togglesmartshift=togglesmartshift
+                                           )
+            config.buttons.append(button_to_add)
 
 
 

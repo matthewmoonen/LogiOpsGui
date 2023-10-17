@@ -438,7 +438,6 @@ class MainPage(ctk.CTkFrame):
 
         configuration = Classes.DeviceConfig.create_from_configuration_id(configuration_id)
 
-
         self.edit_page = EditPage(self.master, configuration=configuration, is_new_config=is_new_config, is_new_device=is_new_device, main_page=self, devices_scrollable_frame=devices_scrollable_frame, create_devices_inner_frame=create_devices_inner_frame, create_and_update_device_dropdown=create_and_update_device_dropdown, show_main_page=self.show)
         
         self.pack_forget()
@@ -927,6 +926,21 @@ class EditPage(ctk.CTkFrame):
                                                     height=36,
                                                     command=update_scroll_right_mode)
             scroll_right_mode_dropdown.grid(row=2, column=3)
+
+
+
+
+
+
+        buttons_frame = ctk.CTkFrame(master=edit_page_scrollable_frame)
+        buttons_frame.pack()
+        for button in configuration.buttons:
+            button_label = ctk.CTkLabel(master=buttons_frame, text=f"{button.button_name} ({button.button_cid})")            
+            button_label.pack()
+
+        
+
+
 
 
 
