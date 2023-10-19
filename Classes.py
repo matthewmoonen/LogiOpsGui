@@ -496,6 +496,32 @@ class ScrollProperties:
 #         self.button_cycledpi = button_cycledpi
         
 
+def update_selected_ttt_id(touch_tap_proxy_id):
+    conn, cursor = execute_db_queries.create_db_connection()
+
+    cursor.execute("""
+    UPDATE TouchTapProxy
+    SET is_selected = 1
+    WHERE touch_tap_proxy_id = ?;
+    """, (touch_tap_proxy_id,))
+
+    conn.commit()
+    conn.close
+
+
+def update_selected_button_config_id(button_config_id):
+    conn, cursor = execute_db_queries.create_db_connection()
+
+    cursor.execute("""
+    UPDATE ButtonConfigs
+    SET is_selected = 1
+    WHERE button_config_id = ?
+    """, (button_config_id,))
+
+    conn.commit()
+    conn.close()
+
+
 
 class DeviceConfig:
     def __init__(
@@ -739,14 +765,10 @@ class DeviceConfig:
             selected_button_config_id = cursor.fetchone()[0]
 
 
-            # print(f"Button ID: {button_id}, Configuration ID: {configuration_id}, Selected button config id: {selected_button_config_id}")
-
-
             button_to_add = ButtonSettings(button_cid=button_cid, button_name=button_name, button_id=button_id, gesture_support=gesture_support, gestures=None, selected_button_config_id=selected_button_config_id, button_default=default, button_nopress=nopress, button_gestures=gestures, button_togglehiresscroll=togglehiresscroll, 
                                            button_togglesmartshift=togglesmartshift
                                            )
             config.buttons.append(button_to_add)
-
 
 
         execute_db_queries.close_without_committing_changes(conn)
@@ -1092,10 +1114,65 @@ def get_main_page_user_devices():
 
 
 
+class TouchTapProxy:
+    def __init__(
+            self,
+            ttt_type=None,
+            selected_id=None,
+            ttt_nopress=None,
+            ttt_toggle_smartshift=None,
+            ttt_toggle_hiresscroll=None,
+            ttt_keypresses=[],
+            ttt_axes=[],
+            ttt_cycledpi=[],
+            ttt_changehost=[]
+    ):
+        self.ttt_type=ttt_type
+        self.selected_id=selected_id
+        self.ttt_nopress=ttt_nopress
+        self.ttt_toggle_smartshift=ttt_toggle_smartshift
+        self.ttt_toggle_hiresscroll=ttt_toggle_hiresscroll
+        self.ttt_keypresses=ttt_keypresses
+        self.ttt_axes=ttt_axes
+        self.ttt_cycledpi=ttt_cycledpi
+        self.ttt_changehost=ttt_changehost
+
+    @classmethod
+    def create_ttt_object(cls, configuration_id, ttt_type):
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        ttt_properties = cls()
+
+        ttt_properties.ttt_type = ttt_type
+        
+        cursor.execute("""
+        SELECT touch_tap_proxy_id, action_type
+        FROM TouchTapProxy
+        WHERE configuration_id = ? AND touch_tap_proxy = ?;
+        """, (configuration_id, ttt_type))
+
+        ttt_results = cursor.fetchall()
 
 
+        for result in ttt_results:
+            if result[1] == "NoPress":
+                ttt_properties.ttt_nopress = result[0]
+            elif result[1] == "ToggleSmartShift":
+                ttt_properties.ttt_toggle_smartshift = result[0]
+            elif result[1] == "ToggleHiresScroll":
+                ttt_properties.ttt_toggle_hiresscroll = result[0]
+            
+        cursor.execute("""
+        SELECT touch_tap_proxy_id
+        FROM TouchTapProxy
+        WHERE configuration_id = ? AND touch_tap_proxy = ? AND is_selected = 1
+        """, (configuration_id, ttt_type))
 
+        ttt_properties.selected_id = cursor.fetchone()[0]
 
+        conn.close()
+
+        return ttt_properties
 
 
 class Gesture:

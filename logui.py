@@ -136,7 +136,30 @@ class MainPage(ctk.CTkFrame):
         self.selected_device = None
 
 
-        main_page_elements.create_title_frame(self)
+        def create_title_frame():
+            title_frame = ctk.CTkFrame(master=self,
+                                        fg_color="transparent")
+            title_frame.pack(
+                                pady=(30,0),
+                                fill="x"
+            )
+            app_title = ctk.CTkLabel(
+                                        master=title_frame, 
+                                        text="LogiOpsGUI",
+                                        font=ctk.CTkFont(
+                                                            family="Roboto",
+                                                            weight="bold",
+                                                            size=40,
+                                                        ),
+                                        text_color=gui_variables.primary_colour,
+                                        pady=30,
+                                        anchor='s'
+                                        )
+            app_title.pack()
+        
+        create_title_frame()
+
+
 
         top_frame = ctk.CTkFrame(master=self,
                                 fg_color="transparent")
@@ -251,29 +274,59 @@ class MainPage(ctk.CTkFrame):
 
             def create_config_ui(device_id, configuration, device_configs_frame, grid_x_position):
 
+
+
                 config_frame = ctk.CTkFrame(master=device_configs_frame)
                 config_frame.pack(fill="x", expand=True,)
 
+                if grid_x_position == 1:
+                    select_configuration_label = ctk.CTkLabel(
+                        master=config_frame,
+                        text="Select Configuration:",
+                    )
+                    select_configuration_label.grid(row=0, column=0, sticky="w")
+
                 radio_button = ctk.CTkRadioButton(master=config_frame,
-                                                text=f"{configuration.configuration_name}",
+                                                text=f"{configuration.configuration_name}         ",
+                                                # text_color="#6C757D",
+                                                text_color="#949A9F",
+                                                font=   ctk.CTkFont(
+                                                                        family="Noto Sans",
+                                                                        # weight="bold",
+                                                                        size=20,
+                                                                        ),
                                                 variable=selected_configurations[device_id],
                                                 value=str(configuration.configuration_id),
                                                 command=lambda c=configuration, d=device_id: select_configuration(c, d),
-                                                radiobutton_width=24.5,
-                                                radiobutton_height=24.5,
+                                                # radiobutton_width=24.5,
+                                                # radiobutton_height=24.5,
+                                                radiobutton_width=21,
+                                                radiobutton_height=21,
+                                                # corner_radius=2.5,
                                                 corner_radius=2.5,
                                                 border_width_unchecked=6,
                                                 border_width_checked=6,
-                                                hover_color=gui_variables.primary_colour
+                                                fg_color=gui_variables.primary_colour,
+                                                hover_color="#1B81A8"
                                                 )
 
-                radio_button.grid(row=grid_x_position, column=0, sticky="w")
+                radio_button.grid(row=grid_x_position,
+                                  padx=(5,0),
+                                  column=0,
+                                  sticky="w")
 
 
                 edit_configuration_button = ctk.CTkButton(
                     master=config_frame,
                     height=40,
-                    width=120,
+                    width=360,
+                    fg_color="transparent",
+                    # text_color="#198754",
+                    font=ctk.CTkFont(family="Noto Sans"),
+                    text_color="#6C757D",
+                    border_color="#6C757D",
+                    border_width=1,
+                    hover_color="#212121",
                     text="Edit Configuration",
                     command=lambda: self.edit_configuration(configuration.configuration_id, devices_scrollable_frame, create_devices_inner_frame)
                 )
@@ -282,11 +335,22 @@ class MainPage(ctk.CTkFrame):
                 delete_configuration_button = ctk.CTkButton(
                     master=config_frame,
                     height=40,
-                    width=120,
+                    width=190,
                     text="Delete Configuration",
+                    fg_color="transparent",
+                    # border_color="red",
+                    font=ctk.CTkFont(family="Noto Sans"),
+                    text_color="#6C757D",
+                    border_color="#6C757D",
+                    hover_color="#450C0F",
+                    border_width=1,
+                    border_spacing=5,
                     command=lambda c=configuration.configuration_id, f=config_frame, s=configuration.is_selected: configuration_deletion_warning(c, f, s)
                 )
-                delete_configuration_button.grid(row=grid_x_position, column=2, sticky="e")
+                delete_configuration_button.grid(row=grid_x_position, column=2, padx="15", pady="5", sticky="e")
+                config_frame.columnconfigure(1, weight=2)
+                # config_frame.columnconfigure(2, weight=1)
+
 
             def select_configuration(configuration, device_id):
                 selected_configurations[device_id] = configuration.configuration_id
@@ -297,36 +361,61 @@ class MainPage(ctk.CTkFrame):
                 device_frame = ctk.CTkFrame(master=devices_inner_frame)
                 device_frame.pack(fill="both", expand=True)
 
-                device_label = ctk.CTkLabel(master=device_frame,
-                                            text=device.device_name,
-                                            font=ctk.CTkFont(
-                                                family="Roboto",
-                                                weight="bold",
-                                                size=20,
-                                                
-                                            ),
-                                            )
-                
-                device_label.pack()
-
                 devicewide_actions_frame = ctk.CTkFrame(
                     master=device_frame,
                 )
                 devicewide_actions_frame.pack(
                     fill="x", 
                     expand=False)
+                
+                device_label = ctk.CTkLabel(master=devicewide_actions_frame,
+                                            text=device.device_name,
+                                            font=ctk.CTkFont(
+                                                family="Roboto",
+                                                weight="bold",
+                                                size=25,
+                                                
+                                            ),
+                                            )
+                
+                device_label.grid(row=0, column=0,
+                                  sticky="e",
+                                  pady=(15, 30)
+                                  )
+
 
                 new_configuration_button = ctk.CTkButton(master=devicewide_actions_frame,
-                                                         text="Add Configuration",
+                                                         text="Add Device Configuration",
+                                                         text_color="white",
+                                                         fg_color="#198754",
+                                                         height=40,
+                                                         width=230,
+                                                         hover_color="#28A745",
+                                                         font=ctk.CTkFont(family="Noto Sans"),
+                                                        #  corner_radius=3,
+                                                        #  border_width=2,
                                                          command=lambda d=device.device_id, n=device.device_name: add_new_configuration(d, n))
-                new_configuration_button.grid(row=0, column=0)
+                new_configuration_button.grid(row=0, column=1, sticky="e",
+                                            #   padx=15
+                                              )
 
 
                 delete_device_button = ctk.CTkButton(master=devicewide_actions_frame,
                                                      text="Delete Device",
+                                                    fg_color="#DC3545",
+                                                    height=40,
+                                                    width=150,
+                                                    hover_color="red",
+                                                    font=ctk.CTkFont(family="Noto Sans"),
+                                                    # border_width=2,
                                                     command=lambda d=device.device_id, f=device_frame: device_deletion_warning(d, f)
                                                      )
-                delete_device_button.grid(row=0, column=1)
+                delete_device_button.grid(row=0, column=2, sticky="e",
+                                          padx=(25, 15))
+
+                devicewide_actions_frame.columnconfigure((0), weight=1)
+
+                devicewide_actions_frame.columnconfigure((1), weight=2)
 
                 device_configs_frame = ctk.CTkFrame(master=device_frame)
                 device_configs_frame.pack(fill="x")
@@ -338,8 +427,8 @@ class MainPage(ctk.CTkFrame):
                         selected_configurations[device.device_id].set(str(configuration.configuration_id))
 
                 for row, configuration in enumerate(device.configurations):
-                    # 
-                    create_config_ui(device.device_id, configuration, device_configs_frame, row)
+
+                    create_config_ui(device.device_id, configuration, device_configs_frame, row+1)
 
                 return device_frame
 
@@ -519,17 +608,26 @@ class EditPage(ctk.CTkFrame):
                     widget.destroy()
                 create_devices_inner_frame()
 
-        configuration_name_label = ctk.CTkLabel(master=edit_page_scrollable_frame,
+
+        general_settings_frame = ctk.CTkFrame(master=edit_page_scrollable_frame)
+        general_settings_frame.pack(fill="both", expand=True)
+
+        configuration_name_label = ctk.CTkLabel(master=general_settings_frame,
                                                 text="Configuration Name",
                                                 )
-        configuration_name_label.pack()
+        configuration_name_label.grid(row=0, column=0, sticky="w")
 
-        configuration_name_textbox = ctk.CTkTextbox(master=edit_page_scrollable_frame,
+        configuration_name_textbox = ctk.CTkTextbox(master=general_settings_frame,
                                                     height=10,
                                                     width=500,
+                                                    # text_color="red",
+                                                    font=ctk.CTkFont(
+                                                        family="Noto Sans",
+                                                        size=18
+                                                    ),
                                                     corner_radius=1
                                                     )
-        configuration_name_textbox.pack()
+        configuration_name_textbox.grid(row=1, column=0)
 
         configuration_name_textbox.insert("0.0", configuration.configuration_name)
 
@@ -539,18 +637,18 @@ class EditPage(ctk.CTkFrame):
 
 
 
-        dpi_spinbox = IntSpinbox(master=edit_page_scrollable_frame,
+        dpi_spinbox = IntSpinbox(master=general_settings_frame,
                                             width=200,
                                             step_size=50,
                                             min_value=configuration.min_dpi,
                                             max_value=configuration.max_dpi
                                             )
-        # device_configuration_widgets()
+
 
         def create_dpi_widgets():
 
             dpi_label = ctk.CTkLabel(
-                                    master=edit_page_scrollable_frame,
+                                    master=general_settings_frame,
                                                                         text=("DPI"),
                                                     font=ctk.CTkFont(
                                                             family="Roboto",
@@ -561,11 +659,11 @@ class EditPage(ctk.CTkFrame):
                                             # pady=30,
                                             # anchor='s'
             )
-            dpi_label.pack()
+            dpi_label.grid(row=0, column=1)
 
             
             dpi_spinbox.set(configuration.dpi) #TODO: Update
-            dpi_spinbox.pack()
+            dpi_spinbox.grid(row=1, column=1)
 
         create_dpi_widgets()
 
@@ -601,7 +699,7 @@ class EditPage(ctk.CTkFrame):
             
             smartshift_threshold_label = ctk.CTkLabel(
                                     master=smartshift_frame,
-                                                                        text=("SmartShift Threshold"),
+                                                                        text=("Threshold"),
                                                     font=ctk.CTkFont(
                                                             family="Roboto",
                                                                 # weight="bold",
@@ -627,7 +725,7 @@ class EditPage(ctk.CTkFrame):
 
             smartshift_torque_label = ctk.CTkLabel(
                                     master=smartshift_frame,
-                                                                        text=("SmartShift Torque"),
+                                                                        text=("Torque"),
                                                     font=ctk.CTkFont(
                                                             family="Roboto",
                                                                 # weight="bold",
@@ -801,6 +899,93 @@ class EditPage(ctk.CTkFrame):
             scroll_down_mode_dropdown.grid(row=1, column=3)
 
 
+        if configuration.thumbwheel_touch_support == True or configuration.thumbwheel_proxy_support == True or configuration.thumbwheel_tap_support == True:
+            
+
+            touch_tap_proxy_frame = ctk.CTkFrame(master=edit_page_scrollable_frame)
+            touch_tap_proxy_frame.pack()
+
+            title_array = []
+            if configuration.thumbwheel_touch_support == True:
+                title_array.append("Touch")
+            if configuration.thumbwheel_tap_support == True:
+                title_array.append("Tap")
+            if configuration.thumbwheel_proxy_support == True:
+                title_array.append("Proxy")
+
+            title_string = "/".join(title_array)
+
+            touch_tap_proxy_label = ctk.CTkLabel(master=touch_tap_proxy_frame, text=title_string, font=ctk.CTkFont(
+                                                            family="Roboto",
+                                                                # weight="bold",
+                                                            size=18,
+                                                            ),)
+            touch_tap_proxy_label.pack()
+
+
+            def touch_tap_proxy_actions_radio_buttons(ttt_object):
+
+
+                selected_ttt_configuration = ctk.StringVar()
+
+
+                ttt_label = ctk.CTkLabel(master=touch_tap_proxy_frame, text=f"{ttt_object.ttt_type}")            
+                ttt_label.pack()
+
+
+                ttt_radio_buttons_to_create = []
+
+                if ttt_object.ttt_nopress is not None:
+                    ttt_radio_buttons_to_create.append(["No Press", ttt_object.ttt_nopress])
+                if ttt_object.ttt_toggle_smartshift is not None:
+                    ttt_radio_buttons_to_create.append(["Toggle Smart Shift", ttt_object.ttt_toggle_smartshift])
+                if ttt_object.ttt_toggle_hiresscroll is not None:
+                    ttt_radio_buttons_to_create.append(["Toggle Hi Res Scroll", ttt_object.ttt_toggle_hiresscroll])
+
+                for ttt_config in ttt_radio_buttons_to_create:
+                    ttt_config_radio_button = ctk.CTkRadioButton(master=touch_tap_proxy_frame,
+                                                    text=ttt_config[0],
+                                                    value=str(ttt_config[1]),
+                                                    variable=selected_ttt_configuration,
+                                                    command=lambda b= ttt_config[1]: Classes.update_selected_ttt_id(b),
+                                                    radiobutton_width=24.5,
+                                                    radiobutton_height=24.5,
+                                                    corner_radius=2.5,
+                                                    border_width_unchecked=6,
+                                                    border_width_checked=6,
+                                                    hover_color=gui_variables.primary_colour
+                                                    )
+
+                    ttt_config_radio_button.pack()
+
+                    if ttt_config[1] == ttt_object.selected_id:
+                        selected_ttt_configuration.set(str(ttt_config[1]))
+
+
+
+            if configuration.thumbwheel_touch_support == True:
+                thumbwheel_touch_object = Classes.TouchTapProxy.create_ttt_object(configuration.configuration_id, "Touch")
+                touch_tap_proxy_actions_radio_buttons(thumbwheel_touch_object)
+
+
+            if configuration.thumbwheel_tap_support == True:
+                thumbwheel_touch_object = Classes.TouchTapProxy.create_ttt_object(configuration.configuration_id, "Tap")
+                touch_tap_proxy_actions_radio_buttons(thumbwheel_touch_object)
+
+            if configuration.thumbwheel_proxy_support == True:
+                thumbwheel_touch_object = Classes.TouchTapProxy.create_ttt_object(configuration.configuration_id, "Proxy")
+                touch_tap_proxy_actions_radio_buttons(thumbwheel_touch_object)
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -934,13 +1119,12 @@ class EditPage(ctk.CTkFrame):
 
         buttons_frame = ctk.CTkFrame(master=edit_page_scrollable_frame)
         buttons_frame.pack()
+
+
         for button in configuration.buttons:
 
 
 
-            def update_selected_button_configuration(new_selected_button_configuration):
-
-                print(new_selected_button_configuration)
 
 
             selected_button_configuration = ctk.StringVar()
@@ -948,8 +1132,13 @@ class EditPage(ctk.CTkFrame):
 
 
 
-            button_label = ctk.CTkLabel(master=buttons_frame, text=f"{button.button_name} ({button.button_cid})")            
-            button_label.pack()
+            button_label = ctk.CTkLabel(master=buttons_frame,
+                                        font=ctk.CTkFont(
+                                            family="Noto Sans",
+                                            size=18
+                                        ),
+                                         text=f"{button.button_name} ({button.button_cid})")            
+            button_label.pack(padx=12, pady=(20, 5))
 
 
             radio_buttons_to_create = []
@@ -962,15 +1151,20 @@ class EditPage(ctk.CTkFrame):
                 radio_buttons_to_create.append(["Toggle Smart Shift", button.button_togglesmartshift])
             if button.button_togglehiresscroll is not None:
                 radio_buttons_to_create.append(["Toggle Hi Res Scroll", button.button_togglehiresscroll])
+            if button.button_gestures is not None:
+                radio_buttons_to_create.append(["Gestures", button.button_gestures])
 
+            radio_buttons_frame = ctk.CTkFrame(master=buttons_frame)
+            radio_buttons_frame.pack()
 
+            grid_row = 0
 
             for button_config in radio_buttons_to_create:
-                button_config_radio_button = ctk.CTkRadioButton(master=buttons_frame,
+                button_config_radio_button = ctk.CTkRadioButton(master=radio_buttons_frame,
                                                 text=button_config[0],
                                                 value=str(button_config[1]),
                                                 variable=selected_button_configuration,
-                                                command=lambda b= button_config[1]: update_selected_button_configuration(b),
+                                                command=lambda b= button_config[1]: Classes.update_selected_button_config_id(b),
                                                 radiobutton_width=24.5,
                                                 radiobutton_height=24.5,
                                                 corner_radius=2.5,
@@ -979,11 +1173,12 @@ class EditPage(ctk.CTkFrame):
                                                 hover_color=gui_variables.primary_colour
                                                 )
 
-                button_config_radio_button.pack()
+                button_config_radio_button.grid(column=0, row=grid_row, sticky="w")
 
                 if button_config[1] == button.selected_button_config_id:
                     selected_button_configuration.set(str(button_config[1]))
 
+                grid_row += 1
 
 
 # if configuration.is_selected == True:
