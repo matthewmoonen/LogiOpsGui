@@ -1,7 +1,7 @@
 import logging
 import sqlite3
 import DeviceData
-import ConfigClasses
+# import ConfigClasses
 import re
 
 
@@ -159,28 +159,42 @@ def delete_device(device_id):
     commit_changes_and_close(conn)
 
 
-def get_button_configs(config_id, button_id):
+
+def get_selected_config(device_id):
     conn, cursor = create_db_connection()
 
     cursor.execute("""
-                SELECT button_config_id, action
-                FROM ButtonConfigs
-                WHERE button_id = ? AND configuration_id = ?
-                   """, (button_id, config_id))
+                SELECT configuration_id
+                FROM configurations
+                WHERE is_selected = 1 AND device_id = ?
+""", (device_id,))
+    selected_config_id = cursor.fetchone()
+    close_without_committing_changes(conn)
+    return selected_config_id[0]
 
-    button_configs = cursor.fetchall()
-    button_configs_array = []
 
-    for row in button_configs:
-        button_config = ConfigClasses.ButtonConfig(
-            config_id=config_id,
-            button_id=button_id,
-            button_config_id=row[0],
-            action=row[0]            
-        )
-        button_configs_array.append(button_config)
+# def get_button_configs(config_id, button_id):
+#     conn, cursor = create_db_connection()
 
-    return button_configs_array
+#     cursor.execute("""
+#                 SELECT button_config_id, action
+#                 FROM ButtonConfigs
+#                 WHERE button_id = ? AND configuration_id = ?
+#                    """, (button_id, config_id))
+
+#     button_configs = cursor.fetchall()
+#     button_configs_array = []
+
+#     for row in button_configs:
+#         button_config = ConfigClasses.ButtonConfig(
+#             config_id=config_id,
+#             button_id=button_id,
+#             button_config_id=row[0],
+#             action=row[0]            
+#         )
+#         button_configs_array.append(button_config)
+
+#     return button_configs_array
 
 
 def get_user_device_objects():
@@ -198,41 +212,41 @@ def get_user_device_objects():
 
     
 
-def get_user_devices_and_configs():
+# def get_user_devices_and_configs():
         
-    conn, cursor = create_db_connection()
-    cursor.execute("""
-        SELECT device_id, device_name, is_activated
-        FROM Devices
-        WHERE is_user_device = 1
-        ORDER BY date_added DESC
-    """)
-    devices = cursor.fetchall()
+#     conn, cursor = create_db_connection()
+#     cursor.execute("""
+#         SELECT device_id, device_name, is_activated
+#         FROM Devices
+#         WHERE is_user_device = 1
+#         ORDER BY date_added DESC
+#     """)
+#     devices = cursor.fetchall()
 
-    user_devices_objects = []
-    for device in devices:
-        device_id, device_name, is_activated = device
+#     user_devices_objects = []
+#     for device in devices:
+#         device_id, device_name, is_activated = device
 
-        # Fetch UserConfigs for the current device
-        cursor.execute("""
-            SELECT configuration_id, configuration_name, is_selected
-            FROM Configurations
-            WHERE device_id = ?
-            ORDER BY is_selected DESC, last_modified DESC
-        """, (device_id,))
-        configs_data = cursor.fetchall()
+#         # Fetch UserConfigs for the current device
+#         cursor.execute("""
+#             SELECT configuration_id, configuration_name, is_selected
+#             FROM Configurations
+#             WHERE device_id = ?
+#             ORDER BY is_selected DESC, last_modified DESC
+#         """, (device_id,))
+#         configs_data = cursor.fetchall()
         
-        configs = []
-        for config_data in configs_data:
-            config_id, configuration_name, is_selected = config_data
-            user_config = ConfigClasses.UserConfigs(device_id, config_id, configuration_name, is_selected)
-            configs.append(user_config)
+#         configs = []
+#         for config_data in configs_data:
+#             config_id, configuration_name, is_selected = config_data
+#             user_config = ConfigClasses.UserConfigs(device_id, config_id, configuration_name, is_selected)
+#             configs.append(user_config)
 
-        user_device = ConfigClasses.UserDevices(device_id, device_name, is_activated, configs)
-        user_devices_objects.append(user_device)
+#         user_device = ConfigClasses.UserDevices(device_id, device_name, is_activated, configs)
+#         user_devices_objects.append(user_device)
 
-    close_without_committing_changes(conn)
-    return user_devices_objects
+#     close_without_committing_changes(conn)
+#     return user_devices_objects
 
     # for user_device in user_devices_objects:
     #     print(
@@ -353,33 +367,33 @@ def get_new_user_device_attributes(selected_device):
 
 
 
-def get_scroll_action_keypresses(config_id, scroll_action_id):
-    conn, cursor = create_db_connection()
+# def get_scroll_action_keypresses(config_id, scroll_action_id):
+#     conn, cursor = create_db_connection()
 
-    cursor.execute("""
-        SELECT keypress_id, keypresses
-        FROM Keypresses
-        WHERE gesture_id = ? AND scroll_action_id = ?
-                   """, (config_id, scroll_action_id))
+#     cursor.execute("""
+#         SELECT keypress_id, keypresses
+#         FROM Keypresses
+#         WHERE gesture_id = ? AND scroll_action_id = ?
+#                    """, (config_id, scroll_action_id))
 
-    scroll_action_keypresses_data = cursor.fetchall()
+#     scroll_action_keypresses_data = cursor.fetchall()
 
 
-    scroll_action_keypresses_array = []
+#     scroll_action_keypresses_array = []
 
-    for row in scroll_action_keypresses_data:
+#     for row in scroll_action_keypresses_data:
         
-        keypress = ConfigClasses.Keypress(
-            keypress_id=row[0],
-            keypresses=row[1],
-            config_id=config_id,
-            scroll_action_id=scroll_action_id
-        )
-        scroll_action_keypresses_array.append(keypress)
+#         keypress = ConfigClasses.Keypress(
+#             keypress_id=row[0],
+#             keypresses=row[1],
+#             config_id=config_id,
+#             scroll_action_id=scroll_action_id
+#         )
+#         scroll_action_keypresses_array.append(keypress)
 
-    close_without_committing_changes(conn)
+#     close_without_committing_changes(conn)
 
-    return scroll_action_keypresses_array
+#     return scroll_action_keypresses_array
 
 
 
