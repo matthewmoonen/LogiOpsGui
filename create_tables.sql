@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS Devices (
 );
 
 
+
 -- ### QUERY_SEPARATOR ###
 
 CREATE TABLE IF NOT EXISTS Buttons (
