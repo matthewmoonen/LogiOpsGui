@@ -445,9 +445,40 @@ def add_new_device(new_device_name):
     
     new_configuration_id = cursor.fetchone()[0]
 
+    cursor.execute("""
+        SELECT device_id
+        FROM Devices
+        WHERE device_name = ?
+        """, (new_device_name,))
+
+    new_device_id = cursor.fetchone()[0]
+
     commit_changes_and_close(conn)
 
-    return new_configuration_id
+    return new_configuration_id, new_device_id
+
+
+def get_unconfigured_devices_dictionary():
+    
+    conn, cursor = create_db_connection()
+
+    cursor.execute("""
+        SELECT device_name, device_id
+        FROM Devices
+        WHERE is_user_device = 0
+    """)
+
+    non_user_devices = cursor.fetchall()
+    
+    close_without_committing_changes(conn)
+    
+    unconfigured_devices = {}
+
+    for i in non_user_devices:
+        unconfigured_devices[i[1]] = i[0]
+
+    return unconfigured_devices
+
 
 def get_unconfigured_devices():
     
@@ -607,7 +638,12 @@ def get_scroll_actions():
 
 
 def main():
-    get_configurations(14)
+
+    unconfigured_devices_dict = get_unconfigured_devices_dictionary()
+    print(unconfigured_devices_dict)
+
+    
+    # get_configurations(14)
     # get_object()
     # get_user_devices_and_configs()
     # button_configs_array = get_button_configs(15, 115)

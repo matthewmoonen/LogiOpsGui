@@ -1,3 +1,5 @@
+-- Add new configuration to the Configurations table automatically when a new device is added.
+
 CREATE TRIGGER IF NOT EXISTS add_first_config
     AFTER INSERT ON Devices
     FOR EACH ROW
@@ -34,8 +36,24 @@ BEGIN
 END;
 
 
+-- ### QUERY_SEPARATOR ###
+
+-- Creates a timestamp when a user adds a new device from the dropdown (so the most recently added devices can be displayed at the top)
+
+CREATE TRIGGER IF NOT EXISTS add_date_added_for_new_device
+    AFTER UPDATE ON Devices
+    FOR EACH ROW
+    WHEN OLD.is_user_device = 0 AND NEW.is_user_device = 1
+BEGIN
+	UPDATE Devices
+    SET date_added = CURRENT_TIMESTAMP
+    WHERE device_id = NEW.device_id;
+END;
+
 
 -- ### QUERY_SEPARATOR ###
+
+-- Delete all configurations associated with a device when a deletes it from their user device list
 
 CREATE TRIGGER IF NOT EXISTS delete_config_on_is_user_device_update
     AFTER UPDATE ON Devices
@@ -47,6 +65,8 @@ END;
 
 
 -- ### QUERY_SEPARATOR ###
+
+-- Adds the first new configuration to the Configurations table when a user adds a device through the devices dropdown.
 
 CREATE TRIGGER IF NOT EXISTS update_config_on_is_user_device_change
     AFTER UPDATE ON Devices
@@ -86,6 +106,8 @@ END;
 
 -- ### QUERY_SEPARATOR ###
 
+-- Adds configuration options for each button for each newly added configuration.
+
 CREATE TRIGGER add_button_configs
 AFTER INSERT ON Configurations
 FOR EACH ROW
@@ -118,7 +140,11 @@ END
 
 
 
+
+
 -- ### QUERY_SEPARATOR ###
+
+-- Adds the option for no action to happen when a user touches the thumbwheel for a newly added configuration. Set this automatically as the default selected option.
 
 CREATE TRIGGER add_touch_option_do_nothing
 AFTER INSERT ON Configurations
@@ -132,6 +158,8 @@ END
 
 -- ### QUERY_SEPARATOR ###
 
+-- Adds the option for touching the thumbwheel to toggle smartshift for a newly added configuration.
+
 CREATE TRIGGER add_touch_option_toggle_smartshift
 AFTER INSERT ON Configurations
 FOR EACH ROW
@@ -142,6 +170,8 @@ BEGIN
 END
 
 -- ### QUERY_SEPARATOR ###
+
+-- Adds the option for touching the thumbwheel to toggle hires scroll for a newly added configuration.
 
 CREATE TRIGGER add_touch_option_toggle_hires_scroll
 AFTER INSERT ON Configurations
@@ -154,6 +184,8 @@ END
 
 
 -- ### QUERY_SEPARATOR ###
+
+-- Adds the option for no action to happen when a user taps the thumbwheel for a newly added configuration. Set this automatically as the default selected option.
 
 CREATE TRIGGER add_tap_option_do_nothing
 AFTER INSERT ON Configurations
@@ -168,6 +200,8 @@ END
 
 -- ### QUERY_SEPARATOR ###
 
+-- Adds the option for tapping the thumbwheel to toggle smartshift for a newly added configuration.
+
 CREATE TRIGGER add_tap_option_toggle_smartshift
 AFTER INSERT ON Configurations
 FOR EACH ROW
@@ -178,6 +212,8 @@ BEGIN
 END
 
 -- ### QUERY_SEPARATOR ###
+
+-- Adds the option for tapping the thumbwheel to toggle hires scroll for a newly added configuration.
 
 CREATE TRIGGER add_tap_option_toggle_hires_scroll
 AFTER INSERT ON Configurations
@@ -193,6 +229,8 @@ END
 
 -- ### QUERY_SEPARATOR ###
 
+-- Adds the option for no action to happen when a user's thumb is within proximity of the thumbwheel for a newly added configuration. Set this automatically as the default selected option.
+
 CREATE TRIGGER add_proxy_option_do_nothing
 AFTER INSERT ON Configurations
 FOR EACH ROW
@@ -205,6 +243,8 @@ END
 
 -- ### QUERY_SEPARATOR ###
 
+-- Adds the option to toggle smartshift for a newly added configuration when a user's thumb is near the thumbwheel.
+
 CREATE TRIGGER add_proxy_option_toggle_smartshift
 AFTER INSERT ON Configurations
 FOR EACH ROW
@@ -215,6 +255,8 @@ BEGIN
 END
 
 -- ### QUERY_SEPARATOR ###
+
+-- Adds the option to toggle hires scroll for a newly added configuration when a user's thumb is near the thumbwheel.
 
 CREATE TRIGGER add_proxy_option_toggle_hires_scroll
 AFTER INSERT ON Configurations
@@ -228,9 +270,10 @@ END
 
 
 
-
-
 -- ### QUERY_SEPARATOR ###
+
+
+
 CREATE TRIGGER add_vertical_scroll_actions
 AFTER INSERT ON Configurations
 FOR EACH ROW

@@ -967,8 +967,88 @@ class DeviceConfig:
         conn.commit()
         conn.close()
 
+def get_new_user_device(new_device_id, new_device_name, new_configuration_id):
+    new_user_device = UserDevice(device_id=new_device_id, device_name=new_device_name, is_activated=True, config_ids=[new_configuration_id], 
+                                 selected_config=new_configuration_id)
+
+    return new_user_device
+
+def get_new_device_config(new_configuration_id):
+    conn, cursor = execute_db_queries.create_db_connection()
+
+    new_user_configuration = DeviceConfig.create_from_configuration_id(configuration_id=new_configuration_id, cursor=cursor, conn=conn)
 
 
+
+    return new_user_configuration
+
+
+
+class DevicesAndConfigs():
+    def __init__(self):
+        self.get_devices_and_configs()
+
+    def get_devices_and_configs(self):
+            conn, cursor = execute_db_queries.create_db_connection()
+
+            user_devices = {}
+            user_configurations = {}
+
+            cursor.execute("""
+                SELECT device_id, device_name, is_activated
+                FROM Devices
+                WHERE is_user_device = 1
+                ORDER BY date_added DESC
+                        """)
+
+            devices = cursor.fetchall()
+
+
+            for device in devices:
+
+                device_id, device_name, is_activated = device
+
+                config_ids = []
+
+                cursor.execute("""
+                    SELECT configuration_id
+                    FROM Configurations
+                    WHERE device_id = ?
+                    ORDER BY date_added DESC
+                """, (device_id,))
+
+                config_id_tuples = cursor.fetchall()
+
+
+                for [i] in config_id_tuples:
+                    config_ids.append(i)
+                    user_configurations[i] = DeviceConfig.create_from_configuration_id(configuration_id=i, cursor=cursor, conn=conn)
+
+                cursor.execute("""
+                    SELECT configuration_id
+                    FROM Configurations
+                    WHERE device_id = ? AND is_selected = 1
+                """, (device_id,))
+
+                query_result = cursor.fetchone()
+                # print(query_result)
+                if query_result is None:
+                    selected_config = None
+                else:
+                    selected_config = query_result[0]
+
+                user_device = UserDevice(device_id=device_id, device_name=device_name, is_activated=is_activated, config_ids=config_ids, 
+                                        selected_config=selected_config
+                                        )
+                user_devices[device_id] = user_device
+
+
+            execute_db_queries.close_without_committing_changes(conn)
+            self.user_devices = user_devices
+            self.user_configurations = user_configurations
+
+            # User devices is a dictionary with device_id as key
+            
 
 
 def get_devices_and_configs():
