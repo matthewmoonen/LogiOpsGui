@@ -456,8 +456,15 @@ class ScrollProperties:
         conn.close()
 
 
-
-
+class ScrollAction():
+    def __init__(
+            self,
+            configuration_id,
+            scroll_direction,
+            actions,
+            selected_action
+    ):
+        pass
 # class ButtonSettings(Button):
 #     def __init__(
 #                     self,

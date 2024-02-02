@@ -582,6 +582,7 @@ class FrontPage(ctk.CTkFrame):
                  ):
         super().__init__(master)
 
+
         left_frame = ctk.CTkFrame(master=self, fg_color="#2B2B2B")
         left_frame.grid(row=0, column=0, sticky="nsew")
 
@@ -609,8 +610,9 @@ class FrontPage(ctk.CTkFrame):
             self.left_buttons.update_user_devices = self.user_devices_and_configs.user_devices
             self.devices_frames.update_user_devices_and_configs = self.user_devices_and_configs
             self.devices_frames.add_new_device_frame = new_device_id
+            radio_button = self.devices_frames.add_new_config_row(device_id=new_device_id, newest_configuration_id=new_configuration_id, user_devices_and_configs=self.user_devices_and_configs)
 
-            self.edit_configuration(configuration_id=new_configuration_id)
+            self.edit_configuration(configuration_id=new_configuration_id, radio_button=radio_button)
 
         def configuration_deleted(configuration_id):
             execute_db_queries.delete_configuration(configuration_id)
@@ -621,8 +623,7 @@ class FrontPage(ctk.CTkFrame):
             refresh_user_devices_and_configs()
             self.devices_frames.update_user_devices_and_configs = self.user_devices_and_configs
             radio_button = self.devices_frames.add_new_config_row(device_id=device_id, newest_configuration_id=newest_configuration_id, user_devices_and_configs=self.user_devices_and_configs)
-            print(radio_button)
-            self.edit_configuration(configuration_id=newest_configuration_id)
+            self.edit_configuration(configuration_id=newest_configuration_id, radio_button=radio_button)
 
         def device_deleted(deleted_device_id):
             execute_db_queries.delete_device(deleted_device_id)
@@ -704,10 +705,7 @@ class EditConfigFrame(ctk.CTkFrame):
         self.configuration = configuration
         self.main_page_radio_button = radio_button
 
-
-        """
-        Create the page's frames. Add title to page.
-        """
+        """Create the page's frames. Add title to page."""
         self.left_frame_edit_page = ctk.CTkFrame(master=self, fg_color="#2B2B2B")
         self.left_frame_edit_page.grid(row=0, column=0, rowspan=2, sticky="nsew")
         self.grid_rowconfigure(0, weight=1)  # Set the weight of the row in the main frame
@@ -715,30 +713,50 @@ class EditConfigFrame(ctk.CTkFrame):
         edit_page_scrollable_frame.grid(row=0, column=1, sticky="nsew")
         self.grid_columnconfigure(1, weight=1)  
         self.edit_page_left_buttons_frame = ctk.CTkFrame(master=self.left_frame_edit_page)
-        self.edit_page_left_buttons_frame.grid(row=3, column=0, columnspan=2, sticky="ew", padx=0)
+        self.edit_page_left_buttons_frame.grid(row=10, column=0, columnspan=2, sticky="ew", padx=0)
         device_name_label = ctk.CTkLabel(master=self.left_frame_edit_page, text=configuration.device_name, font=ctk.CTkFont( family="Noto Sans", size=36, ), text_color=gui_variables.primary_colour, pady=(20), corner_radius=0 )
         device_name_label.grid(row=0, column=0, columnspan=2, sticky="ew")
 
         
         """Create array to store left buttons, """
-        self.left_buttons_array = []
+        # self.left_buttons_array = []
+        self.left_buttons_dictionary = {}
         self.currently_selected_menu = None
+        self.frames = {}
 
-        def create_left_buttons(button_text):
+        def create_left_buttons(button_text, button_reference):
             created_button = ctk.CTkButton(master=self.edit_page_left_buttons_frame, corner_radius=0, height=40, border_spacing=10, text=button_text, font=ctk.CTkFont(family="Noto Sans",size=18 ), 
-                                                command=lambda: self.left_button_clicked,
+                                                
+                                                command=lambda c=button_reference: self.left_button_clicked(c),
+
                                                   fg_color="transparent", text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), anchor="w")
             
             created_button.pack(fill="x", expand=True)
-            self.left_buttons_array.append(created_button)
-
-        create_left_buttons("General Settings") 
-        self.left_button_clicked(0)
-
+            self.left_buttons_dictionary[button_reference] = created_button
+            if len(self.left_buttons_dictionary) == 1:
+                self.left_button_clicked(button_reference)
 
 
+        if self.configuration.has_scrollwheel == True:
+            self.scroll_properties = Classes.ScrollProperties.create_from_configuration_id(configuration.configuration_id)
+            self.frames["Scrollwheel"] = VerticalScrollwheelFrame(master_frame=edit_page_scrollable_frame, scroll_properties=self.scroll_properties, configuration=self.configuration, )
+            self.frames["Scrollwheel"].pack()
 
-     
+            if configuration.has_thumbwheel == True:
+                create_left_buttons(button_reference="Scrollwheel", button_text="Vertical Scrollwheel")
+                create_left_buttons(button_reference="Thumbwheel", button_text="Thumbwheel")
+
+            else:
+                create_left_buttons(button_reference="Scrollwheel", button_text="Scrollwheel")
+
+        if self.configuration.has_thumbwheel == True:
+            self.frames["Thumbwheel"] = ThumbwheelFrame(master_frame=edit_page_scrollable_frame, scroll_properties=self.scroll_properties, configuration=self.configuration)
+
+
+        for button in self.configuration.buttons:
+            create_left_buttons(button_text=button.button_name, button_reference=button.button_cid)
+            self.frames[button.button_cid] = ButtonConfigFrame(master_frame=edit_page_scrollable_frame, configuration=self.configuration, button=button)
+
         def focus_next_widget(event):
             # Make TAB key push focus to next widget rather than inserting tabs
             current_widget = event.widget
@@ -748,13 +766,10 @@ class EditConfigFrame(ctk.CTkFrame):
                 next_widget.focus_set()
             return "break"  # Prevent the tab from inserting a tab character
 
-
         def update_config_name_in_db(event):
             # Update the DB on focus out from the textbox
-
             if configuration_name_textbox.get("1.0", "end-1c").strip() == "": #Prevent empty configuration name being inserted
                 configuration_name_textbox.insert("0.0", configuration.configuration_name)
-            
             elif configuration_name_textbox.get("1.0", "end-1c").strip() == configuration.configuration_name:
                 pass
             else:
@@ -762,7 +777,6 @@ class EditConfigFrame(ctk.CTkFrame):
                 configuration.configuration_name = config_name_stripped
                 configuration_name_textbox.delete("0.0", "end")
                 configuration_name_textbox.insert("0.0", config_name_stripped)
-                
                 # # TODO: make this target the desired widget more specifically. Now it's
                 # for widget in devices_scrollable_frame.winfo_children():
                 #     widget.destroy()
@@ -771,161 +785,79 @@ class EditConfigFrame(ctk.CTkFrame):
                 # print(self.radio_button)
 
 
+        configuration_name_label = ctk.CTkLabel(master=self.left_frame_edit_page,text=" Configuration Name",font=ctk.CTkFont(    family="Noto Sans",    weight="bold",    size=14))
+        configuration_name_label.grid(row=2, column=0, sticky="w", padx=10, pady=(20, 0))
 
-
-
-        general_settings_frame = ctk.CTkFrame(master=edit_page_scrollable_frame,
-                                              fg_color="transparent")
-        general_settings_frame.pack(fill="both", expand=True)
-
-        general_settings_left_frame = ctk.CTkFrame(
-            master=general_settings_frame,
-            fg_color="transparent"
-        )
-
-        general_settings_left_frame.grid(row=0, column=0)
-
-        general_settings_right_frame = ctk.CTkFrame(master=general_settings_frame,
-                                                    fg_color="transparent"
-                                                    )
-                                                    
-        general_settings_right_frame.grid(row=0, column=1)
-
-
-
-
-
-        configuration_name_label = ctk.CTkLabel(master=general_settings_left_frame,
-                                                text=" Configuration Name",
-                                                font=ctk.CTkFont(
-                                                    family="Noto Sans",
-                                                    weight="bold",
-                                                    size=14
-                                                )
-                                                )
-        configuration_name_label.grid(row=0, column=0, sticky="w", padx=10, pady=(200, 0))
-
-        configuration_name_textbox = ctk.CTkTextbox(master=general_settings_left_frame,
-                                                    height=10,
-                                                    width=400,
-                                                    # text_color="red",
-                                                    font=ctk.CTkFont(
-                                                        family="Noto Sans",
-                                                        
-                                                        size=16
-                                                    ),
-                                                    corner_radius=1
-                                                    )
-        configuration_name_textbox.grid(row=1, column=0, padx=10)
-
+        configuration_name_textbox = ctk.CTkTextbox(master=self.left_frame_edit_page, height=10, width=400, font=ctk.CTkFont(     family="Noto Sans",          size=16 ), corner_radius=1 )
+        configuration_name_textbox.grid(row=3, column=0, padx=10)
         configuration_name_textbox.insert("0.0", configuration.configuration_name)
-
         configuration_name_textbox.bind("<Tab>", focus_next_widget)
         configuration_name_textbox.bind("<FocusOut>", update_config_name_in_db)
 
-
-
-
-        dpi_spinbox = IntSpinbox(master=general_settings_right_frame,
-                                            width=200,
-                                            step_size=50,
-                                            min_value=configuration.min_dpi,
-                                            max_value=configuration.max_dpi
-                                            )
-
+        dpi_spinbox = IntSpinbox(master=self.left_frame_edit_page, width=200, step_size=50, min_value=configuration.min_dpi, max_value=configuration.max_dpi )
 
         def create_dpi_widgets():
-
-            dpi_label = ctk.CTkLabel(
-                                    master=general_settings_right_frame,
-                                                                        text=("DPI"),
-                                                    font=ctk.CTkFont(
-                                                            family="Roboto",
-                                                                # weight="bold",
-                                                            size=18,
-                                                            ),
-                                                            # text_color="#1F538D",
-                                            # pady=30,
-                                            # anchor='s'
-            )
-            dpi_label.grid(row=0, column=1)
-
-            
+            dpi_label = ctk.CTkLabel( master=self.left_frame_edit_page, text=("DPI"), font=ctk.CTkFont( family="Roboto", size=18, ), )
+            dpi_label.grid(row=4, column=0)            
             dpi_spinbox.set(configuration.dpi) #TODO: Update
-            dpi_spinbox.grid(row=1, column=1)
+            dpi_spinbox.grid(row=5, column=0)
 
         create_dpi_widgets()
 
-
+        
         def update_config_file_name():
             config_name_stripped = configuration_name_textbox.get("1.0", "end-1c").strip()
             if len(config_name_stripped) > 0:
                 configuration.configuration_name = config_name_stripped
                 self.main_page_radio_button.update_text(config_name_stripped)
-            # for widget in devices_scrollable_frame.winfo_children():
-            #     widget.destroy()
-            # create_devices_inner_frame()
 
-
-
-
-
-
-
-        bottom_frame = ctk.CTkFrame(
-            master=self,
-            fg_color="transparent"
-        )
+        bottom_frame = ctk.CTkFrame(master=self,fg_color="transparent")
         bottom_frame.grid(row=1, column=1)
 
-
-
-        back_button = ctk.CTkButton(master=bottom_frame, 
-                                            text="Back",
-                                            command=lambda: [self.go_back(),
-                                                            #   update_spinboxes_in_db(), 
-                                                              update_config_file_name()])
+        back_button = ctk.CTkButton(master=bottom_frame, text="Back",command=lambda: [self.go_back(),update_spinboxes_in_db(), update_config_file_name()])
         back_button.pack(pady=20)
 
+        def update_spinboxes_in_db():
+            configuration.dpi = dpi_spinbox.get()
+            # if configuration.smartshift_support == True:
+            #     configuration.smartshift_threshold = smartshift_threshold_spinbox.get()
+            #     configuration.smartshift_torque = smartshift_torque_spinbox.get()
+            if configuration.has_scrollwheel == True:
+                self.scroll_properties.scroll_up_threshold = self.frames["Scrollwheel"].scrollwheel_up_spinbox.get()
+                self.scroll_properties.scroll_down_threshold = self.frames["Scrollwheel"].scrollwheel_down_spinbox.get()
+            # if configuration.has_thumbwheel == True:
+            #     scroll_properties.scroll_left_threshold = thumbwheel_left_spinbox.get()
+            #     scroll_properties.scroll_right_threshold = thumbwheel_right_spinbox.get()
 
 
 
 
+    # def button_clicked(self, id_of_clicked_button):
+    #     if id_of_clicked_button != self.currently_selected_device:
+    #         self.display_device_frame_callback(id_of_clicked_button)
+    #         self.button_objects_dict[self.currently_selected_device].configure(fg_color = "transparent")
+    #         self.activate_button(device_id_to_activate=id_of_clicked_button)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-    def left_button_clicked(self, clicked_menu_index):
-        if clicked_menu_index != self.currently_selected_menu:
+    def left_button_clicked(self, clicked_menu_item):
+        if clicked_menu_item != self.currently_selected_menu:
             # self.display_device_frame_callback(id_of_clicked_button)
-
             if self.currently_selected_menu is not None:
-                self.left_buttons_array[self.currently_selected_menu].configure(fg_color = "transparent")
-
-            self.activate_left_button(menu_to_activate=clicked_menu_index)
+                # self.left_buttons_dictionary[self.currently_selected]
+                self.left_buttons_dictionary[self.currently_selected_menu].configure(fg_color = "transparent")
+            self.activate_left_button(menu_to_activate=clicked_menu_item)
 
 
     def activate_left_button(self, menu_to_activate):
-        self.currently_selected_menu = menu_to_activate
-        self.left_buttons_array[self.currently_selected_menu].configure(fg_color = "gray25")
-
-
-
-
-
-
+        try:
+            self.frames[menu_to_activate].pack()
+            self.frames[self.currently_selected_menu].pack_forget()
+        except KeyError:
+            pass
+        finally:
+            self.currently_selected_menu = menu_to_activate
+            self.left_buttons_dictionary[self.currently_selected_menu].configure(fg_color = "gray25")
 
     def go_back(self):
         self.pack_forget()
@@ -936,6 +868,166 @@ class EditConfigFrame(ctk.CTkFrame):
 
 
 
+class ButtonConfigFrame():
+    def __init__(self, master_frame, configuration, button): 
+        self.master_frame = master_frame
+        self.configuration = configuration
+        self.button = button
+
+        self.container_frame = ctk.CTkFrame(master=master_frame, corner_radius=0, fg_color="transparent")
+        self.container_frame.pack_forget()
+
+        scrollwheel_up_threshold_label = ctk.CTkLabel(master=self.container_frame, text = f"{button.button_name} ({button.button_cid})")
+        scrollwheel_up_threshold_label.grid(row=0, column=0)
+
+
+
+    def pack(self, *args, **kwargs):
+        """
+        Allows DeviceFrame to be packed like a regular widget.
+        Passes all arguments to its container_frame's pack method.
+        """
+        self.container_frame.pack(*args, **kwargs)
+
+    def pack_forget(self, *args, **kwargs): # Same as pack method above, but for pack_forget
+        self.container_frame.pack_forget(*args, **kwargs)
+
+    def destroy(self, *args, **kwargs): # As above
+        self.container_frame.destroy(*args, **kwargs)
+
+
+
+
+
+class ThumbwheelFrame():
+    def __init__(self, master_frame, scroll_properties, configuration): 
+        self.master_frame = master_frame
+        self.configuration = configuration
+        self.scroll_properties = scroll_properties
+
+        self.container_frame = ctk.CTkFrame(master=master_frame, corner_radius=0, fg_color="transparent")
+        self.container_frame.pack_forget()
+
+        scrollwheel_up_threshold_label = ctk.CTkLabel(master=self.container_frame, text = "Thumbwheel Frame")
+        scrollwheel_up_threshold_label.grid(row=0, column=0)
+
+
+
+
+
+    def pack(self, *args, **kwargs):
+        """
+        Allows DeviceFrame to be packed like a regular widget.
+        Passes all arguments to its container_frame's pack method.
+        """
+        self.container_frame.pack(*args, **kwargs)
+
+    def pack_forget(self, *args, **kwargs): # Same as pack method above, but for pack_forget
+        self.container_frame.pack_forget(*args, **kwargs)
+
+    def destroy(self, *args, **kwargs): # As above
+        self.container_frame.destroy(*args, **kwargs)
+
+
+
+class VerticalScrollwheelFrame():
+    def __init__(self, master_frame, scroll_properties, configuration): 
+        self.master_frame = master_frame
+        self.configuration = configuration
+        self.scroll_properties = scroll_properties
+
+        self.container_frame = ctk.CTkFrame(master=master_frame, corner_radius=0, fg_color="transparent")
+        self.container_frame.pack_forget()
+
+        scrollwheel_up_threshold_label = ctk.CTkLabel(master=self.container_frame, text = "Scrollwheel Up Threshold")
+        scrollwheel_up_threshold_label.grid(row=0, column=0)
+        scrollwheel_down_threshold_label = ctk.CTkLabel(master= self.container_frame, text = "Scrollwheel Down Threshold")
+        scrollwheel_down_threshold_label.grid(row=0, column=2)
+
+        self.scrollwheel_up_spinbox = IntSpinbox(master=self.container_frame, width=200, step_size=5, min_value=1, max_value=9999)
+        self.scrollwheel_up_spinbox.set(scroll_properties.scroll_up_threshold)
+        self.scrollwheel_up_spinbox.grid(row=1, column=0)
+        self.scrollwheel_down_spinbox = IntSpinbox(master=self.container_frame, width=200, step_size=5, min_value=1, max_value=9999)
+        self.scrollwheel_down_spinbox.set(scroll_properties.scroll_down_threshold)
+        self.scrollwheel_down_spinbox.grid(row=1, column=2)
+
+        scrollwheel_up_mode_label = ctk.CTkLabel(master=self.container_frame, text = "Scrollwheel Up Mode")
+        scrollwheel_up_mode_label.grid(row=0,column=1)
+        scroll_up_mode_dropdown = ctk.CTkOptionMenu(master=self.container_frame, variable=ctk.StringVar(value=scroll_properties.scroll_up_mode), values=["OnInterval", "OnThreshold"], state="normal", width=200, height=36, command=lambda new_mode: setattr(scroll_properties, 'scroll_up_mode', new_mode))
+        scroll_up_mode_dropdown.grid(row=1, column=1)
+
+        scrollwheel_down_mode_label = ctk.CTkLabel(master=self.container_frame, text = "Scrollwheel Down Mode")
+        scrollwheel_down_mode_label.grid(row=0,column=3)
+        scroll_down_mode_dropdown = ctk.CTkOptionMenu(master=self.container_frame, variable=ctk.StringVar(value=scroll_properties.scroll_down_mode), values=["OnInterval", "OnThreshold"], state="normal", width=200, height=36, command=lambda new_mode: setattr(scroll_properties, 'scroll_down_mode', new_mode))
+        scroll_down_mode_dropdown.grid(row=1, column=3)
+
+
+        if configuration.smartshift_support == True:
+            smartshift_options_label = ctk.CTkLabel( master=self.container_frame, text=("SmartShift Options"), font=ctk.CTkFont( family="Roboto", size=18, ), )
+            smartshift_options_label.grid(row=3, column=0, padx=(10,0), pady=(30,0), sticky="w")
+
+            smartshift_frame = ctk.CTkFrame(master=self.container_frame)
+            smartshift_frame.grid(row=4, column=0, sticky="ew")
+
+
+            check_var = ctk.BooleanVar(value=configuration.smartshift_on)
+
+            checkbox = ctk.CTkCheckBox(master=smartshift_frame, text="SmartShift On", command=lambda: setattr(configuration, 'smartshift_on', check_var.get()), variable=check_var, onvalue=True, offvalue=False)
+            checkbox.grid(row=0, column=0, padx=10, pady=(10,0), sticky="w", rowspan=2)
+
+
+            smartshift_threshold_label = ctk.CTkLabel(
+                                    master=smartshift_frame,
+                                                                        text=("Threshold"),
+                                                    font=ctk.CTkFont(
+                                                            family="Roboto",
+                                                                # weight="bold",
+                                                            size=12,
+                                                            ),
+                                                            # text_color="#1F538D",
+                                            # pady=30,
+                                            # anchor='s'
+            )
+            smartshift_threshold_label.grid(row=0, column=1)
+
+            smartshift_threshold_spinbox = IntSpinbox(master=smartshift_frame,
+                                    width=140,
+                                    step_size=5,
+                                    min_value=1,
+                                    max_value=255,
+                                    )
+            
+            smartshift_threshold_spinbox.set(configuration.smartshift_threshold) #TODO: Update
+            smartshift_threshold_spinbox.grid(row=1, column=1, sticky="w", padx=(0,10))
+
+
+
+            smartshift_torque_label = ctk.CTkLabel(
+                                    master=smartshift_frame,
+                                                                        text=("Torque"),
+                                                    font=ctk.CTkFont(
+                                                            family="Roboto",
+                                                                # weight="bold",
+                                                            size=12,
+                                                            ),
+                                                            # text_color="#1F538D",
+                                            # pady=30,
+                                            # anchor='s'
+            )
+            smartshift_torque_label.grid(row=0, column=2)
+
+            smartshift_torque_spinbox = IntSpinbox(master=smartshift_frame,
+                                    width=140,
+                                    step_size=5,
+                                    min_value=1,
+                                    max_value=255,
+                                    )
+            
+            smartshift_torque_spinbox.set(configuration.smartshift_torque) #TODO: Update
+            smartshift_torque_spinbox.grid(row=1, column=2)
+
+
+        
 
 
 
@@ -948,7 +1040,18 @@ class EditConfigFrame(ctk.CTkFrame):
 
 
 
+    def pack(self, *args, **kwargs):
+        """
+        Allows DeviceFrame to be packed like a regular widget.
+        Passes all arguments to its container_frame's pack method.
+        """
+        self.container_frame.pack(*args, **kwargs)
 
+    def pack_forget(self, *args, **kwargs): # Same as pack method above, but for pack_forget
+        self.container_frame.pack_forget(*args, **kwargs)
+
+    def destroy(self, *args, **kwargs): # As above
+        self.container_frame.destroy(*args, **kwargs)
 
 
 class EditPage(ctk.CTkFrame):
@@ -1281,6 +1384,10 @@ class EditPage(ctk.CTkFrame):
 
             vertical_scrollwheel_frame = ctk.CTkFrame(master=edit_page_scrollable_frame)
             vertical_scrollwheel_frame.pack()
+
+
+
+
 
             scrollwheel_up_threshold_label = ctk.CTkLabel(
                 master= vertical_scrollwheel_frame,
