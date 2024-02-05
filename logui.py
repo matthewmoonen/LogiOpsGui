@@ -28,6 +28,8 @@ import cairosvg
 
 
 
+
+
 def svg_to_image(path, output_width=300, output_height=300):
     with open(path, 'rb') as svg_file:
         svg_content = svg_file.read()
@@ -877,14 +879,57 @@ class ButtonConfigFrame():
         self.container_frame = ctk.CTkFrame(master=master_frame, corner_radius=0, fg_color="transparent")
         self.container_frame.pack_forget()
 
-        scrollwheel_up_threshold_label = ctk.CTkLabel(master=self.container_frame, text = f"{button.button_name} ({button.button_cid})")
-        scrollwheel_up_threshold_label.grid(row=0, column=0)
+        button_label = ctk.CTkLabel(master=self.container_frame, text = f"{button.button_name} ({button.button_cid})")
+        button_label.grid(row=0, column=0)
 
+        radio_buttons_to_create = []
+        self.radio_buttons_dictionary = {}
+
+        if button.button_default is not None:
+            radio_buttons_to_create.append(["Default", button.button_default])
+        if button.button_nopress is not None:
+            radio_buttons_to_create.append(["No Press", button.button_nopress])
+        if button.button_togglesmartshift is not None:
+            radio_buttons_to_create.append(["Toggle Smart Shift", button.button_togglesmartshift])
+        if button.button_togglehiresscroll is not None:
+            radio_buttons_to_create.append(["Toggle Hi Res Scroll", button.button_togglehiresscroll])
+        if button.button_gestures is not None:
+            radio_buttons_to_create.append(["Gestures", button.button_gestures])
+
+        self.selected_button_configuration = ctk.StringVar()
+
+        radio_buttons_frame = ctk.CTkFrame(master=self.container_frame)
+        radio_buttons_frame.grid(row=1, column=0)
+
+
+        radio_buttons_frame = ctk.CTkFrame(master=self.container_frame)
+        radio_buttons_frame.grid(row=2, column=0)
+
+        for i in radio_buttons_to_create:
+            radio_button_row = ctk.CTkFrame(master=radio_buttons_frame)
+            radio_button_row.pack()
+
+            radio_button = MatthewsRadioButton(master=radio_button_row, width=600, text=i[0], command=lambda c=i[1]: self.select_configuration(c))
+            radio_button.grid(row=0, column=0)            
+
+            if button.selected_button_config_id == i[1]:
+                radio_button.radio_button_clicked()
+
+            self.radio_buttons_dictionary[i[1]] = radio_button
+
+
+    def select_configuration(self, button_configuration_id):
+        try:
+            Classes.update_selected_button_config_id(button_configuration_id)
+            self.radio_buttons_dictionary[self.button.selected_button_config_id].another_button_clicked()
+            self.button.selected_button_config_id = button_configuration_id
+        except KeyError:
+            pass
 
 
     def pack(self, *args, **kwargs):
         """
-        Allows DeviceFrame to be packed like a regular widget.
+        Allows ButtonConfigFrame to be packed like a regular widget.
         Passes all arguments to its container_frame's pack method.
         """
         self.container_frame.pack(*args, **kwargs)
@@ -930,6 +975,9 @@ class ThumbwheelFrame():
 
 
 
+
+
+
 class VerticalScrollwheelFrame():
     def __init__(self, master_frame, scroll_properties, configuration): 
         self.master_frame = master_frame
@@ -938,6 +986,28 @@ class VerticalScrollwheelFrame():
 
         self.container_frame = ctk.CTkFrame(master=master_frame, corner_radius=0, fg_color="transparent")
         self.container_frame.pack_forget()
+
+
+
+
+
+
+
+        tabview = ctk.CTkTabview(master=self.container_frame)
+        tabview.grid(row=10, column=0)
+        tabview.add("tab 1")  # add tab at the end
+        tabview.add("tab 2")  # add tab at the end
+        tabview.set("tab 2")  # set currently visible tab
+        button_1 = ctk.CTkButton(tabview.tab("tab 1"))
+        button_1.pack(padx=20, pady=20)
+
+
+
+
+
+
+
+
 
         scrollwheel_up_threshold_label = ctk.CTkLabel(master=self.container_frame, text = "Scrollwheel Up Threshold")
         scrollwheel_up_threshold_label.grid(row=0, column=0)
@@ -960,6 +1030,7 @@ class VerticalScrollwheelFrame():
         scrollwheel_down_mode_label.grid(row=0,column=3)
         scroll_down_mode_dropdown = ctk.CTkOptionMenu(master=self.container_frame, variable=ctk.StringVar(value=scroll_properties.scroll_down_mode), values=["OnInterval", "OnThreshold"], state="normal", width=200, height=36, command=lambda new_mode: setattr(scroll_properties, 'scroll_down_mode', new_mode))
         scroll_down_mode_dropdown.grid(row=1, column=3)
+
 
 
         if configuration.smartshift_support == True:
