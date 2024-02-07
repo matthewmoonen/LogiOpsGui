@@ -607,13 +607,12 @@ class FrontPage(ctk.CTkFrame):
             self.devices_frames.update_user_devices_and_configs = self.user_devices_and_configs
 
         def device_added(new_device_name): # Logic to update the device list with the new device
-            new_configuration_id, new_device_id = execute_db_queries.add_new_device(new_device_name) # TODO: Remove the return values from the function if not needed.
+            new_configuration_id, new_device_id = execute_db_queries.add_new_device(new_device_name)
             refresh_user_devices_and_configs()
             self.left_buttons.update_user_devices = self.user_devices_and_configs.user_devices
             self.devices_frames.update_user_devices_and_configs = self.user_devices_and_configs
             self.devices_frames.add_new_device_frame = new_device_id
-            radio_button = self.devices_frames.add_new_config_row(device_id=new_device_id, newest_configuration_id=new_configuration_id, user_devices_and_configs=self.user_devices_and_configs)
-
+            radio_button = self.devices_frames.device_frame_dict[new_device_id].configuration_frames[new_configuration_id].radio_button
             self.edit_configuration(configuration_id=new_configuration_id, radio_button=radio_button)
 
         def configuration_deleted(configuration_id):
@@ -624,7 +623,9 @@ class FrontPage(ctk.CTkFrame):
         def configuration_added(device_id, newest_configuration_id):
             refresh_user_devices_and_configs()
             self.devices_frames.update_user_devices_and_configs = self.user_devices_and_configs
-            radio_button = self.devices_frames.add_new_config_row(device_id=device_id, newest_configuration_id=newest_configuration_id, user_devices_and_configs=self.user_devices_and_configs)
+            self.devices_frames.add_new_config_row(device_id=device_id, newest_configuration_id=newest_configuration_id, user_devices_and_configs=self.user_devices_and_configs)
+            radio_button = self.devices_frames.device_frame_dict[device_id].configuration_frames[newest_configuration_id].radio_button
+            
             self.edit_configuration(configuration_id=newest_configuration_id, radio_button=radio_button)
 
         def device_deleted(deleted_device_id):
@@ -665,7 +666,7 @@ class FrontPage(ctk.CTkFrame):
                             is_new_config=False,
                            ):
 
-
+        # print(radio_button)
 
         configuration = Classes.DeviceConfig.create_from_configuration_id(configuration_id)
 
@@ -1100,6 +1101,55 @@ class VerticalScrollwheelFrame():
 
         
 
+        if configuration.hires_scroll_support == True:
+
+
+            hiresscroll_options_label = ctk.CTkLabel(
+                                    master=self.container_frame,
+                                                                        text=("HiRes Scroll Options"),
+                                                    font=ctk.CTkFont(
+                                                            family="Roboto",
+                                                                # weight="bold",
+                                                            size=18,
+                                                            ),
+                                                            # text_color="#1F538D",
+                                            # pady=30,
+                                            # anchor='s'
+            )
+            hiresscroll_options_label.grid(row=3, column=1, padx=(10,0), pady=(30,0), sticky="w")
+
+
+            hiresscroll_frame = ctk.CTkFrame(master=self.container_frame)
+            hiresscroll_frame.grid(row=4, column=1, sticky="ew")
+
+
+            def hiresscroll_hires_toggle():
+                configuration.hiresscroll_hires = not(configuration.hiresscroll_hires)
+
+
+            hiresscroll_hires_var = ctk.BooleanVar(value=configuration.hiresscroll_hires)
+            hirescroll_hires_checkbox = ctk.CTkCheckBox(master=hiresscroll_frame, text="HiRes Scroll On", command=hiresscroll_hires_toggle,
+                                                variable=hiresscroll_hires_var, onvalue=True, offvalue=False)
+            hirescroll_hires_checkbox.grid(row=0, column=0, rowspan=2)
+
+
+            def hiresscroll_invert_toggle():
+                configuration.hiresscroll_invert = not(configuration.hiresscroll_invert)
+
+
+            hiresscroll_invert_var = ctk.BooleanVar(value=configuration.hiresscroll_invert)
+            hirescroll_invert_checkbox = ctk.CTkCheckBox(master=hiresscroll_frame, text="Scroll Invert", command=hiresscroll_invert_toggle,
+                                                variable=hiresscroll_invert_var, onvalue=True, offvalue=False)
+            hirescroll_invert_checkbox.grid(row=0, column=1, rowspan=2)
+
+
+            def hiresscroll_target_toggle():
+                configuration.hiresscroll_target = not(configuration.hiresscroll_target)
+
+            hiresscroll_target_var = ctk.BooleanVar(value=configuration.hiresscroll_target)
+            hirescroll_target_checkbox = ctk.CTkCheckBox(master=hiresscroll_frame, text="Scroll target", command=hiresscroll_target_toggle,
+                                                variable=hiresscroll_target_var, onvalue=True, offvalue=False)
+            hirescroll_target_checkbox.grid(row=0, column=2, rowspan=2)
 
 
 
@@ -2839,7 +2889,7 @@ def setup_gui(root):
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("dark-blue")
 
-    root.geometry("1366x768+100+100")
+    root.geometry("1920x1080+100+100")
     root.resizable(True, True)
     root.title("LogiOpsGUI")
     # ctk.DrawEngine.preferred_drawing_method = "circle_shapes"
