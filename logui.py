@@ -264,9 +264,9 @@ class ConfigurationFrame():
     def edit_configuration(self, configuration_id):
         # Disable the edit button to prevent multiple clicks
         self.edit_configuration_button.configure(state='disabled')
+        self.edit_configuration_callback(configuration_id, self.radio_button)
 
         def task():
-            self.edit_configuration_callback(configuration_id, self.radio_button)
 
             # Re-enable the button in the main thread
             self.edit_configuration_button.after(0, lambda: self.edit_configuration_button.configure(state='normal'))
@@ -335,14 +335,14 @@ class DeviceFrame():
     def add_new_configuration(self, device_id, device_name):
         # Disable the button to prevent multiple clicks
         self.new_configuration_button.configure(state='disabled')
+        # Perform the long-running task
+        newest_configuration_id = execute_db_queries.new_empty_configuration(device_id, device_name)
+        self.add_configuration_callback(device_id, newest_configuration_id)
 
         def task():
-            # Perform the long-running task
-            newest_configuration_id = execute_db_queries.new_empty_configuration(device_id, device_name)
-            self.add_configuration_callback(device_id, newest_configuration_id)
 
             # Update the GUI in the main thread
-            self.new_configuration_button.after(0, lambda: self.new_configuration_button.configure(state='normal'))
+            self.new_configuration_button.after(200, lambda: self.new_configuration_button.configure(state='normal'))
 
         # Run the task in a separate thread
         threading.Thread(target=task).start()
@@ -584,9 +584,11 @@ class FrontPage(ctk.CTkFrame):
                  ):
         super().__init__(master)
 
-
+        
         left_frame = ctk.CTkFrame(master=self, fg_color="#2B2B2B")
-        left_frame.grid(row=0, column=0, sticky="nsew")
+        left_frame.grid(row=0, column=0, sticky="nsew", 
+                        # rowspan=2
+                        )
 
         app_title = ctk.CTkLabel(master=left_frame, text="LogiOpsGUI", font=ctk.CTkFont(family="Noto Sans",size=44),text_color=gui_variables.primary_colour,pady=20,corner_radius=0)
         app_title.grid(row=0, column=0, columnspan=2, sticky="ew")
@@ -597,9 +599,14 @@ class FrontPage(ctk.CTkFrame):
         right_frame = ctk.CTkFrame(master=self, corner_radius=0)
         right_frame.grid(row=0, column=1, sticky="nsew")
         right_frame.grid_columnconfigure(0, weight=1)
+        right_frame.grid_rowconfigure(0, weight=2)
+
+        
 
         self.grid_columnconfigure(1, weight=1)  # Set the weight of the column in the main frame
+        self.grid_rowconfigure(1, weight=1)
         
+
         # TODO: delete now deprecated Classes2.get_devices_and_configs() if no longer needed.
         self.user_devices_and_configs = Classes2.DevicesAndConfigs()
         def refresh_user_devices_and_configs():
@@ -648,12 +655,21 @@ class FrontPage(ctk.CTkFrame):
         self.device_dropdown = DeviceDropdown(master_frame=left_frame, device_added_callback=device_added)
 
         bottom_frame = ctk.CTkFrame(master=self, fg_color="transparent")
-        bottom_frame.grid(row=1, column=1, sticky="ew")
+        bottom_frame.grid(row=1, column=1, sticky="ew",
+                          columnspan=2
+                          )
 
         save_devices_button = ctk.CTkButton(master=bottom_frame, height=40, width=120, text="Generate CFG")
         save_devices_button.grid(pady=30, sticky="e")
 
         bottom_frame.grid_columnconfigure((0), weight=1)
+
+
+        self.grid_columnconfigure(0, weight=0)  # Do not expand left_frame column
+        self.grid_columnconfigure(1, weight=1)  # Allow right_frame column to expand
+        self.grid_rowconfigure(0, weight=1)     # Allow right_frame row to expand
+        self.grid_rowconfigure(1, weight=0)     # Keep bottom_frame from expanding vertically
+
 
 
     def edit_configuration(self, 
