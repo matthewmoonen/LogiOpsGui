@@ -41,6 +41,15 @@ def svg_to_image(path, output_width=300, output_height=300):
 
 
 class MatthewsRadioButton:
+    """
+    Some UI elements have rendering issues in CustomTkinter on Linux, radio buttons in particular look blocky.
+    
+    This class creates smooth-looking radio buttons using SVG files.
+    
+    See here for further information:
+    https://github.com/TomSchimansky/CustomTkinter/issues/1384
+    """
+
     def __init__(self, master, text, command=None, selected_image_path="images/radio_button_selected.svg", deselected_image_path="images/radio_button_deselected.svg", hover_image_path="images/radio_button_hover.svg", icon_size=27, width=400, height=None, fg_color="transparent",):
 
         self.radio_button_selected = svg_to_image(path=selected_image_path, output_height=icon_size, output_width=icon_size)
@@ -97,13 +106,21 @@ class MatthewsRadioButton:
 
 
 class IntSpinbox(ctk.CTkFrame):
-    def __init__(self, *args, width: int = 100, height: int = 32, step_size: int = 1, min_value: int = None, max_value: int = None, command: Callable = None, **kwargs):
+
+    
+    def __init__(self, *args, width: int = 100, height: int = 32, step_size: int = 1, min_value: int = None, max_value: int = None, 
+                 command: Callable = None, #TODO: Remove
+                 db_query = None, value=None,
+                  **kwargs):
         super().__init__(*args, width=width, height=height, **kwargs)
 
         self.step_size = step_size
         self.min_value = min_value
         self.max_value = max_value
         self.command = command
+        self.db_query = db_query
+        self.value = value
+
         self.enabled = True  # TODO: Initial state is enabled
 
         self.configure(fg_color=("gray78", "gray28"))  # set frame color
@@ -125,7 +142,8 @@ class IntSpinbox(ctk.CTkFrame):
         self.add_button = ctk.CTkButton(self, text="+", width=height-2.5, height=height-2.5, command=self.add_button_callback)
         self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
 
-        self.entry.insert(0, "0")
+        self.entry.insert(0, ["0" if self.value == None else self.value]) 
+
 
     def validate(self, new_text):
         return new_text.isdigit() or new_text == ""
@@ -139,25 +157,38 @@ class IntSpinbox(ctk.CTkFrame):
                 value = self.max_value
         except ValueError:
             value = self.default_value  # Use default_value if parsing fails
-        
+
         self.entry.delete(0, "end")
         self.entry.insert(0, value)
+        if self.value != value:
+            self.value = value
+            self.run_db_query()
 
     def add_button_callback(self):
-        if self.command is not None:
-            self.command()
+        # if self.command is not None:
+        #     self.command()
         try: 
             value = int(self.entry.get()) // self.step_size * self.step_size + self.step_size # Set new value to closest multiple of step size after the current value
             if self.max_value is not None and value > self.max_value:
                 value = self.max_value
             self.entry.delete(0, "end")
             self.entry.insert(0, value)
+            if self.value != value:
+                self.value = value
+                self.run_db_query()
         except ValueError:
             return
 
+    def run_db_query(self):
+
+        if callable(self.db_query):
+            self.db_query(self.value)
+            print("updating DB")
+
+
     def subtract_button_callback(self):
-        if self.command is not None:
-            self.command()
+        # if self.command is not None:
+        #     self.command()
         try:
             def get_nearest_rounded_value(): # Set new value to closest multiple of step size after the current value
                 previous_value = int(self.entry.get())
@@ -169,6 +200,9 @@ class IntSpinbox(ctk.CTkFrame):
                 value = self.min_value
             self.entry.delete(0, "end")
             self.entry.insert(0, value)
+            if self.value != value:
+                self.value = value
+                self.run_db_query()
         except ValueError:
             return
 
@@ -185,6 +219,7 @@ class IntSpinbox(ctk.CTkFrame):
             value = self.max_value
         self.entry.delete(0, "end")
         self.entry.insert(0, str(value))
+        self.value = value
 
     def toggle_enable(self, new_enabled_state):
         self.enabled = new_enabled_state
@@ -515,6 +550,7 @@ class DeviceFrameController():
         self.user_devices_and_configs = user_devices_and_configs
 
 
+
 class LeftButtons():
     def __init__(self, master_frame, user_devices, display_device_frame_callback, currently_selected_device=None):
         self.master_frame = master_frame
@@ -813,12 +849,13 @@ class EditConfigFrame(ctk.CTkFrame):
         configuration_name_textbox.bind("<Tab>", focus_next_widget)
         configuration_name_textbox.bind("<FocusOut>", update_config_name_in_db)
 
-        dpi_spinbox = IntSpinbox(master=self.left_frame_edit_page, width=200, step_size=50, min_value=configuration.min_dpi, max_value=configuration.max_dpi )
+        dpi_spinbox = IntSpinbox(master=self.left_frame_edit_page, 
+                                 db_query=self.configuration.update_dpi,
+                                 width=200, step_size=50, min_value=configuration.min_dpi, max_value=configuration.max_dpi, value=configuration.dpi)
 
         def create_dpi_widgets():
             dpi_label = ctk.CTkLabel( master=self.left_frame_edit_page, text=("DPI"), font=ctk.CTkFont( family="Roboto", size=18, ), )
-            dpi_label.grid(row=4, column=0)            
-            dpi_spinbox.set(configuration.dpi) #TODO: Update
+            dpi_label.grid(row=4, column=0)        
             dpi_spinbox.grid(row=5, column=0)
 
         create_dpi_widgets()
@@ -837,16 +874,18 @@ class EditConfigFrame(ctk.CTkFrame):
         back_button.pack(pady=20)
 
         def update_spinboxes_in_db():
+            # print(configuration)
             configuration.dpi = dpi_spinbox.get()
             # if configuration.smartshift_support == True:
             #     configuration.smartshift_threshold = smartshift_threshold_spinbox.get()
             #     configuration.smartshift_torque = smartshift_torque_spinbox.get()
             if configuration.has_scrollwheel == True:
-                self.scroll_properties.scroll_up_threshold = self.frames["Scrollwheel"].scrollwheel_up_spinbox.get()
-                self.scroll_properties.scroll_down_threshold = self.frames["Scrollwheel"].scrollwheel_down_spinbox.get()
-            # if configuration.has_thumbwheel == True:
-            #     scroll_properties.scroll_left_threshold = thumbwheel_left_spinbox.get()
-            #     scroll_properties.scroll_right_threshold = thumbwheel_right_spinbox.get()
+                pass
+                # self.scroll_properties.scroll_up_threshold = self.frames["Scrollwheel"].scrollwheel_up_spinbox.get()
+                # self.scroll_properties.scroll_down_threshold = self.frames["Scrollwheel"].scrollwheel_down_spinbox.get()
+            if configuration.has_thumbwheel == True:
+                self.scroll_properties.scroll_left_threshold = self.frames["Thumbwheel"].thumbwheel_left_spinbox.get()
+                self.scroll_properties.scroll_right_threshold = self.frames["Thumbwheel"].thumbwheel_right_spinbox.get()
 
 
 
@@ -884,6 +923,12 @@ class EditConfigFrame(ctk.CTkFrame):
 
 
 
+class AddActionFrame(ctk.CTkFrame):
+    def __init__(self, origin_frame):
+        self.origin_frame = origin_frame
+
+    
+
 
 
 
@@ -898,6 +943,9 @@ class ButtonConfigFrame():
 
         button_label = ctk.CTkLabel(master=self.container_frame, text = f"{button.button_name} ({button.button_cid})")
         button_label.grid(row=0, column=0)
+
+        add_new_action_button = ctk.CTkButton(master=self.container_frame, text="Add New Action")
+        add_new_action_button.grid(row=1, column=1)
 
         radio_buttons_to_create = []
         self.radio_buttons_dictionary = {}
@@ -958,6 +1006,34 @@ class ButtonConfigFrame():
         self.container_frame.destroy(*args, **kwargs)
 
 
+class MiddleButtons():
+    def __init__(self, master_frame, button_dictionary, display_frame_callback, currently_selected_menu=None):
+        self.master_frame = master_frame
+        self.button_dictionary = button_dictionary
+        self.display_frame_callback = display_frame_callback
+        self.currently_selected_menu = currently_selected_menu
+
+        self.setup_middle_buttons()
+
+    def setup_middle_buttons(self):
+        for i in self.button_dictionary.keys():
+            print(i)
+
+
+
+
+
+# class CentreButtonFrame():
+#     def __init__(self, master=None, button_text=[], **kwargs):
+#         super().__init__(master, **kwargs)
+        
+#         self.currently_selected_button = None
+#         self.button_dictionary = {}
+
+
+#     def init_buttons(self):
+#         pass
+
 
 
 
@@ -970,12 +1046,154 @@ class ThumbwheelFrame():
         self.container_frame = ctk.CTkFrame(master=master_frame, corner_radius=0, fg_color="transparent")
         self.container_frame.pack_forget()
 
-        scrollwheel_up_threshold_label = ctk.CTkLabel(master=self.container_frame, text = "Thumbwheel Frame")
-        scrollwheel_up_threshold_label.grid(row=0, column=0)
+        thumbwheel_frame_label = ctk.CTkLabel(master=self.container_frame, text = "Thumbwheel Frame")
+        thumbwheel_frame_label.grid(row=0, column=0, columnspan=2)
+
+
+
+        thumbwheel_divert_var = ctk.BooleanVar(value=configuration.thumbwheel_divert)
+        thumbwheel_divert_checkbox = ctk.CTkCheckBox(master=self.container_frame, text="Thumbwheel Divert", command=lambda configuration=configuration: self.thumbwheel_divert_event(configuration),
+                                            variable=thumbwheel_divert_var, onvalue=True, offvalue=False)
+        thumbwheel_divert_checkbox.grid(row=2, column=0)
+
+        thumbwheel_invert_var = ctk.BooleanVar(value=configuration.thumbwheel_invert)
+        thumbwheel_invert_checkbox = ctk.CTkCheckBox(master=self.container_frame, text="Thumbwheel Invert", command=lambda configuration=configuration: self.thumbwheel_invert_event(configuration),
+                                            variable=thumbwheel_invert_var, onvalue=True, offvalue=False)
+        thumbwheel_invert_checkbox.grid(row=2, column=1)
+
+        def create_thumbwheel_controls(direction):
+            threshold_label = ctk.CTkLabel(
+                master=self.container_frame,
+                text=f"Thumbwheel {direction} Threshold"
+            )
+        
+            spinbox = IntSpinbox(master=self.container_frame,
+                                 db_query=self.scroll_properties.update_left_threshold if direction == "Left" else self.scroll_properties.update_right_threshold,
+                                 value=scroll_properties.scroll_left_threshold if direction == "Left" else scroll_properties.scroll_right_threshold,
+                                width=200,
+                                step_size=5,
+                                min_value=1,
+                                max_value=9999
+                                )
+            
+            mode_label = ctk.CTkLabel(
+            master=self.container_frame,
+            text = f"Thumbwheel {direction} Mode"
+        )
+            mode_dropdown = ctk.CTkOptionMenu(master=self.container_frame,
+                                                variable=ctk.StringVar(value=scroll_properties.scroll_left_mode if direction=="Left" else scroll_properties.scroll_right_mode),
+                                                values=["OnInterval", "OnThreshold"],
+                                                state="normal",
+                                                width=200,
+                                                height=36,
+                                                command=self.update_scroll_left_mode if direction=="Left" else self.update_scroll_right_mode)
+
+
+            return threshold_label, spinbox, mode_label, mode_dropdown
+
+        thumbwheel_left_threshold_label, self.thumbwheel_left_spinbox, thumbwheel_left_mode_label, self.scroll_left_mode_dropdown = create_thumbwheel_controls("Left")
+        thumbwheel_left_threshold_label.grid(row=5, column=0)
+        self.thumbwheel_left_spinbox.grid(row=6, column=0)
+        thumbwheel_left_mode_label.grid(row=5, column=1)
+        self.scroll_left_mode_dropdown.grid(row=6, column=1)
+
+        thumbwheel_right_threshold_label, self.thumbwheel_right_spinbox, thumbwheel_right_mode_label, self.scroll_right_mode_dropdown = create_thumbwheel_controls("Right")
+        thumbwheel_right_threshold_label.grid(row=5, column=2)
+        self.thumbwheel_right_spinbox.grid(row=6, column=2)
+        thumbwheel_right_mode_label.grid(row=5, column=3)
+        self.scroll_right_mode_dropdown.grid(row=6, column=3)
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+        radio_buttons_to_create = []
+        self.radio_buttons_dictionary = {}
+        # print(self.scroll_properties)
+        # print(self.configuration)
+    #     if button.button_default is not None:
+    #         radio_buttons_to_create.append(["Default", button.button_default])
+    #     if button.button_nopress is not None:
+    #         radio_buttons_to_create.append(["No Press", button.button_nopress])
+    #     if button.button_togglesmartshift is not None:
+    #         radio_buttons_to_create.append(["Toggle Smart Shift", button.button_togglesmartshift])
+    #     if button.button_togglehiresscroll is not None:
+    #         radio_buttons_to_create.append(["Toggle Hi Res Scroll", button.button_togglehiresscroll])
+    #     if button.button_gestures is not None:
+    #         radio_buttons_to_create.append(["Gestures", button.button_gestures])
+
+    #     self.selected_button_configuration = ctk.StringVar()
+
+    #     radio_buttons_frame = ctk.CTkFrame(master=self.container_frame)
+    #     radio_buttons_frame.grid(row=1, column=0)
+
+
+    #     radio_buttons_frame = ctk.CTkFrame(master=self.container_frame)
+    #     radio_buttons_frame.grid(row=2, column=0)
+
+    #     for i in radio_buttons_to_create:
+    #         radio_button_row = ctk.CTkFrame(master=radio_buttons_frame)
+    #         radio_button_row.pack()
+
+    #         radio_button = MatthewsRadioButton(master=radio_button_row, width=600, text=i[0], command=lambda c=i[1]: self.select_configuration(c))
+    #         radio_button.grid(row=0, column=0)            
+
+    #         if button.selected_button_config_id == i[1]:
+    #             radio_button.radio_button_clicked()
+
+    #         self.radio_buttons_dictionary[i[1]] = radio_button
+
+
+    # def select_configuration(self, button_configuration_id):
+    #     try:
+    #         Classes.update_selected_button_config_id(button_configuration_id)
+    #         self.radio_buttons_dictionary[self.button.selected_button_config_id].another_button_clicked()
+    #         self.button.selected_button_config_id = button_configuration_id
+    #     except KeyError:
+    #         pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def update_scroll_left_mode(self, new_mode):
+        self.scroll_properties.scroll_left_mode = new_mode
+
+    def update_scroll_right_mode(self, new_mode):
+        self.scroll_properties.scroll_right_mode = new_mode
+
+
+    def thumbwheel_divert_event(self, configuration):
+        configuration.thumbwheel_divert = not(configuration.thumbwheel_divert)
+
+    def thumbwheel_invert_event(self, configuration):
+        configuration.thumbwheel_invert = not(configuration.thumbwheel_invert)
 
     def pack(self, *args, **kwargs):
         """
@@ -994,6 +1212,46 @@ class ThumbwheelFrame():
 
 
 
+class CentreButtonFrame():
+    def __init__(self, master_frame, configuration, **kwargs):
+        super().__init__(**kwargs)
+        
+        self.master_frame = master_frame
+        self.configuration = configuration 
+        self.currently_selected_button = None
+        self.button_dictionary = {}
+        self.container_frame = ctk.CTkFrame(master=master_frame)
+        self.container_frame.grid(row=0, column=0)
+        self.test_label = ctk.CTkLabel(master=master_frame, text = "Test Label")
+        # thumbwheel_frame_label = ctk.CTkLabel(master=self.container_frame,)
+        self.test_label.grid(row=0, column=0, columnspan=2)
+
+    def init_buttons(self):
+        pass
+
+
+    def pack(self, *args, **kwargs):
+        self.master_frame.pack(*args, **kwargs)
+
+    def pack_forget(self, *args, **kwargs): # Same as pack method above, but for pack_forget
+        self.master_frame.pack_forget(*args, **kwargs)
+
+    def grid(self, *args, **kwargs):
+        self.master_frame.grid(*args, **kwargs)
+
+    def grid_forget(self, *args, **kwargs): # Same as pack method above, but for pack_forget
+        self.master_frame.grid_forget(*args, **kwargs)
+
+    def destroy(self, *args, **kwargs): # As above
+        self.container_frame.destroy(*args, **kwargs)
+
+
+
+
+
+
+
+
 
 class VerticalScrollwheelFrame():
     def __init__(self, master_frame, scroll_properties, configuration): 
@@ -1001,69 +1259,39 @@ class VerticalScrollwheelFrame():
         self.configuration = configuration
         self.scroll_properties = scroll_properties
 
+
         self.container_frame = ctk.CTkFrame(master=master_frame, corner_radius=0, fg_color="transparent")
         self.container_frame.pack_forget()
 
 
+        self.test_label2 = ctk.CTkLabel(master=master_frame, text = "Test Label2")
 
 
+        # # self.center_frame = ctk.CTkFrame(master=master_frame, corner_radius=0, fg_color="transparent")
+        # # self.center_frame.grid(row=0, column=0)
 
+        # centre_frame = CentreButtonFrame(
+        #     master_frame=self.container_frame,
+        #     # master_frame=self.container_frame,
 
+        #       configuration=configuration)
+        # centre_frame.grid(row=10, column=10)
+        # # centre_frame.grid_forget()
 
-        tabview = ctk.CTkTabview(master=self.container_frame)
-        tabview.grid(row=10, column=0)
-        tabview.add("tab 1")  # add tab at the end
-        tabview.add("tab 2")  # add tab at the end
-        tabview.set("tab 2")  # set currently visible tab
-        button_1 = ctk.CTkButton(tabview.tab("tab 1"))
-        button_1.pack(padx=20, pady=20)
-
-
-
-
-
-
-
-
-
-        scrollwheel_up_threshold_label = ctk.CTkLabel(master=self.container_frame, text = "Scrollwheel Up Threshold")
-        scrollwheel_up_threshold_label.grid(row=0, column=0)
-        scrollwheel_down_threshold_label = ctk.CTkLabel(master= self.container_frame, text = "Scrollwheel Down Threshold")
-        scrollwheel_down_threshold_label.grid(row=0, column=2)
-
-        self.scrollwheel_up_spinbox = IntSpinbox(master=self.container_frame, width=200, step_size=5, min_value=1, max_value=9999)
-        self.scrollwheel_up_spinbox.set(scroll_properties.scroll_up_threshold)
-        self.scrollwheel_up_spinbox.grid(row=1, column=0)
-        self.scrollwheel_down_spinbox = IntSpinbox(master=self.container_frame, width=200, step_size=5, min_value=1, max_value=9999)
-        self.scrollwheel_down_spinbox.set(scroll_properties.scroll_down_threshold)
-        self.scrollwheel_down_spinbox.grid(row=1, column=2)
-
-        scrollwheel_up_mode_label = ctk.CTkLabel(master=self.container_frame, text = "Scrollwheel Up Mode")
-        scrollwheel_up_mode_label.grid(row=0,column=1)
-        scroll_up_mode_dropdown = ctk.CTkOptionMenu(master=self.container_frame, variable=ctk.StringVar(value=scroll_properties.scroll_up_mode), values=["OnInterval", "OnThreshold"], state="normal", width=200, height=36, command=lambda new_mode: setattr(scroll_properties, 'scroll_up_mode', new_mode))
-        scroll_up_mode_dropdown.grid(row=1, column=1)
-
-        scrollwheel_down_mode_label = ctk.CTkLabel(master=self.container_frame, text = "Scrollwheel Down Mode")
-        scrollwheel_down_mode_label.grid(row=0,column=3)
-        scroll_down_mode_dropdown = ctk.CTkOptionMenu(master=self.container_frame, variable=ctk.StringVar(value=scroll_properties.scroll_down_mode), values=["OnInterval", "OnThreshold"], state="normal", width=200, height=36, command=lambda new_mode: setattr(scroll_properties, 'scroll_down_mode', new_mode))
-        scroll_down_mode_dropdown.grid(row=1, column=3)
 
 
 
         if configuration.smartshift_support == True:
-            smartshift_options_label = ctk.CTkLabel( master=self.container_frame, text=("SmartShift Options"), font=ctk.CTkFont( family="Roboto", size=18, ), )
-            smartshift_options_label.grid(row=3, column=0, padx=(10,0), pady=(30,0), sticky="w")
 
+            smartshift_options_label = ctk.CTkLabel(master=self.container_frame, text=("SmartShift Options"), font=ctk.CTkFont( family="Roboto", size=18, ), )
+            smartshift_options_label.grid(row=3, column=0, padx=(10,0), pady=(30,0), sticky="w")
             smartshift_frame = ctk.CTkFrame(master=self.container_frame)
             smartshift_frame.grid(row=4, column=0, sticky="ew")
-
-
             check_var = ctk.BooleanVar(value=configuration.smartshift_on)
-
             checkbox = ctk.CTkCheckBox(master=smartshift_frame, text="SmartShift On", command=lambda: setattr(configuration, 'smartshift_on', check_var.get()), variable=check_var, onvalue=True, offvalue=False)
             checkbox.grid(row=0, column=0, padx=10, pady=(10,0), sticky="w", rowspan=2)
-
-
+            
+            
             smartshift_threshold_label = ctk.CTkLabel(
                                     master=smartshift_frame,
                                                                         text=("Threshold"),
@@ -1079,15 +1307,15 @@ class VerticalScrollwheelFrame():
             smartshift_threshold_label.grid(row=0, column=1)
 
             smartshift_threshold_spinbox = IntSpinbox(master=smartshift_frame,
+                                    db_query=configuration.update_smartshift_threshold,
                                     width=140,
                                     step_size=5,
                                     min_value=1,
                                     max_value=255,
+                                    value=configuration.smartshift_threshold
                                     )
             
-            smartshift_threshold_spinbox.set(configuration.smartshift_threshold) #TODO: Update
             smartshift_threshold_spinbox.grid(row=1, column=1, sticky="w", padx=(0,10))
-
 
 
             smartshift_torque_label = ctk.CTkLabel(
@@ -1105,67 +1333,104 @@ class VerticalScrollwheelFrame():
             smartshift_torque_label.grid(row=0, column=2)
 
             smartshift_torque_spinbox = IntSpinbox(master=smartshift_frame,
+                                                   db_query=configuration.update_smartshift_torque,
                                     width=140,
                                     step_size=5,
                                     min_value=1,
                                     max_value=255,
+                                    value=configuration.smartshift_torque
                                     )
             
             smartshift_torque_spinbox.set(configuration.smartshift_torque) #TODO: Update
             smartshift_torque_spinbox.grid(row=1, column=2)
+            
+            
+
+
+
+
+
+
+
+
+        # scrollwheel_up_threshold_label = ctk.CTkLabel(master=self.container_frame, text = "Scrollwheel Up Threshold")
+        # scrollwheel_up_threshold_label.grid(row=0, column=0)
+        # scrollwheel_down_threshold_label = ctk.CTkLabel(master= self.container_frame, text = "Scrollwheel Down Threshold")
+        # scrollwheel_down_threshold_label.grid(row=0, column=2)
+
+        # self.scrollwheel_up_spinbox = IntSpinbox(master=self.container_frame, width=200, step_size=5, min_value=1, max_value=9999)
+        # self.scrollwheel_up_spinbox.set(scroll_properties.scroll_up_threshold)
+        # self.scrollwheel_up_spinbox.grid(row=1, column=0)
+        # self.scrollwheel_down_spinbox = IntSpinbox(master=self.container_frame, width=200, step_size=5, min_value=1, max_value=9999)
+        # self.scrollwheel_down_spinbox.set(scroll_properties.scroll_down_threshold)
+        # self.scrollwheel_down_spinbox.grid(row=1, column=2)
+
+        # scrollwheel_up_mode_label = ctk.CTkLabel(master=self.container_frame, text = "Scrollwheel Up Mode")
+        # scrollwheel_up_mode_label.grid(row=0,column=1)
+        # scroll_up_mode_dropdown = ctk.CTkOptionMenu(master=self.container_frame, variable=ctk.StringVar(value=scroll_properties.scroll_up_mode), values=["OnInterval", "OnThreshold"], state="normal", width=200, height=36, command=lambda new_mode: setattr(scroll_properties, 'scroll_up_mode', new_mode))
+        # scroll_up_mode_dropdown.grid(row=1, column=1)
+
+        # scrollwheel_down_mode_label = ctk.CTkLabel(master=self.container_frame, text = "Scrollwheel Down Mode")
+        # scrollwheel_down_mode_label.grid(row=0,column=3)
+        # scroll_down_mode_dropdown = ctk.CTkOptionMenu(master=self.container_frame, variable=ctk.StringVar(value=scroll_properties.scroll_down_mode), values=["OnInterval", "OnThreshold"], state="normal", width=200, height=36, command=lambda new_mode: setattr(scroll_properties, 'scroll_down_mode', new_mode))
+        # scroll_down_mode_dropdown.grid(row=1, column=3)
+
+
+
+
 
 
         
 
-        if configuration.hires_scroll_support == True:
+        # if configuration.hires_scroll_support == True:
 
 
-            hiresscroll_options_label = ctk.CTkLabel(
-                                    master=self.container_frame,
-                                                                        text=("HiRes Scroll Options"),
-                                                    font=ctk.CTkFont(
-                                                            family="Roboto",
-                                                                # weight="bold",
-                                                            size=18,
-                                                            ),
-                                                            # text_color="#1F538D",
-                                            # pady=30,
-                                            # anchor='s'
-            )
-            hiresscroll_options_label.grid(row=3, column=1, padx=(10,0), pady=(30,0), sticky="w")
+        #     hiresscroll_options_label = ctk.CTkLabel(
+        #                             master=self.container_frame,
+        #                                                                 text=("HiRes Scroll Options"),
+        #                                             font=ctk.CTkFont(
+        #                                                     family="Roboto",
+        #                                                         # weight="bold",
+        #                                                     size=18,
+        #                                                     ),
+        #                                                     # text_color="#1F538D",
+        #                                     # pady=30,
+        #                                     # anchor='s'
+        #     )
+        #     hiresscroll_options_label.grid(row=3, column=1, padx=(10,0), pady=(30,0), sticky="w")
 
 
-            hiresscroll_frame = ctk.CTkFrame(master=self.container_frame)
-            hiresscroll_frame.grid(row=4, column=1, sticky="ew")
+        #     hiresscroll_frame = ctk.CTkFrame(master=self.container_frame)
+        #     hiresscroll_frame.grid(row=4, column=1, sticky="ew")
 
 
-            def hiresscroll_hires_toggle():
-                configuration.hiresscroll_hires = not(configuration.hiresscroll_hires)
+        #     def hiresscroll_hires_toggle():
+        #         configuration.hiresscroll_hires = not(configuration.hiresscroll_hires)
 
 
-            hiresscroll_hires_var = ctk.BooleanVar(value=configuration.hiresscroll_hires)
-            hirescroll_hires_checkbox = ctk.CTkCheckBox(master=hiresscroll_frame, text="HiRes Scroll On", command=hiresscroll_hires_toggle,
-                                                variable=hiresscroll_hires_var, onvalue=True, offvalue=False)
-            hirescroll_hires_checkbox.grid(row=0, column=0, rowspan=2)
+        #     hiresscroll_hires_var = ctk.BooleanVar(value=configuration.hiresscroll_hires)
+        #     hirescroll_hires_checkbox = ctk.CTkCheckBox(master=hiresscroll_frame, text="HiRes Scroll On", command=hiresscroll_hires_toggle,
+        #                                         variable=hiresscroll_hires_var, onvalue=True, offvalue=False)
+        #     hirescroll_hires_checkbox.grid(row=0, column=0, rowspan=2)
 
 
-            def hiresscroll_invert_toggle():
-                configuration.hiresscroll_invert = not(configuration.hiresscroll_invert)
+        #     def hiresscroll_invert_toggle():
+        #         configuration.hiresscroll_invert = not(configuration.hiresscroll_invert)
 
 
-            hiresscroll_invert_var = ctk.BooleanVar(value=configuration.hiresscroll_invert)
-            hirescroll_invert_checkbox = ctk.CTkCheckBox(master=hiresscroll_frame, text="Scroll Invert", command=hiresscroll_invert_toggle,
-                                                variable=hiresscroll_invert_var, onvalue=True, offvalue=False)
-            hirescroll_invert_checkbox.grid(row=0, column=1, rowspan=2)
+        #     hiresscroll_invert_var = ctk.BooleanVar(value=configuration.hiresscroll_invert)
+        #     hirescroll_invert_checkbox = ctk.CTkCheckBox(master=hiresscroll_frame, text="Scroll Invert", command=hiresscroll_invert_toggle,
+        #                                         variable=hiresscroll_invert_var, onvalue=True, offvalue=False)
+        #     hirescroll_invert_checkbox.grid(row=0, column=1, rowspan=2)
 
 
-            def hiresscroll_target_toggle():
-                configuration.hiresscroll_target = not(configuration.hiresscroll_target)
+        #     def hiresscroll_target_toggle():
+        #         configuration.hiresscroll_target = not(configuration.hiresscroll_target)
 
-            hiresscroll_target_var = ctk.BooleanVar(value=configuration.hiresscroll_target)
-            hirescroll_target_checkbox = ctk.CTkCheckBox(master=hiresscroll_frame, text="Scroll target", command=hiresscroll_target_toggle,
-                                                variable=hiresscroll_target_var, onvalue=True, offvalue=False)
-            hirescroll_target_checkbox.grid(row=0, column=2, rowspan=2)
+        #     hiresscroll_target_var = ctk.BooleanVar(value=configuration.hiresscroll_target)
+        #     hirescroll_target_checkbox = ctk.CTkCheckBox(master=hiresscroll_frame, text="Scroll target", command=hiresscroll_target_toggle,
+        #                                         variable=hiresscroll_target_var, onvalue=True, offvalue=False)
+        #     hirescroll_target_checkbox.grid(row=0, column=2, rowspan=2)
 
 
 

@@ -335,6 +335,9 @@ class ScrollProperties:
         conn.close()
 
 
+    def update_left_threshold(self, new_value):
+        self.scroll_left_threshold = new_value
+
     @property
     def scroll_left_threshold(self):
         return self._scroll_left_threshold
@@ -354,6 +357,8 @@ class ScrollProperties:
         conn.commit()
         conn.close()
 
+    def update_right_threshold(self, new_value):
+        self.scroll_right_threshold = new_value
 
     @property
     def scroll_right_threshold(self):
@@ -902,6 +907,9 @@ class DeviceConfig:
         conn.close()
 
 
+    def update_dpi(self, new_value):
+        self.dpi = new_value
+
     @property
     def dpi(self):
         return self._dpi
@@ -920,6 +928,9 @@ class DeviceConfig:
 
         conn.commit()
         conn.close()
+
+    def update_smartshift_threshold(self, new_value):
+        self.smartshift_threshold = new_value
 
     @property
     def smartshift_threshold(self):
@@ -941,6 +952,8 @@ class DeviceConfig:
         conn.commit()
         conn.close()
 
+    def update_smartshift_torque(self, new_value):
+        self.smartshift_torque = new_value
 
     @property
     def smartshift_torque(self):
