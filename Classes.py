@@ -234,6 +234,268 @@ class ConfigurationSettings(Configuration):
         self.thumbwheel_invert = thumbwheel_invert
 
 
+class ScrollProperties1:
+    def __init__(
+            self,
+            threshold,
+            mode,
+            actions,
+            selected_action
+    ):
+            self.threshold = threshold
+            self.mode = mode
+            self.actions = actions
+            self.selected_action = selected_action
+
+
+
+
+
+class Axis():
+    def __init__(
+        self,
+        axis_id,
+        axis_button,
+        axis_multiplier
+
+    ):
+        self.axis_id = axis_id
+        self.axis_button = axis_button
+        self.axis_multiplier = axis_multiplier
+
+    @classmethod
+    def fetch_using_action_id_and_source_table(cls, configuration_id, action_id, source_table):
+        conn, cursor = execute_db_queries.create_db_connection()
+        cursor.execute("""
+                            SELECT axis_id, axis_button, axis_multiplier
+                            FROM Axes
+                            WHERE configuration_id = ? AND action_id = ? AND source_table = ?
+                            """,(configuration_id, action_id, source_table,))
+        axis = cls
+        axis.axis_id, axis.axis_button, axis.axis_multiplier = cursor.fetchone()
+        execute_db_queries.close_without_committing_changes(conn)
+        return axis
+        
+
+
+
+class Keypress():
+    def __init__(
+        self,
+        keypress_id,
+        keypresses
+    ):
+        self.keypress_id = keypress_id
+        self.keypresses = keypresses
+
+    @classmethod
+    def fetch_using_action_id_and_source_table(cls, configuration_id, action_id, source_table):
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+                            SELECT keypress_id, keypresses
+                            FROM Keypresses
+                            WHERE configuration_id = ? AND action_id = ? AND source_table = ?
+                        """, (configuration_id, action_id, source_table))
+        keypress = cls
+        keypress.keypress_id, keypress.keypresses = cursor.fetchone()
+        execute_db_queries.close_without_committing_changes(conn)
+        return keypress
+
+
+
+
+class CycleDPI:
+    def __init__(
+        self,
+        cycle_dpi_id,
+        dpi_array,
+        sensor
+    ):
+        self.cycle_dpi_id = cycle_dpi_id
+        self.dpi_array = dpi_array
+        self.sensor = sensor
+
+    @classmethod
+    def fetch_using_action_id_and_source_table(cls, configuration_id, action_id, source_table):
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+                            SELECT cycle_dpi_id, dpi_array, sensor
+                            FROM CycleDPI
+                            WHERE configuration_id = ? AND action_id = ? AND source_table = ?
+                        """, (configuration_id, action_id, source_table))
+        cycle_dpi = cls
+        cycle_dpi.cycle_dpi_id, cycle_dpi.dpi_array, cycle_dpi.sensor = cursor.fetchone()
+        execute_db_queries.close_without_committing_changes(conn)
+        return cycle_dpi
+
+
+
+
+class ChangeHost:
+    def __init__(
+        self,
+        host_id,
+        host_change
+    ):
+        self.host_id = host_id
+        self.host_change = host_change
+
+
+    @classmethod
+    def fetch_using_action_id_and_source_table(cls, configuration_id, action_id, source_table):
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+                            SELECT host_id, host_change
+                            FROM ChangeHost
+                            WHERE configuration_id = ? AND action_id = ? AND source_table = ?
+                        """, (configuration_id, action_id, source_table))
+        change_host = cls
+        change_host.host_id, change_host.host_change = cursor.fetchone()
+        execute_db_queries.close_without_committing_changes(conn)
+        return change_host
+
+
+
+class ScrollAction1():
+    def __init__(
+            self,
+            configuration_id,
+            threshold,
+            mode,
+            scroll_direction,
+            selected_action,
+            default,
+            nopress,
+            toggle_smart_shift,
+            toggle_hires_scroll,
+            axes={},
+            keypresses={},
+            cycle_dpi={},
+            changehost={}
+    ):
+        self.configuration_id = configuration_id
+        self.threshold = threshold
+        self.mode = mode
+        self.scroll_direction = scroll_direction
+        self.selected_action = selected_action
+        self.default = default
+        self.nopress = nopress
+        self.toggle_smart_shift = toggle_smart_shift
+        self.toggle_hires_scroll = toggle_hires_scroll
+        self.keypresses = keypresses
+        self.axes = axes
+        self.cycle_dpi = cycle_dpi
+        self.changehost = changehost
+
+
+
+    @classmethod
+    def create_from_config_id_and_direction(cls, configuration_id, scroll_direction, threshold, mode):
+        conn, cursor = execute_db_queries.create_db_connection()
+        scroll_action = cls(configuration_id, threshold, mode, scroll_direction, None, None, None, None, None, {}, {}, {}, {})
+        scroll_action.configuration_id = configuration_id
+        scroll_action.scroll_direction = scroll_direction
+        scroll_action.threshold = threshold
+        scroll_action.mode = mode
+        
+        cursor.execute("""
+                            SELECT scroll_action_id
+                            FROM ScrollActions
+                            WHERE configuration_id = ? AND scroll_direction = ? AND is_selected = 1
+        """, (configuration_id, scroll_direction,))
+        scroll_action.selected_action = cursor.fetchone()[0]
+
+        def get_default_actions(action):
+            cursor.execute("""
+                                SELECT scroll_action_id
+                                FROM ScrollActions
+                                WHERE configuration_id = ? AND scroll_direction = ? AND action_type = ?
+                        """, (configuration_id, scroll_direction, action))
+            
+            action_id = cursor.fetchone()
+            
+            return None if action_id == None else action_id[0]
+        
+        scroll_action.default = get_default_actions("Default")
+        scroll_action.nopress = get_default_actions("NoPress")
+        scroll_action.toggle_smart_shift = get_default_actions("ToggleSmartShift")
+        scroll_action.toggle_hires_scroll = get_default_actions("ToggleHiresScroll")
+        
+        def get_non_default_actions(action):
+
+            cursor.execute("""
+                                SELECT scroll_action_id
+                                FROM ScrollActions
+                                WHERE configuration_id = ? AND scroll_direction = ? AND action_type = ?
+            """, (configuration_id, scroll_direction, action))
+
+            action_ids = cursor.fetchall()
+
+            return [i[0] for i in action_ids] if len(action_ids) > 0 else None
+
+        axis_action_ids = get_non_default_actions("Axis")
+        if axis_action_ids is not None:
+            for i in axis_action_ids:
+                scroll_action.axes[i] = Axis.fetch_using_action_id_and_source_table(configuration_id, i, "ScrollActions")
+
+        keypress_action_ids = get_non_default_actions("Keypress")
+        if keypress_action_ids is not None:
+            for i in keypress_action_ids:
+                scroll_action.keypresses[i] = Keypress.fetch_using_action_id_and_source_table(configuration_id, i, "ScrollActions")      
+
+        cycle_dpi_action_ids = get_default_actions("CycleDPI")
+        if cycle_dpi_action_ids is not None:
+            for i in cycle_dpi_action_ids:
+                scroll_action.cycle_dpi[i] = CycleDPI.fetch_using_action_id_and_source_table(configuration_id, i, "CycleDPI")
+
+        changehost_action_ids = get_default_actions("ChangeHost")
+        if changehost_action_ids is not None:
+            for i in changehost_action_ids:
+                scroll_action.changehost[i] = ChangeHost.fetch_using_action_id_and_source_table(configuration_id, i, "ChangeHost")
+
+        execute_db_queries.close_without_committing_changes(conn)
+        
+        return scroll_action
+
+
+
+
+class Scrolling:
+    def __init__(
+            self,
+            configuration_id=None,
+            directions={}
+    ):
+        self.configuration_id = configuration_id
+        self.directions = directions
+
+
+    @classmethod
+    def create_from_configuration_id(cls, configuration_id):
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+        SELECT scroll_direction, threshold, mode
+        FROM ScrollActionProperties
+        WHERE configuration_id = ?;
+        """, (configuration_id,))
+
+        scrolling_query_results = cursor.fetchall()
+
+        scrolling = cls(configuration_id)
+
+        for i in scrolling_query_results:
+            scroll_direction, threshold, mode = i
+            scrolling.directions[scroll_direction] = ScrollAction1.create_from_config_id_and_direction(configuration_id, scroll_direction, threshold, mode)
+
+        execute_db_queries.close_without_committing_changes(conn)
+
+        return scrolling
+
+
 
 
 class ScrollProperties:
@@ -247,8 +509,19 @@ class ScrollProperties:
             scroll_left_threshold = None,
             scroll_left_mode = None,
             scroll_right_threshold = None,
-            scroll_right_mode = None
+            scroll_right_mode = None,
+            scroll_actions = {}
+
+            # scroll_up_actions=None,
+            # scroll_down_actions=None,
+            # scroll_left_actions=None,
+            # scroll_right_actions=None,
+            # selected_scroll_up_action=None,
+            # selected_scroll_down_action=None,
+            # selected_scroll_left_action=None,
+            # selected_scroll_right_action=None,
     ):
+
             self.configuration_id = configuration_id
             self.scroll_up_threshold = scroll_up_threshold
             self.scroll_down_threshold = scroll_down_threshold
@@ -258,11 +531,49 @@ class ScrollProperties:
             self.scroll_right_mode = scroll_right_mode
             self.scroll_right_threshold = scroll_right_threshold
             self.scroll_left_threshold = scroll_left_threshold
+            self.scroll_actions = scroll_actions
+
+            # self.scroll_up_actions = scroll_up_actions
+            # self.scroll_down_actions = scroll_down_actions
+            # self.scroll_left_actions = scroll_left_actions
+            # self.scroll_right_actions = scroll_right_actions
+            # self.selected_scroll_up_action = selected_scroll_up_action
+            # self.selected_scroll_down_action = selected_scroll_down_action
+            # self.selected_scroll_left_action = selected_scroll_left_action
+            # self.selected_scroll_right_action = selected_scroll_right_action
+
+
+
+
+
+    # if config.has_scrollwheel == True:   
+    #     get_scroll_actions("scrollwheel")
+    # if config.has_thumbwheel == True:
+    #     get_scroll_actions("thumbwheel")
+
+
 
 
     @classmethod
     def create_from_configuration_id(cls, configuration_id):
         conn, cursor = execute_db_queries.create_db_connection()
+
+        def get_scroll_actions(direction):
+            # directions = ["Up", "Down"] if wheel_type == "scrollwheel" else ["Left", "Right"]
+            # print(f"has {wheel_type}, directions: {directions[0]}, {directions[1]}")
+            # for i in directions:
+            #     pass
+            cursor.execute("""
+                            SELECT scroll_action_id, action_type, is_selected
+                            FROM ScrollActions
+                            WHERE configuration_id = ? AND scroll_direction = ?
+            """, (configuration_id, direction))
+        
+            scroll_actions = cursor.fetchall()
+            # print(scroll_actions)
+
+
+
 
         cursor.execute("""
         SELECT scroll_direction, threshold, mode
@@ -278,6 +589,7 @@ class ScrollProperties:
 
         for i in scroll_property_query_results:
             scroll_direction, threshold, mode = i
+            get_scroll_actions(scroll_direction)
             if scroll_direction == "Up":
                 scroll_properties.scroll_up_threshold = threshold
                 scroll_properties.scroll_up_mode = mode
@@ -290,6 +602,9 @@ class ScrollProperties:
             elif scroll_direction == "Right":
                 scroll_properties.scroll_right_threshold = threshold
                 scroll_properties.scroll_right_mode = mode
+
+
+
 
         execute_db_queries.close_without_committing_changes(conn)
 
@@ -466,10 +781,30 @@ class ScrollAction():
             self,
             configuration_id,
             scroll_direction,
-            actions,
-            selected_action
+            selected_action,
+            default,
+            nopress,
+            toggle_smart_shift,
+            toggle_hires_scroll,
+            keypresses={},
+            axes={},
+            cycle_dpi={},
+            changehost={}
     ):
-        pass
+        self.configuration_id = configuration_id
+        self.scroll_direction = scroll_direction
+        self.selected_action = selected_action
+        self.default = default
+        self.nopress = nopress
+        self.toggle_smart_shift = toggle_smart_shift
+        self.toggle_hires_scroll = toggle_hires_scroll
+        self.keypresses = keypresses
+        self.axes = axes
+        self.cycle_dpi = cycle_dpi
+        self.changehost = changehost
+
+
+
 # class ButtonSettings(Button):
 #     def __init__(
 #                     self,
@@ -569,6 +904,7 @@ class DeviceConfig:
         hiresscroll_target=None,
         thumbwheel_divert=None,
         thumbwheel_invert=None,
+        scroll_actions=None,
         date_device_added=None,
         date_device_last_edited=None,
     ):
@@ -605,6 +941,7 @@ class DeviceConfig:
         self.thumbwheel_divert=thumbwheel_divert
         self.thumbwheel_invert=thumbwheel_invert
         self.is_activated=is_activated
+        self.scroll_actions=scroll_actions
 
     @classmethod
     def create_from_configuration_id(cls, configuration_id):
@@ -782,6 +1119,26 @@ class DeviceConfig:
                                            )
             config.buttons.append(button_to_add)
 
+        def get_scroll_actions(wheel_type):
+            directions = ["Up", "Down"] if wheel_type == "scrollwheel" else ["Left", "Right"]
+            # print(f"has {wheel_type}, directions: {directions[0]}, {directions[1]}")
+            for i in directions:
+                pass
+                # cursor.execute("""
+                #                 SELECT scroll_action_id, action_type, is_selected
+                #                 FROM ScrollActions
+                #                 WHERE configuration_id = ? AND scroll_direction = ?
+                # """, (configuration_id, i))
+            
+                # scroll_actions = cursor.fetchall()
+                # print(scroll_actions)
+
+
+
+        if config.has_scrollwheel == True:   
+            get_scroll_actions("scrollwheel")
+        if config.has_thumbwheel == True:
+            get_scroll_actions("thumbwheel")
 
         execute_db_queries.close_without_committing_changes(conn)
 
@@ -1310,116 +1667,45 @@ class ToggleHiresScroll(Action):
 
 
 
-# TODO these subclasses of the above class if possible
-class Keypress(Action):
-    def __init__(
-        self,
-        button_config_id,
-        device_id,
-        button_id,
-        configuration_id,
-        is_selected,
-        action_type,
-        keypresses
-    ):
-        super().__init__(
-            button_config_id,
-            device_id,
-            button_id,
-            configuration_id,
-            is_selected,
-            action_type = "Keypresses"
-        )
-        self.action_type = action_type
-        self.keypresses = keypresses
+
+# class Axis(Action):
+#     def __init__(
+#         self,
+#         button_config_id,
+#         device_id,
+#         button_id,
+#         configuration_id,
+#         is_selected,
+#         action_id,
+#         axis_id,
+#         axis_button,
+#         axis_multiplier
+
+#     ):
+#         super().__init__(
+#             button_config_id,
+#             device_id,
+#             button_id,
+#             configuration_id,
+#             is_selected,
+#             action_type = "Keypresses"
+#         )
+#         self.action_type = action_type
 
 
-class Axis(Action):
-    def __init__(
-        self,
-        button_config_id,
-        device_id,
-        button_id,
-        configuration_id,
-        is_selected,
-        action_id,
-        axis_id,
-        axis_button,
-        axis_multiplier
-
-    ):
-        super().__init__(
-            button_config_id,
-            device_id,
-            button_id,
-            configuration_id,
-            is_selected,
-            action_type = "Keypresses"
-        )
-        self.action_type = action_type
+#         self.button_config_id = button_config_id
+#         self.device_id = device_id
+#         self.button_id = button_id
+#         self.configuration_id = configuration_id
+#         self.is_selected = is_selected
 
 
-        self.button_config_id = button_config_id
-        self.device_id = device_id
-        self.button_id = button_id
-        self.configuration_id = configuration_id
-        self.is_selected = is_selected
+#         self.action_id = action_id
+#         self.axis_id = axis_id
+#         self.axis_button = axis_button
+#         self.axis_multiplier = axis_multiplier
 
 
-        self.action_id = action_id
-        self.axis_id = axis_id
-        self.axis_button = axis_button
-        self.axis_multiplier = axis_multiplier
-
-class CycleDPI:
-    def __init__(
-        self,
-        button_config_id,
-        device_id,
-        button_id,
-        configuration_id,
-        is_selected,
-        action_id,
-        cycle_dpi_id,
-        dpi_array,
-        sensor
-
-    ):
-        self.button_config_id = button_config_id
-        self.device_id = device_id
-        self.button_id = button_id        
-        self.configuration_id = configuration_id
-        self.is_selected = is_selected
-
-        self.action_id = action_id
-
-        self.cycle_dpi_id = cycle_dpi_id
-        self.dpi_array = dpi_array
-        self.sensor = sensor
-
-
-
-class ChangeHost:
-    def __init__(
-        self,
-        button_config_id,
-        device_id,
-        button_id,
-        configuration_id,
-        is_selected,
-        action_id,
-        host_change
-
-    ):
-        self.button_config_id = button_config_id
-        self.device_id = device_id
-        self.button_id = button_id        
-        self.configuration_id = configuration_id
-        self.is_selected = is_selected
-
-        self.action_id = action_id
-
-        self.host_change = host_change
 
 
 

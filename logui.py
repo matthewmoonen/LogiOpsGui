@@ -243,7 +243,7 @@ class DeviceDropdown():
 
         self.options = execute_db_queries.get_unconfigured_devices()
         self.selected_option_var = ctk.StringVar(value=' Select Device To Add')
-        self.option_menu = ctk.CTkOptionMenu(master=self.master_frame, variable=self.selected_option_var, values=self.options, state="normal", width=230, height=35, corner_radius=0, dropdown_fg_color="#212121", dropdown_text_color="#D6D6D6", dropdown_hover_color="#1F538D", text_color="#D6D6D6", font=("Noto Sans", 14), dropdown_font=("Noto Sans", 16), command=self.device_dropdown_option_chosen)
+        self.option_menu = ctk.CTkOptionMenu(master=self.master_frame, variable=self.selected_option_var, values=self.options, state="normal", width=350, height=35, corner_radius=0, dropdown_fg_color="#212121", dropdown_text_color="#D6D6D6", dropdown_hover_color="#1F538D", text_color="#D6D6D6", font=("Noto Sans", 14), dropdown_font=("Noto Sans", 16), command=self.device_dropdown_option_chosen)
         self.option_menu.grid(row=1, column=0, pady=20, padx=(15, 0), sticky="w")
 
 
@@ -626,7 +626,7 @@ class FrontPage(ctk.CTkFrame):
                         # rowspan=2
                         )
 
-        app_title = ctk.CTkLabel(master=left_frame, text="LogiOpsGUI", font=ctk.CTkFont(family="Noto Sans",size=44),text_color=gui_variables.primary_colour,pady=20,corner_radius=0)
+        app_title = ctk.CTkLabel(master=left_frame, text="  LogiOpsGUI  ", font=ctk.CTkFont(family="Noto Sans",size=44),text_color=gui_variables.primary_colour,pady=20,corner_radius=0)
         app_title.grid(row=0, column=0, columnspan=2, sticky="ew")
 
         user_devices_label = ctk.CTkLabel(master=left_frame, text="User Devices", font=ctk.CTkFont(family="Noto Sans", weight="bold", size=20),)
@@ -724,7 +724,9 @@ class FrontPage(ctk.CTkFrame):
 
         self.edit_page = EditConfigFrame(self.master, configuration=configuration, radio_button=radio_button, is_new_config=is_new_config, is_new_device=is_new_device, main_page=self, devices_scrollable_frame=devices_scrollable_frame, create_devices_inner_frame=create_devices_inner_frame, create_and_update_device_dropdown=create_and_update_device_dropdown, show_main_page=self.show)
         # self.edit_page = EditPage(self.master, configuration=configuration, is_new_config=is_new_config, is_new_device=is_new_device, main_page=self, devices_scrollable_frame=devices_scrollable_frame, create_devices_inner_frame=create_devices_inner_frame, create_and_update_device_dropdown=create_and_update_device_dropdown, show_main_page=self.show)
-        
+        scrolling = Classes.Scrolling.create_from_configuration_id(configuration_id)
+        # print(scrolling)
+        # print(scrolling.directions)
 
 
         self.pack_forget()
@@ -806,7 +808,6 @@ class EditConfigFrame(ctk.CTkFrame):
 
         if self.configuration.has_thumbwheel == True:
             self.frames["Thumbwheel"] = ThumbwheelFrame(master_frame=edit_page_scrollable_frame, scroll_properties=self.scroll_properties, configuration=self.configuration)
-
 
         for button in self.configuration.buttons:
             create_left_buttons(button_text=button.button_name, button_reference=button.button_cid)
