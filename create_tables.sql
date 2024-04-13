@@ -184,6 +184,19 @@ FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DE
 
 -- ### QUERY_SEPARATOR ###
 
+CREATE TABLE IF NOT EXISTS ChangeDPI (
+    change_dpi_id INTEGER PRIMARY KEY
+    configuration_id INTEGER NOT NULL,
+    action_id INTEGER NOT NULL,
+    source_table TEXT NOT NULL CHECK (source_table IN ('ButtonConfigs', 'Gestures', 'ScrollActions', 'TouchTapProxy')),
+    incremenet INTEGER NOT NULL, 
+
+FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DELETE CASCADE
+);
+
+
+-- ### QUERY_SEPARATOR ###
+
 CREATE TABLE IF NOT EXISTS Keypresses (
     keypress_id INTEGER PRIMARY KEY,
     configuration_id INTEGER NOT NULL,
@@ -193,6 +206,9 @@ CREATE TABLE IF NOT EXISTS Keypresses (
 
 FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DELETE CASCADE
 );
+
+
+
 
 
 -- ### QUERY_SEPARATOR ###

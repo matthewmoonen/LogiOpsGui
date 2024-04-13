@@ -683,7 +683,8 @@ class DeviceConfig:
             
             keypress_list = cursor.fetchall()
             if len(keypress_list) != 0:
-                print(keypress_list)
+                # print(keypress_list)
+                pass
 
             cursor.execute("""
                             SELECT

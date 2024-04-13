@@ -78,6 +78,29 @@ class ButtonSettings:
         self.button_cycledpi = button_cycledpi
 
 
+    def add_new_keypress_action(self, device_id, configuration_id, keypresses):
+        conn, cursor = execute_db_queries.create_db_connection()
+        cursor.execute("""
+                            INSERT INTO ButtonConfigs (device_id, button_id, configuration_id, action_type)
+                            VALUES (?, ?, ?, 'Keypress');
+                            """, (device_id, self.button_id, configuration_id,
+                                          ))
+        cursor.execute("""
+                            SELECT last_insert_rowid();
+                        """)
+        inserted_row_id = cursor.fetchone()[0]
+
+        cursor.execute("""
+                            UPDATE Keypresses
+                            SET keypresses = ?
+                            WHERE action_id = ? and source_table = 'ButtonConfigs';
+                    """, (keypresses, inserted_row_id))
+        
+        execute_db_queries.commit_changes_and_close(conn)
+
+        self.button_keypresses.append(keypresses)
+
+
 
 class Configuration:
     def __init__(
@@ -484,6 +507,9 @@ class Scrolling:
         """, (configuration_id,))
 
         scrolling_query_results = cursor.fetchall()
+
+        if len(scrolling_query_results) == 0:
+            return None
 
         scrolling = cls(configuration_id)
 
@@ -1041,7 +1067,8 @@ class DeviceConfig:
             
             keypress_list = cursor.fetchall()
             if len(keypress_list) != 0:
-                print(keypress_list)
+                # print(keypress_list)
+                pass
 
             cursor.execute("""
                             SELECT
@@ -1119,28 +1146,15 @@ class DeviceConfig:
                                            )
             config.buttons.append(button_to_add)
 
-        def get_scroll_actions(wheel_type):
-            directions = ["Up", "Down"] if wheel_type == "scrollwheel" else ["Left", "Right"]
-            # print(f"has {wheel_type}, directions: {directions[0]}, {directions[1]}")
-            for i in directions:
-                pass
-                # cursor.execute("""
-                #                 SELECT scroll_action_id, action_type, is_selected
-                #                 FROM ScrollActions
-                #                 WHERE configuration_id = ? AND scroll_direction = ?
-                # """, (configuration_id, i))
-            
-                # scroll_actions = cursor.fetchall()
-                # print(scroll_actions)
 
+        if config.has_scrollwheel or config.has_thumbwheel:
 
-
-        if config.has_scrollwheel == True:   
-            get_scroll_actions("scrollwheel")
-        if config.has_thumbwheel == True:
-            get_scroll_actions("thumbwheel")
+            config.scroll_actions = Scrolling(configuration_id)
+            # print(cls.scroll_actions)
 
         execute_db_queries.close_without_committing_changes(conn)
+
+        # print(config.scroll_actions)
 
         return config
 
