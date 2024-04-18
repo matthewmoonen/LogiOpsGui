@@ -772,7 +772,9 @@ class EditConfigFrame(ctk.CTkFrame):
         self.grid_columnconfigure(1, weight=1)  
         self.edit_page_left_buttons_frame = ctk.CTkFrame(master=self.left_frame_edit_page)
         self.edit_page_left_buttons_frame.grid(row=10, column=0, columnspan=2, sticky="ew", padx=0)
-        device_name_label = ctk.CTkLabel(master=self.left_frame_edit_page, text=configuration.device_name, font=ctk.CTkFont( family="Noto Sans", size=36, ), text_color=gui_variables.primary_colour, pady=(20), corner_radius=0 )
+
+
+        device_name_label = ctk.CTkLabel(master=self.left_frame_edit_page, text=configuration.device_name, font=ctk.CTkFont( family="Noto Sans", size=36 if len(configuration.device_name) < 15 else 26, ), text_color=gui_variables.primary_colour, pady=(20), corner_radius=0 )
         device_name_label.grid(row=0, column=0, columnspan=2, sticky="ew")
 
         """Create array to store left buttons, """
@@ -937,10 +939,10 @@ class RecordKeypressFrame(ctk.CTkFrame):
 
 
 class KeyPressFrame(ctk.CTkFrame):
-    def __init__(self, master, app_root, configuration, settings_object, go_back_function, **kwargs):
+    def __init__(self, master, app_root, settings_object, go_back_function, **kwargs):
         super().__init__(master, **kwargs)
         self.app_root = app_root
-        self.configuration = configuration
+
         self.settings_object = settings_object
         self.go_back_function = go_back_function
 
@@ -990,7 +992,7 @@ class KeyPressFrame(ctk.CTkFrame):
             self.save_button.pack()
 
     def save_button_clicked(self):
-        self.settings_object.add_new_keypress_action(device_id=self.configuration.device_id, configuration_id=self.configuration.configuration_id, keypresses=str(self.keypress_array))
+        self.settings_object.add_new_keypress_action(keypresses=str(self.keypress_array))
         self.go_back_function()
 
     def handle_key_press(self, event):
@@ -1036,9 +1038,14 @@ class AddCycleDPI(ctk.CTkFrame):
         label.pack()
 
 class AddChangeDPI(ctk.CTkFrame):
-    def __init__(self, master, **kwargs):
+    # def __init__(self, master, **kwargs):
+    def __init__(self, master, app_root, settings_object, go_back_function, **kwargs):
         super().__init__(master, **kwargs)
 
+        self.app_root = app_root
+
+        self.settings_object = settings_object
+        self.go_back_function = go_back_function
 
         label=ctk.CTkLabel(master=self, text="ChangeDPI")
         label.pack()
@@ -1054,9 +1061,22 @@ class AddChangeDPI(ctk.CTkFrame):
                                 )
         spinbox.pack()            
 
+        def add_new_changedpi():
+            self.settings_object.add_new_changedpi(spinbox.get())
+            self.go_back_function()
+
+        self.save_button = ctk.CTkButton(master=self, text="Save New Action", command=add_new_changedpi, text_color="white", text_color_disabled=("#9FA5AB"), fg_color="#198754", font=ctk.CTkFont( size=14, family="Veranda"))
+        self.save_button.pack()
+
+
 class AddChangeHost(ctk.CTkFrame):
-    def __init__(self, master, **kwargs):
+    def __init__(self, master, app_root, settings_object, go_back_function, **kwargs):
         super().__init__(master, **kwargs)
+
+        self.app_root = app_root
+
+        self.settings_object = settings_object
+        self.go_back_function = go_back_function
 
         label=ctk.CTkLabel(master=self, text="Host to Toggle")
         label.pack()
@@ -1077,10 +1097,14 @@ class AddChangeHost(ctk.CTkFrame):
         self.menu.pack()
 
         def add_new_changehost():
-            print(f"changehost to add: {self.menu_var.get()}")
+
+            self.settings_object.add_new_changehost(host=self.menu_var.get())
+            self.go_back_function()
 
         self.save_button = ctk.CTkButton(master=self, text="Save New Action", command=add_new_changehost, state="disabled", text_color="white", text_color_disabled=("#9FA5AB"), fg_color=gui_variables.secondary_colour, hover_color=("#28A745"), font=ctk.CTkFont( size=14, family="Veranda"))
         self.save_button.pack()
+
+
 
 class AddActionFrame(ctk.CTkFrame):
     def __init__(self, master_frame, test_master_222, origin_frame, test_master, configuration, settings_object):
@@ -1104,11 +1128,11 @@ class AddActionFrame(ctk.CTkFrame):
         options_frame = ctk.CTkFrame(master=self.container_frame)
         options_frame.grid(row=3, column=0)
 
-        options["Keypress"] = KeyPressFrame(master=options_frame, go_back_function=self.go_back, app_root=self.test_master_222, configuration=self.configuration, settings_object=self.settings_object)
+        options["Keypress"] = KeyPressFrame(master=options_frame, go_back_function=self.go_back, app_root=self.test_master_222, settings_object=self.settings_object)
         options["Axis"] = AddAxisFrame(master=options_frame)
         options["CycleDPI"] = AddCycleDPI(master=options_frame)
-        options["ChangeHost"] = AddChangeHost(master=options_frame)
-        options["ChangeDPI"] = AddChangeDPI(master=options_frame)
+        options["ChangeHost"] = AddChangeHost(master=options_frame, go_back_function=self.go_back, app_root=self.test_master_222, settings_object=self.settings_object)
+        options["ChangeDPI"] = AddChangeDPI(master=options_frame, go_back_function=self.go_back, app_root=self.test_master_222, settings_object=self.settings_object)
         options["Keypress"].pack()
         self.selected_option = "Keypress"
 
@@ -1190,6 +1214,8 @@ class ButtonConfigFrame():
             radio_buttons_to_create.append(["Toggle Hi Res Scroll", button.button_togglehiresscroll])
         if button.button_gestures is not None:
             radio_buttons_to_create.append(["Gestures", button.button_gestures])
+
+
 
         self.selected_button_configuration = ctk.StringVar()
 
@@ -1671,6 +1697,7 @@ class EditPage(ctk.CTkFrame):
         left_frame_edit_page = ctk.CTkFrame(master=self, fg_color="#2B2B2B")
         left_frame_edit_page.grid(row=0, column=0, rowspan=2, sticky="nsew")
         self.grid_rowconfigure(0, weight=1)  # Set the weight of the row in the main frame
+        
         device_name_label = ctk.CTkLabel(master=left_frame_edit_page,
                                                 text=configuration.device_name, # TODO: create function to spread across two lines if device name is long. /n apears to work well for this
                                                 font=ctk.CTkFont(

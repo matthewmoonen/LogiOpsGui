@@ -693,6 +693,50 @@ END;
 
 
 -- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_changedpi_from_button_config
+AFTER INSERT ON ButtonConfigs
+FOR EACH ROW
+WHEN NEW.action_type = 'ChangeDPI'
+BEGIN
+    INSERT INTO ChangeDPI (configuration_id, action_id, source_table)
+    VALUES (NEW.configuration_id, NEW.button_config_id, 'ButtonConfigs');
+END;
+
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_changedpi_from_gestures
+AFTER INSERT ON Gestures
+FOR EACH ROW
+WHEN NEW.gesture_action = 'ChangeDPI'
+BEGIN
+    INSERT INTO ChangeDPI (configuration_id, action_id, source_table)
+    VALUES ((SELECT configuration_id FROM ButtonConfigs WHERE button_config_id = NEW.button_config_id), NEW.gesture_id, 'Gestures');
+END;
+
+
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_changedpi_from_scroll_actions
+AFTER INSERT ON ScrollActions
+FOR EACH ROW
+WHEN NEW.action_type = 'ChangeDPI'
+BEGIN
+    INSERT INTO ChangeDPI (configuration_id, action_id, source_table)
+    VALUES (NEW.configuration_id, NEW.scroll_action_id, 'ScrollActions');
+END;
+
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_changedpi_from_touch_tap_proxy
+AFTER INSERT ON TouchTapProxy
+FOR EACH ROW
+WHEN NEW.action_type = 'ChangeDPI'
+BEGIN
+    INSERT INTO ChangeDPI (configuration_id, action_id, source_table)
+    VALUES (NEW.configuration_id, NEW.touch_tap_proxy_id, 'TouchTapProxy');
+END;
+
+
+
+
+-- ### QUERY_SEPARATOR ###
 CREATE TRIGGER IF NOT EXISTS insert_changehost_from_button_config
 AFTER INSERT ON ButtonConfigs
 FOR EACH ROW
@@ -768,6 +812,16 @@ BEGIN
 DELETE FROM CycleDPI WHERE action_id = OLD.gesture_id AND source_table = 'Gestures';
 END;
 
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS delete_gesture_destination_changedpi
+AFTER DELETE ON Gestures
+FOR EACH ROW
+WHEN OLD.gesture_action = 'ChangeDPI'
+BEGIN
+DELETE FROM ChangeDPI WHERE action_id = OLD.gesture_id AND source_table = 'Gestures';
+END;
+
 
 -- ### QUERY_SEPARATOR ###
 
@@ -812,6 +866,16 @@ BEGIN
 DELETE FROM CycleDPI WHERE action_id = OLD.button_config_id AND source_table = 'ButtonConfigs';
 END;
 
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS delete_button_config_destination_changedpi
+AFTER DELETE ON ButtonConfigs 
+FOR EACH ROW
+WHEN OLD.action_type = 'ChangeDPI'
+BEGIN
+DELETE FROM ChangeDPI WHERE action_id = OLD.button_config_id AND source_table = 'ButtonConfigs';
+END;
+
 
 -- ### QUERY_SEPARATOR ###
 
@@ -853,6 +917,16 @@ FOR EACH ROW
 WHEN OLD.action_type = 'CycleDPI'
 BEGIN
 DELETE FROM CycleDPI WHERE action_id = OLD.scroll_action_id AND source_table = 'ScrollActions';
+END;
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS delete_scroll_action_destination_changedpi
+AFTER DELETE ON ScrollActions 
+FOR EACH ROW
+WHEN OLD.action_type = 'ChangeDPI'
+BEGIN
+DELETE FROM ChangeDPI WHERE action_id = OLD.scroll_action_id AND source_table = 'ScrollActions';
 END;
 
 

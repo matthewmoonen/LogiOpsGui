@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS ScrollActions (
     scroll_action_id INTEGER PRIMARY KEY,
     configuration_id INTEGER NOT NULL,
     scroll_direction TEXT NOT NULL CHECK (scroll_direction IN ('Up', 'Down', 'Left', 'Right')),
-    action_type TEXT NOT NULL CHECK (action_type IN ('Default', 'NoPress', 'ToggleSmartShift', 'ToggleHiresScroll', 'Keypress', 'Axis', 'CycleDPI', 'ChangeHost')),
+    action_type TEXT NOT NULL CHECK (action_type IN ('Default', 'NoPress', 'ToggleSmartShift', 'ToggleHiresScroll', 'Keypress', 'Axis', 'CycleDPI', 'ChangeDPI', 'ChangeHost')),
     is_selected INTEGER NOT NULL DEFAULT 0 CHECK (is_selected IN (0, 1)),
     date_added TEXT,
     last_edited TEXT,
@@ -97,7 +97,7 @@ CREATE TABLE IF NOT EXISTS TouchTapProxy (
     touch_tap_proxy_id INTEGER PRIMARY KEY,
     configuration_id INTEGER NOT NULL,
     touch_tap_proxy TEXT CHECK (touch_tap_proxy IN ('Touch', 'Tap', 'Proxy')),
-    action_type TEXT NOT NULL CHECK (action_type IN ('NoPress', 'ToggleSmartShift', 'ToggleHiresScroll', 'Keypress', 'Axis', 'CycleDPI', 'ChangeHost')),
+    action_type TEXT NOT NULL CHECK (action_type IN ('NoPress', 'ToggleSmartShift', 'ToggleHiresScroll', 'Keypress', 'Axis', 'CycleDPI', 'ChangeDPI', 'ChangeHost')),
     -- action_id INTEGER,
     is_selected INTEGER NOT NULL DEFAULT 0 CHECK (is_selected IN (0, 1)),
     date_added TEXT,
@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS ButtonConfigs (
     device_id INTEGER NOT NULL,
     button_id INTEGER NOT NULL,
     configuration_id INTEGER NOT NULL,
-    action_type TEXT NOT NULL CHECK (action_type IN ('Default', 'NoPress', 'ToggleSmartShift', 'ToggleHiresScroll', 'Gestures', 'Keypress', 'Axis', 'CycleDPI', 'ChangeHost')),
+    action_type TEXT NOT NULL CHECK (action_type IN ('Default', 'NoPress', 'ToggleSmartShift', 'ToggleHiresScroll', 'Gestures', 'Keypress', 'Axis', 'CycleDPI', 'ChangeDPI', 'ChangeHost')),
     is_selected INTEGER NOT NULL DEFAULT 0 CHECK (is_selected IN (0,1)),
     date_added TEXT,
     last_edited TEXT,
@@ -134,7 +134,7 @@ CREATE TABLE IF NOT EXISTS Gestures (
     gesture_id INTEGER PRIMARY KEY,
     button_config_id INTEGER NOT NULL,
     direction TEXT NOT NULL CHECK (direction IN ('Up', 'Down', 'Left', 'Right', 'None')),
-    gesture_action TEXT NOT NULL CHECK (gesture_action IN ('None', 'Axis', 'Keypress', 'ToggleSmartShift', 'ToggleHiresScroll', 'CycleDPI', 'ChangeHost')),
+    gesture_action TEXT NOT NULL CHECK (gesture_action IN ('None', 'Axis', 'Keypress', 'ToggleSmartShift', 'ToggleHiresScroll', 'CycleDPI', 'ChangeDPI', 'ChangeHost')),
     is_selected INTEGER NOT NULL DEFAULT 0 CHECK (is_selected IN (0,1)),
 
     FOREIGN KEY (button_config_id) REFERENCES ButtonConfigs(button_config_id) ON DELETE CASCADE
@@ -185,11 +185,11 @@ FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DE
 -- ### QUERY_SEPARATOR ###
 
 CREATE TABLE IF NOT EXISTS ChangeDPI (
-    change_dpi_id INTEGER PRIMARY KEY
+    change_dpi_id INTEGER PRIMARY KEY,
     configuration_id INTEGER NOT NULL,
     action_id INTEGER NOT NULL,
     source_table TEXT NOT NULL CHECK (source_table IN ('ButtonConfigs', 'Gestures', 'ScrollActions', 'TouchTapProxy')),
-    incremenet INTEGER NOT NULL, 
+    increment INTEGER, 
 
 FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DELETE CASCADE
 );
