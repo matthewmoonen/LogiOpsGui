@@ -56,7 +56,7 @@ class ButtonSettings:
                     button_togglesmartshift = None,
                     button_togglehiresscroll = None,
                     button_gestures = None,
-                    button_keypresses = [],
+                    button_keypresses = {},
                     button_axes = [],
                     button_changehost = [],
                     button_cycledpi = []
@@ -129,8 +129,9 @@ class ButtonSettings:
         
         keypress_list = cursor.fetchall()
         if len(keypress_list) != 0:
-            print(keypress_list)
-
+            for i in keypress_list:
+                button.button_keypresses[i[0]] = Keypress(keypress_id=i[1], keypresses=i[2])
+        
 
         cursor.execute("""
                         SELECT
@@ -257,7 +258,7 @@ class ButtonSettings:
         
         execute_db_queries.commit_changes_and_close(conn)
 
-        self.button_keypresses.append(keypresses)
+        # self.button_keypresses.append(keypresses)
 
     def add_new_(self, asdf):
         pass
