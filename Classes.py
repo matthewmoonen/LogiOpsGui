@@ -49,6 +49,7 @@ class ButtonSettings:
                     button_name,
                     gesture_support,
                     selected_button_config_id,
+                    button_keypresses,
                     device_id = None,
                     configuration_id = None,
                     button_default = None,
@@ -56,7 +57,6 @@ class ButtonSettings:
                     button_togglesmartshift = None,
                     button_togglehiresscroll = None,
                     button_gestures = None,
-                    button_keypresses = {},
                     button_axes = [],
                     button_changehost = [],
                     button_cycledpi = []
@@ -110,7 +110,7 @@ class ButtonSettings:
         button.button_togglehiresscroll = one_config_values["ToggleHiresScroll"]
         button.button_togglesmartshift = one_config_values["ToggleSmartShift"]
 
-
+        button.button_keypresses = {}
         cursor.execute("""
                         SELECT 
                             ButtonConfigs.button_config_id,
@@ -126,12 +126,15 @@ class ButtonSettings:
                             AND ButtonConfigs.action_type = 'Keypress' 
                             AND Keypresses.source_table = 'ButtonConfigs';
                         """, (configuration_id, button_id))
-        
+        # print(configuration_id, button_id)
+
+
         keypress_list = cursor.fetchall()
+
+
         if len(keypress_list) != 0:
             for i in keypress_list:
-                button.button_keypresses[i[0]] = Keypress(keypress_id=i[1], keypresses=i[2])
-        
+                button.button_keypresses[i[0]] = Keypress(button_config_id=i[0], keypress_id=i[1], keypresses=i[2])
 
         cursor.execute("""
                         SELECT
@@ -260,8 +263,17 @@ class ButtonSettings:
 
         # self.button_keypresses.append(keypresses)
 
-    def add_new_(self, asdf):
-        pass
+
+
+    def delete_keypresses(self, button_config_id):
+        conn, cursor = execute_db_queries.create_db_connection()
+        cursor.execute("""
+                    DELETE FROM ButtonConfigs
+                    WHERE button_config_id = ?;
+                        """, (button_config_id,))
+
+        execute_db_queries.commit_changes_and_close(conn)
+        del self.button_keypresses[button_config_id]
 
 
 
@@ -469,10 +481,12 @@ class Keypress():
     def __init__(
         self,
         keypress_id,
-        keypresses
+        keypresses,
+        button_config_id=None,
     ):
         self.keypress_id = keypress_id
         self.keypresses = keypresses
+        self.button_config_id = button_config_id
 
     @classmethod
     def fetch_using_action_id_and_source_table(cls, configuration_id, action_id, source_table):

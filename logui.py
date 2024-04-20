@@ -282,7 +282,7 @@ class ConfigurationFrame():
         self.select_configuration = select_configuration
         self.delete_config_callback = delete_config_callback
 
-        self.config_row_frame = ctk.CTkFrame(master=master_frame)
+        self.config_row_frame = ctk.CTkFrame(master=master_frame, fg_color="transparent")
         self.config_row_frame.pack()
 
         self.radio_button = MatthewsRadioButton(master=self.config_row_frame, width=600, text=config.configuration_name, command=lambda c=self.config.configuration_id: select_configuration(c))
@@ -1214,11 +1214,27 @@ class ButtonConfigFrame():
             radio_buttons_to_create.append(["Toggle Hi Res Scroll", button.button_togglehiresscroll])
         if button.button_gestures is not None:
             radio_buttons_to_create.append(["Gestures", button.button_gestures])
-
         self.selected_button_configuration = ctk.StringVar()
 
         radio_buttons_frame = ctk.CTkFrame(master=self.container_frame)
         radio_buttons_frame.grid(row=1, column=0)
+
+
+
+            # for i, v in button.button_keypresses.items():
+            #     keypress_button_row = ctk.CTkFrame(master=keypress_radio_buttons_frame)                
+            #     keypress_button_row.pack()
+
+            #     radio_button = MatthewsRadioButton(master=keypress_button_row, width=600, text="Keypress", command=lambda c=i: self.select_configuration(c))
+            #     radio_button.grid(row=0, column=0)            
+
+            #     if button.selected_button_config_id == i:
+            #         radio_button.radio_button_clicked()
+
+            #     self.radio_buttons_dictionary[i] = radio_button
+
+
+
 
 
 
@@ -1256,22 +1272,44 @@ class ButtonConfigFrame():
 
 
         if len(button.button_keypresses) > 0:
+            # print(button.button_keypresses, button.button_cid)
+
+
+            def keypress_deletion_warning(c, f, b):
+                b.delete_keypresses(button_config_id=c)
+                f.destroy()
 
             for i, v in button.button_keypresses.items():
-                # print(i)
-                print(i)
-                print(v)
                 keypress_button_row = ctk.CTkFrame(master=keypress_radio_buttons_frame)                
                 keypress_button_row.pack()
 
                 radio_button = MatthewsRadioButton(master=keypress_button_row, width=600, text="Keypress", command=lambda c=i: self.select_configuration(c))
-                radio_button.grid(row=0, column=0)            
+                radio_button.grid(row=0, column=0, sticky="w")            
 
                 if button.selected_button_config_id == i:
                     radio_button.radio_button_clicked()
 
                 self.radio_buttons_dictionary[i] = radio_button
 
+
+                delete_keypress_button = ctk.CTkButton(
+                        master=keypress_button_row,
+                        height=20,
+                        width=80,
+                        text="Delete",
+                        fg_color="transparent",
+                        # border_color="red",
+                        font=ctk.CTkFont(family="Noto Sans"),
+                        text_color="#6C757D",
+                        border_color="#6C757D",
+                        hover_color="#450C0F",
+                        border_width=1,
+                        corner_radius=2,
+                        command=lambda c=i, f=keypress_button_row, b=button: keypress_deletion_warning(c, f, b)
+                )
+                delete_keypress_button.grid(row=0, column=3, pady="5", sticky="e")
+
+                keypress_button_row.columnconfigure(1, weight=2)
 
 
 
@@ -3434,8 +3472,8 @@ class SplashScreen(ctk.CTkFrame):
 def setup_gui(root):
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("dark-blue")
-    ctk.set_widget_scaling(0.8)  # widget dimensions and text size
-    ctk.set_window_scaling(0.4)  # window geometry dimensions
+    # ctk.set_widget_scaling(0.8)  # widget dimensions and text size
+    # ctk.set_window_scaling(0.4)  # window geometry dimensions
 
 
     root.geometry("1920x1080+100+100")
