@@ -50,6 +50,10 @@ class ButtonSettings:
                     gesture_support,
                     selected_button_config_id,
                     button_keypresses,
+                    button_changehost = {},
+                    button_cycledpi = {},
+                    button_changedpi = {},
+                    button_axes = {},
                     device_id = None,
                     configuration_id = None,
                     button_default = None,
@@ -57,9 +61,6 @@ class ButtonSettings:
                     button_togglesmartshift = None,
                     button_togglehiresscroll = None,
                     button_gestures = None,
-                    button_axes = [],
-                    button_changehost = [],
-                    button_cycledpi = []
     ):
 
         self.button_id = button_id
@@ -78,6 +79,7 @@ class ButtonSettings:
         self.button_axes = button_axes
         self.button_changehost = button_changehost
         self.button_cycledpi = button_cycledpi
+        self.button_changedpi = button_changedpi
 
 
     @classmethod
@@ -90,6 +92,8 @@ class ButtonSettings:
         button.gesture_support = gesture_support
         button.device_id = device_id
         button.configuration_id = configuration_id
+
+
 
         one_config_values = {"Default":None, "Gestures":None, "NoPress":None, "ToggleHiresScroll":None, "ToggleSmartShift":None}
         for key in one_config_values:
@@ -126,16 +130,14 @@ class ButtonSettings:
                             AND ButtonConfigs.action_type = 'Keypress' 
                             AND Keypresses.source_table = 'ButtonConfigs';
                         """, (configuration_id, button_id))
-        # print(configuration_id, button_id)
-
 
         keypress_list = cursor.fetchall()
-
-
         if len(keypress_list) != 0:
             for i in keypress_list:
                 button.button_keypresses[i[0]] = Keypress(button_config_id=i[0], keypress_id=i[1], keypresses=i[2])
 
+
+        button.button_changehost = {}
         cursor.execute("""
                         SELECT
                             ButtonConfigs.button_config_id,
@@ -148,14 +150,45 @@ class ButtonSettings:
                         WHERE
                             ButtonConfigs.configuration_id = ?
                             AND ButtonConfigs.button_id = ?
-                            AND ButtonConfigs.action_type = 'Keypress'
+                            AND ButtonConfigs.action_type = 'ChangeHost'
                             AND ChangeHost.source_table = 'ButtonConfigs';
                         """, (configuration_id, button_id))
         changehost_list = cursor.fetchall()
         if len(changehost_list) != 0:
-            print(changehost_list)
+            for i in changehost_list:
+                button.button_changehost[i[0]] = ChangeHost(button_config_id=i[0], host_id=i[1], host_change=i[2])
 
 
+
+
+        button.button_changedpi = {}
+        cursor.execute("""
+                        SELECT
+                            ButtonConfigs.button_config_id,
+                            ChangeDPI.change_dpi_id,
+                            ChangeDPI.increment
+                        FROM
+                            ButtonConfigs
+                        JOIN
+                            ChangeDPI ON ChangeDPI.action_id = ButtonConfigs.button_config_id
+                        WHERE
+                            ButtonConfigs.configuration_id = ?
+                            AND ButtonConfigs.button_id = ?
+                            AND ButtonConfigs.action_type = 'ChangeDPI'
+                            AND ChangeDPI.source_table = 'ButtonConfigs';
+                        """, (configuration_id, button_id))
+        changedpi_list = cursor.fetchall()
+        if len(changedpi_list) != 0:
+            for i in changedpi_list:
+                button.button_changedpi[i[0]] = ChangeDPI(button_config_id=i[0], change_dpi_id=i[1], increment=i[2])
+        # print(button.button_changedpi)
+
+
+
+
+
+
+        button.button_cycledpi = {}
         cursor.execute("""
                         SELECT
                             ButtonConfigs.button_config_id,
@@ -173,7 +206,16 @@ class ButtonSettings:
                         """, (configuration_id, button_id))
         cycledpi_list = cursor.fetchall()
         if len(cycledpi_list) != 0:
-            print(cycledpi_list)
+            for i in cycledpi_list:
+                button.button_cycledpi[i[0]] = CycleDPI(button_config_id=i[0], cycle_dpi_id=i[1], dpi_array=i[2])
+
+
+
+
+
+
+
+        button.button_axes = {}
 
 
         cursor.execute("""
@@ -194,7 +236,8 @@ class ButtonSettings:
                         """, (configuration_id, button_id))
         axes_list = cursor.fetchall()
         if len(axes_list) != 0:
-            print(axes_list)
+            # print(axes_list)
+            pass
 
         cursor.execute("""
                         SELECT button_config_id
@@ -224,45 +267,127 @@ class ButtonSettings:
             )
         return cursor.fetchone()[0]
 
-    def add_new_changedpi(self, increment):
+    def add_new_cycledpi(self, dpi_array):
+
         conn, cursor = execute_db_queries.create_db_connection()
-        inserted_row_id = self.add_action(cursor=cursor, action_type="ChangeDPI")
+        inserted_row_button_config_id = self.add_action(cursor=cursor, action_type="CycleDPI")
+
+        cursor.execute(
+            """
+            UPDATE CycleDPI
+            SET dpi_array = ?
+            WHERE action_id = ? and source_table = "ButtonConfigs";
+            """, (dpi_array, inserted_row_button_config_id)
+        )
+        cursor.execute("""
+                        SELECT cycle_dpi_id
+                        FROM CycleDPI
+                        WHERE action_id = ? AND source_table = 'ButtonConfigs';
+                        """, (inserted_row_button_config_id,))
+        new_cycledpi_id = cursor.fetchone()[0]
+        self.button_cycledpi[inserted_row_button_config_id] = CycleDPI(button_config_id=inserted_row_button_config_id, cycle_dpi_id=new_cycledpi_id, dpi_array=dpi_array)
+
+        execute_db_queries.commit_changes_and_close(conn)
+        return inserted_row_button_config_id
+
+
+    def add_new_changedpi(self, increment):
+
+        conn, cursor = execute_db_queries.create_db_connection()
+        inserted_row_button_config_id = self.add_action(cursor=cursor, action_type="ChangeDPI")
+
         cursor.execute(
             """
             UPDATE ChangeDPI
             SET increment = ?
             WHERE action_id = ? and source_table = "ButtonConfigs";
-            """, (increment, inserted_row_id)
+            """, (increment, inserted_row_button_config_id)
         )
+        cursor.execute("""
+                        SELECT change_dpi_id
+                        FROM ChangeDPI
+                        WHERE action_id = ? AND source_table = 'ButtonConfigs';
+                        """, (inserted_row_button_config_id,))
+        new_changedpi_id = cursor.fetchone()[0]
+        self.button_changedpi[inserted_row_button_config_id] = ChangeDPI(button_config_id=inserted_row_button_config_id, change_dpi_id=new_changedpi_id, increment=increment)
+
         execute_db_queries.commit_changes_and_close(conn)
+        return inserted_row_button_config_id
 
 
     def add_new_changehost(self, host):
         conn, cursor = execute_db_queries.create_db_connection()
-        inserted_row_id = self.add_action(cursor=cursor, action_type="ChangeHost")
+        inserted_row_button_config_id = self.add_action(cursor=cursor, action_type="ChangeHost")
         cursor.execute(
             """
             UPDATE ChangeHost
             SET host_change = ?
             WHERE action_id = ? and source_table = "ButtonConfigs";
-            """, ("prev" if host == "Previous" else "next" if host == "Next" else host, inserted_row_id)
+            """, ("prev" if host == "Previous" else "next" if host == "Next" else host, inserted_row_button_config_id)
         )
+
+        cursor.execute("""
+                        SELECT host_id
+                        FROM ChangeHost
+                        WHERE action_id = ? AND source_table = 'ButtonConfigs';
+                        """, (inserted_row_button_config_id,))
+        new_changehost_id = cursor.fetchone()[0]
+        self.button_changehost[inserted_row_button_config_id] = ChangeHost(button_config_id=inserted_row_button_config_id, host_id=new_changehost_id, host_change=host)
+
         execute_db_queries.commit_changes_and_close(conn)
+        return inserted_row_button_config_id
 
     def add_new_keypress_action(self, keypresses):
         conn, cursor = execute_db_queries.create_db_connection()
-        inserted_row_id = self.add_action(cursor=cursor, action_type="Keypress")
+        inserted_row_button_config_id = self.add_action(cursor=cursor, action_type="Keypress")
 
         cursor.execute("""
                             UPDATE Keypresses
                             SET keypresses = ?
                             WHERE action_id = ? and source_table = 'ButtonConfigs';
-                    """, (keypresses, inserted_row_id))
-        
+                    """, (keypresses, inserted_row_button_config_id))
+
+        cursor.execute("""
+                        SELECT keypress_id
+                        FROM Keypresses
+                        WHERE action_id = ? AND source_table = 'ButtonConfigs';
+                        """, (inserted_row_button_config_id,))
+        new_keypress_id = cursor.fetchone()[0]
+        self.button_keypresses[inserted_row_button_config_id] = Keypress(button_config_id=inserted_row_button_config_id, keypress_id=new_keypress_id, keypresses=keypresses)
+
         execute_db_queries.commit_changes_and_close(conn)
 
-        # self.button_keypresses.append(keypresses)
+        return inserted_row_button_config_id
 
+
+    def delete_cycledpi(self, button_config_id):
+        conn, cursor = execute_db_queries.create_db_connection()
+        cursor.execute("""
+                        DELETE FROM ButtonConfigs
+                        WHERE button_config_id = ?;
+                        """, (button_config_id,))
+        execute_db_queries.commit_changes_and_close(conn)
+        del self.button_cycledpi[button_config_id]
+
+
+    def delete_changedpi(self, button_config_id):
+        conn, cursor = execute_db_queries.create_db_connection()
+        cursor.execute("""
+                        DELETE FROM ButtonConfigs
+                        WHERE button_config_id = ?;
+                        """, (button_config_id,))
+        execute_db_queries.commit_changes_and_close(conn)
+        del self.button_changedpi[button_config_id]
+
+
+    def delete_changehost(self, button_config_id):
+        conn, cursor = execute_db_queries.create_db_connection()
+        cursor.execute("""
+                        DELETE FROM ButtonConfigs
+                        WHERE button_config_id = ?;
+                        """, (button_config_id,))
+        execute_db_queries.commit_changes_and_close(conn)
+        del self.button_changehost[button_config_id]
 
 
     def delete_keypresses(self, button_config_id):
@@ -475,6 +600,60 @@ class Axis():
         return axis
         
 
+class ChangeDPI:
+    def __init__(
+            self,
+            change_dpi_id,
+            increment,
+            button_config_id=None
+    ):
+        self.change_dpi_id = change_dpi_id
+        self.increment = increment
+        self.button_config_id = button_config_id
+
+
+    @classmethod
+    def fetch_using_action_id_and_source_table(cls, configuration_id, action_id, source_table):
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+                            SELECT change_dpi_id, increment
+                            FROM CycleDPI
+                            WHERE configuration_id = ? AND action_id = ? AND source_table = ?
+                        """, (configuration_id, action_id, source_table))
+        change_dpi = cls
+        change_dpi.change_dpi_id, change_dpi.increment = cursor.fetchone()
+        execute_db_queries.close_without_committing_changes(conn)
+        return change_dpi
+
+
+
+
+
+class ChangeHost:
+    def __init__(
+        self,
+        host_id,
+        host_change,
+        button_config_id=None
+    ):
+        self.host_id = host_id
+        self.host_change = host_change
+        self.button_config_id = button_config_id
+
+    @classmethod
+    def fetch_using_action_id_and_source_table(cls, configuration_id, action_id, source_table):
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+                            SELECT host_id, host_change
+                            FROM ChangeHost
+                            WHERE configuration_id = ? AND action_id = ? AND source_table = ?
+                        """, (configuration_id, action_id, source_table))
+        change_host = cls
+        change_host.host_id, change_host.host_change = cursor.fetchone()
+        execute_db_queries.close_without_committing_changes(conn)
+        return change_host
 
 
 class Keypress():
@@ -510,11 +689,13 @@ class CycleDPI:
         self,
         cycle_dpi_id,
         dpi_array,
-        sensor
+        sensor=None,
+        button_config_id=None,
     ):
         self.cycle_dpi_id = cycle_dpi_id
         self.dpi_array = dpi_array
         self.sensor = sensor
+        self.button_config_id = button_config_id
 
     @classmethod
     def fetch_using_action_id_and_source_table(cls, configuration_id, action_id, source_table):
@@ -532,30 +713,6 @@ class CycleDPI:
 
 
 
-
-class ChangeHost:
-    def __init__(
-        self,
-        host_id,
-        host_change
-    ):
-        self.host_id = host_id
-        self.host_change = host_change
-
-
-    @classmethod
-    def fetch_using_action_id_and_source_table(cls, configuration_id, action_id, source_table):
-        conn, cursor = execute_db_queries.create_db_connection()
-
-        cursor.execute("""
-                            SELECT host_id, host_change
-                            FROM ChangeHost
-                            WHERE configuration_id = ? AND action_id = ? AND source_table = ?
-                        """, (configuration_id, action_id, source_table))
-        change_host = cls
-        change_host.host_id, change_host.host_change = cursor.fetchone()
-        execute_db_queries.close_without_committing_changes(conn)
-        return change_host
 
 
 
@@ -763,7 +920,6 @@ class ScrollProperties:
 
         def get_scroll_actions(direction):
             # directions = ["Up", "Down"] if wheel_type == "scrollwheel" else ["Left", "Right"]
-            # print(f"has {wheel_type}, directions: {directions[0]}, {directions[1]}")
             # for i in directions:
             #     pass
             cursor.execute("""
@@ -773,7 +929,7 @@ class ScrollProperties:
             """, (configuration_id, direction))
         
             scroll_actions = cursor.fetchall()
-            # print(scroll_actions)
+
 
 
 

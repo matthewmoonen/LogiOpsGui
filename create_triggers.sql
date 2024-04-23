@@ -405,6 +405,20 @@ END
 
 -- ### QUERY_SEPARATOR ###
 
+CREATE TRIGGER IF NOT EXISTS button_configs_update_selected_after_delete
+AFTER DELETE ON ButtonConfigs
+BEGIN
+    UPDATE ButtonConfigs
+    SET is_selected = 1
+    WHERE configuration_id = OLD.configuration_id
+    AND button_id = OLD.button_id
+    AND action_type = "Default"
+    AND OLD.is_selected = 1
+    AND EXISTS (SELECT 1 FROM ButtonConfigs WHERE configuration_id = OLD.configuration_id AND button_id = OLD.button_id);
+END;
+
+-- ### QUERY_SEPARATOR ###
+
 CREATE TRIGGER IF NOT EXISTS configuration_update_selected_after_delete
 AFTER DELETE ON Configurations
 BEGIN
@@ -992,6 +1006,16 @@ FOR EACH ROW
 WHEN OLD.action_type = 'ChangeHost'
 BEGIN
 DELETE FROM ChangeHost WHERE action_id = OLD.touch_tap_proxy_id AND source_table = 'TouchTapProxy';
+END;
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS delete_touch_tap_proxy_action_destination_changedpi
+AFTER DELETE ON TouchTapProxy 
+FOR EACH ROW
+WHEN OLD.action_type = 'ChangeDPI'
+BEGIN
+DELETE FROM ChangeDPI WHERE action_id = OLD.touch_tap_proxy_id AND source_table = 'TouchTapProxy';
 END;
 
 
