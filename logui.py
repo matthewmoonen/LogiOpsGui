@@ -15,7 +15,7 @@ import inspect
 import time
 import threading
 import Classes2
-
+import keymates
 
 from PIL import Image, ImageTk
 import io
@@ -1069,8 +1069,9 @@ class KeyPressFrame(ctk.CTkFrame):
         if hasattr(self, "reset_button"):
             self.reset_button.destroy()
             self.save_button.destroy()
-        if hasattr(self, "keypress_array"):
-            del self.keypress_array
+        if hasattr(self, "db_keypress_array"):
+            del self.db_keypress_array
+            del self.gui_keypress_array
 
     def activate_key_listener(self):
         self.app_root.bind("<KeyPress>", self.handle_key_press)
@@ -1089,7 +1090,7 @@ class KeyPressFrame(ctk.CTkFrame):
         self.app_root.unbind("<KeyRelease>")
         self.stop_recording_button.destroy()
 
-        if not hasattr(self, "keypress_array"):
+        if not hasattr(self, "db_keypress_array"):
             self.initialise_clickbox()
         else:
             self.click_box.configure(border_color="#DC3545")
@@ -1099,7 +1100,7 @@ class KeyPressFrame(ctk.CTkFrame):
             self.save_button.pack()
 
     def save_button_clicked(self):
-        new_button_config_id = self.settings_object.add_new_keypress_action(keypresses=str(self.keypress_array))
+        new_button_config_id = self.settings_object.add_new_keypress_action(keypresses=str(self.db_keypress_array))
         self.origin_frame.create_keypress_radio_button_row(i=new_button_config_id)
         self.origin_frame.keypress_radio_buttons_frame.grid(row=2, column=0)
         self.go_back_function()
@@ -1107,12 +1108,15 @@ class KeyPressFrame(ctk.CTkFrame):
 
     def handle_key_press(self, event):
 
-        if not hasattr(self, "keypress_array"):
-            self.keypress_array = [event.keysym]
-            self.click_box.configure(text=event.keysym)
-        elif event.keysym not in self.keypress_array:
-            self.click_box.configure(text=f"{self.click_box._text} {event.keysym}")
-            self.keypress_array.append(event.keysym)
+        db_keymate, gui_keymate = keymates.get_keymates(event.keysym)
+        if not hasattr(self, "db_keypress_array"):
+            self.db_keypress_array = [db_keymate]            
+            self.gui_keypress_array = [gui_keymate]
+            self.click_box.configure(text=gui_keymate)
+        elif db_keymate not in self.db_keypress_array:
+            self.click_box.configure(text=f"{self.click_box._text} {gui_keymate}")
+            self.db_keypress_array.append(db_keymate)
+            self.gui_keypress_array.append(gui_keymate)
         if event.keysym == "Super_L":
             self.app_root.after(150, lambda: self.app_root.focus_force())  # Try to force focus back after a short delay
         return "break"
@@ -1812,7 +1816,6 @@ class ButtonConfigFrame():
 
     def destroy(self, *args, **kwargs): # As above
         self.container_frame.destroy(*args, **kwargs)
-
 
 
 
