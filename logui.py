@@ -104,10 +104,116 @@ class MatthewsRadioButton:
 
 
 
+class FloatSpinbox(ctk.CTkFrame):
+    def __init__(self, *args, width: int = 100, height: int = 32, step_size: float = 1.0, min_value: float = None, 
+                 max_value: float = None, decimal_places: int = 1, command: Callable = None, db_query=None, value=None, **kwargs):
+        super().__init__(*args, width=width, height=height, **kwargs)
+
+        self.step_size = step_size
+        self.min_value = min_value
+        self.max_value = max_value
+        self.decimal_places = decimal_places
+        self.command = command
+        self.db_query = db_query
+        self.value = value if value is not None else (min_value if min_value is not None else 0.0)
+
+        self.enabled = True  # Initial state is enabled
+        self.configure(fg_color=("gray78", "gray28"))  # set frame color
+
+        self.grid_columnconfigure((0, 2), weight=0)
+        self.grid_columnconfigure(1, weight=1)  # entry expands
+
+        self.subtract_button = ctk.CTkButton(self, text="-", width=height-2, height=height-2, command=self.subtract_button_callback)
+        self.subtract_button.grid(row=0, column=0, padx=(3, 0), pady=3)
+
+        vcmd = self.register(self.validate)
+        self.entry = ctk.CTkEntry(self, validate="key", validatecommand=(vcmd, '%P'), width=width-(2.8*height), height=height-4, border_width=0)
+        self.entry.grid(row=0, column=1, columnspan=1, padx=3, pady=3, sticky="ew")
+        self.entry.insert(0, self.format_value(self.value))
+
+        self.add_button = ctk.CTkButton(self, text="+", width=height-2.5, height=height-2.5, command=self.add_button_callback)
+        self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
+
+        self.entry.bind("<FocusOut>", self.on_focus_out)
+
+    def format_value(self, value):
+        return f"{value:.{self.decimal_places}f}"
+
+    def validate(self, new_text):
+        if new_text in ("", "-"):
+            return True
+        try:
+            float(new_text)
+            return True
+        except ValueError:
+            return False
+
+    def on_focus_out(self, event):
+        try:
+            value = float(self.entry.get())
+            value = max(self.min_value, value) if self.min_value is not None else value
+            value = min(self.max_value, value) if self.max_value is not None else value
+        except ValueError:
+            value = self.value  # Use stored value if parsing fails
+
+        self.entry.delete(0, "end")
+        self.entry.insert(0, self.format_value(value))
+        if self.value != value:
+            self.value = value
+            self.run_db_query()
+
+    def add_button_callback(self):
+        try:
+            value = float(self.entry.get())
+            value = value + self.step_size
+            value = min(self.max_value, value) if self.max_value is not None else value
+        except ValueError:
+            return
+        self.entry.delete(0, "end")
+        self.entry.insert(0, self.format_value(value))
+        if self.value != value:
+            self.value = value
+            self.run_db_query()
+
+    def subtract_button_callback(self):
+        try:
+            value = float(self.entry.get())
+            value = value - self.step_size
+            value = max(self.min_value, value) if self.min_value is not None else value
+        except ValueError:
+            return
+        self.entry.delete(0, "end")
+        self.entry.insert(0, self.format_value(value))
+        if self.value != value:
+            self.value = value
+            self.run_db_query()
+
+    def get(self) -> float:
+        try:
+            return float(self.entry.get())
+        except ValueError:
+            return self.value
+
+    def set(self, value: float):
+        value = max(self.min_value, value) if self.min_value is not None else value
+        value = min(self.max_value, value) if self.max_value is not None else value
+        self.entry.delete(0, "end")
+        self.entry.insert(0, self.format_value(value))
+        self.value = value
+
+    def toggle_enable(self, new_enabled_state):
+        self.enabled = new_enabled_state
+        state = "normal" if self.enabled else "disabled"
+        self.entry.configure(state=state)
+        self.add_button.configure(state=state)
+        self.subtract_button.configure(state=state)
+
+    def run_db_query(self):
+        if callable(self.db_query):
+            self.db_query(self.value)
+
 
 class IntSpinbox(ctk.CTkFrame):
-
-    
     def __init__(self, *args, width: int = 100, height: int = 32, step_size: int = 1, min_value: int = None, max_value: int = None, 
                  command: Callable = None, #TODO: Remove
                  db_query = None, value=None,
@@ -120,6 +226,7 @@ class IntSpinbox(ctk.CTkFrame):
         self.command = command
         self.db_query = db_query
         self.value = value
+
 
         self.enabled = True  # TODO: Initial state is enabled
 
@@ -1029,8 +1136,34 @@ class AddAxisFrame(ctk.CTkFrame):
         self.origin_frame = origin_frame
         self.settings_object = settings_object
         self.go_back_function = go_back_function
+
         label=ctk.CTkLabel(master=self, text="Axis")
         label.pack()
+
+        
+        rel_list = ["REL_X", "REL_Y", "REL_Z", "REL_RX", "REL_RY", "REL_RZ", "REL_HWHEEL", "REL_DIAL", "REL_WHEEL", "REL_MISC", "REL_RESERVED", "REL_WHEEL_HI_RES", "REL_HWHEEL_HI_RES", "REL_MAX", "REL_CNT"]
+
+        axis_dropdown = ctk.CTkOptionMenu(master=self,
+                                          variable=ctk.StringVar(value="Select Axis"),
+                                          values=rel_list,
+                                          state="normal",
+                                          width=200,
+                                          height=36
+                                          )
+        axis_dropdown.pack()
+
+        multiplier_floatspinbox = FloatSpinbox(master=self,
+
+                                value=1,
+                                width=200,
+                                step_size=0.1,
+                                min_value=-9999,
+                                max_value=9999
+                                        )
+        multiplier_floatspinbox.pack()
+
+        
+
 
 class AddCycleDPI(ctk.CTkFrame):
     def __init__(self, master, app_root, settings_object, go_back_function, origin_frame, min_dpi, max_dpi, **kwargs):
@@ -1056,12 +1189,37 @@ class AddCycleDPI(ctk.CTkFrame):
         self.add_to_array_button = ctk.CTkButton(master=self, text="Add value to array", command=self.add_value_to_array, text_color="white", text_color_disabled=("#9FA5AB"), fg_color="#198754", font=ctk.CTkFont( size=14, family="Veranda"))
         self.add_to_array_button.pack()
 
-        self.save_button = ctk.CTkButton(master=self, text="Save New Action", command=self.add_new_cycledpi, text_color="white", text_color_disabled=("#9FA5AB"), fg_color="#198754", font=ctk.CTkFont( size=14, family="Veranda"))
+        self.save_button = ctk.CTkButton(master=self, text="Save New Action", state="disabled", command=self.add_new_cycledpi, text_color="white", text_color_disabled=("#9FA5AB"), fg_color="#198754", font=ctk.CTkFont( size=14, family="Veranda"))
         self.save_button.pack()
 
         self.array = []
+        self.array_dict = {}
         self.array_label = ctk.CTkLabel(master=self, text=self.array)
         self.array_label.pack()
+
+        self.array_frame = ctk.CTkFrame(master=self)
+        self.array_frame.pack()
+
+    def add_to_array_frame(self, value):
+
+        value_frame = ctk.CTkFrame(master=self.array_frame)
+        value_frame.grid(row=0, column=value)
+
+        label = ctk.CTkLabel(master=value_frame, text=value)
+        label.grid(row=0, column=0)
+
+        remove_button = ctk.CTkButton(master=value_frame, text="X", command=lambda value=value, value_frame=value_frame: self.delete_from_array(value, value_frame))
+        remove_button.grid(row=0, column=1)
+
+        if len(self.array) > 1:
+            self.save_button.configure(state="enabled")
+
+    def delete_from_array(self, value, value_frame):
+        self.array.remove(value)
+        value_frame.destroy()
+        if len(self.array) < 2:
+            self.save_button.configure(state="disabled")
+
 
     def add_value_to_array(self):
         value_to_add = self.spinbox.get()
@@ -1069,10 +1227,7 @@ class AddCycleDPI(ctk.CTkFrame):
             self.array.append(value_to_add)
             self.array = sorted(self.array)
             self.array_label.configure(text=self.array)
-            print(self.array)
-
-
-
+            self.add_to_array_frame(value=value_to_add)
 
     def add_new_cycledpi(self):
         new_button_config_id = self.settings_object.add_new_cycledpi(str(self.array))
