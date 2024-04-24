@@ -217,7 +217,6 @@ class ButtonSettings:
 
         button.button_axes = {}
 
-
         cursor.execute("""
                         SELECT
                             ButtonConfigs.button_config_id,
@@ -231,13 +230,15 @@ class ButtonSettings:
                         WHERE 
                             ButtonConfigs.configuration_id = ?
                             AND ButtonConfigs.button_id = ?
-                            AND ButtonConfigs.action_type = 'Keypress'
+                            AND ButtonConfigs.action_type = 'Axis'
                             AND Axes.source_table = 'ButtonConfigs';
                         """, (configuration_id, button_id))
         axes_list = cursor.fetchall()
         if len(axes_list) != 0:
-            # print(axes_list)
-            pass
+            for i in axes_list:
+                button.button_axes[i[0]] = Axis(button_config_id=i[0], axis_id=i[1], axis_button=i[2], axis_multiplier=i[3])
+
+
 
         cursor.execute("""
                         SELECT button_config_id
@@ -289,6 +290,32 @@ class ButtonSettings:
 
         execute_db_queries.commit_changes_and_close(conn)
         return inserted_row_button_config_id
+
+
+    def add_new_axis(self, axis, axis_multiplier):
+
+        conn, cursor = execute_db_queries.create_db_connection()
+        inserted_row_button_config_id = self.add_action(cursor=cursor, action_type="Axis")
+
+        cursor.execute(
+            """
+            UPDATE Axes
+            SET axis_button = ?, axis_multiplier = ?
+            WHERE action_id = ? and source_table = "ButtonConfigs";
+            """, (axis, axis_multiplier, inserted_row_button_config_id)
+        )
+        cursor.execute("""
+                        SELECT axis_id
+                        FROM Axes
+                        WHERE action_id = ? AND source_table = 'ButtonConfigs';
+                        """, (inserted_row_button_config_id,))
+        new_axis_id = cursor.fetchone()[0]
+        self.button_axes[inserted_row_button_config_id] = Axis(button_config_id=inserted_row_button_config_id, axis_id=new_axis_id, axis_button=axis, axis_multiplier=axis_multiplier)
+        
+        execute_db_queries.commit_changes_and_close(conn)
+        return inserted_row_button_config_id
+
+
 
 
     def add_new_changedpi(self, increment):
@@ -358,6 +385,16 @@ class ButtonSettings:
         execute_db_queries.commit_changes_and_close(conn)
 
         return inserted_row_button_config_id
+
+
+    def delete_axis(self, button_config_id):
+        conn, cursor = execute_db_queries.create_db_connection()
+        cursor.execute("""
+                        DELETE FROM ButtonConfigs
+                        WHERE button_config_id = ?;
+                        """, (button_config_id,))
+        execute_db_queries.commit_changes_and_close(conn)
+        del self.button_axes[button_config_id]
 
 
     def delete_cycledpi(self, button_config_id):
@@ -579,12 +616,14 @@ class Axis():
         self,
         axis_id,
         axis_button,
-        axis_multiplier
+        axis_multiplier,
+        button_config_id=None
 
     ):
         self.axis_id = axis_id
         self.axis_button = axis_button
         self.axis_multiplier = axis_multiplier
+        self.button_config_id = button_config_id
 
     @classmethod
     def fetch_using_action_id_and_source_table(cls, configuration_id, action_id, source_table):

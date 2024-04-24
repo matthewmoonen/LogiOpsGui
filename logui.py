@@ -1143,8 +1143,10 @@ class AddAxisFrame(ctk.CTkFrame):
         
         rel_list = ["REL_X", "REL_Y", "REL_Z", "REL_RX", "REL_RY", "REL_RZ", "REL_HWHEEL", "REL_DIAL", "REL_WHEEL", "REL_MISC", "REL_RESERVED", "REL_WHEEL_HI_RES", "REL_HWHEEL_HI_RES", "REL_MAX", "REL_CNT"]
 
+        
+        axis_dropdown_variable = ctk.StringVar(value="Select Axis")
         axis_dropdown = ctk.CTkOptionMenu(master=self,
-                                          variable=ctk.StringVar(value="Select Axis"),
+                                          variable=axis_dropdown_variable,
                                           values=rel_list,
                                           state="normal",
                                           width=200,
@@ -1161,8 +1163,25 @@ class AddAxisFrame(ctk.CTkFrame):
                                 max_value=9999
                                         )
         multiplier_floatspinbox.pack()
-
         
+        self.save_button = ctk.CTkButton(master=self, 
+                                        text="Save New Action", 
+                                        command=lambda: self.add_new_axis(axis_dropdown_variable.get(), 
+                                                                        multiplier_floatspinbox.get()), 
+                                        text_color="white", 
+                                        text_color_disabled=("#9FA5AB"), 
+                                        fg_color="#198754", 
+                                        font=ctk.CTkFont(size=14, family="Veranda"))
+        self.save_button.pack()
+
+
+
+    def add_new_axis(self, axis_to_add, axis_multiplier):
+        new_button_config_id = self.settings_object.add_new_axis(axis=axis_to_add, axis_multiplier=axis_multiplier)
+        self.origin_frame.create_axes_radio_button_row(button_config_id=new_button_config_id)
+        self.origin_frame.axis_radio_buttons_frame.grid(row=7, column=0)
+        self.go_back_function()
+
 
 
 class AddCycleDPI(ctk.CTkFrame):
@@ -1477,8 +1496,19 @@ class ButtonConfigFrame():
         else:
             self.cycledpi_radio_buttons_frame.grid_forget()
 
-        print(f"self.button.button_changedpi = {self.button.button_changedpi}")
-        print(f"self.button.button_cycledpi = {self.button.button_cycledpi}")
+
+        self.axis_radio_buttons_frame = ctk.CTkFrame(master=self.container_frame)
+        self.axis_radio_buttons_frame.grid(row=7, column=0)
+
+        if len(button.button_axes) > 0:
+            for i in button.button_axes.keys():
+                self.create_axes_radio_button_row(button_config_id=i)
+        else:
+            self.axis_radio_buttons_frame.grid_forget()
+
+
+
+
 
 
     def create_cycledpi_radio_button_row(self, button_config_id):
@@ -1544,6 +1574,61 @@ class ButtonConfigFrame():
         delete_changehost_button.grid(row=0, column=3, pady="5", sticky="e")
 
         changehost_button_row.columnconfigure(1, weight=2)
+
+
+
+        # self.origin_frame.create_axis_radio_button_row(button_config_id=new_button_config_id)
+        # self.origin_frame.axis_radio_buttons_frame.grid(row=7, column=0)
+    def create_axes_radio_button_row(self, button_config_id):
+        axis_button_row = ctk.CTkFrame(master=self.axis_radio_buttons_frame)
+        axis_button_row.pack()
+
+        radio_button = MatthewsRadioButton(master=axis_button_row, width=600,
+                                            text=f"Axis {self.button.button_axes[button_config_id].axis_button}: {self.button.button_axes[button_config_id].axis_multiplier}",
+                                             command=lambda c=button_config_id: self.select_configuration(c))
+        radio_button.grid(row=0, column=0, sticky="w")
+
+        if self.button.selected_button_config_id == button_config_id:
+            radio_button.radio_button_clicked()
+
+        self.radio_buttons_dictionary[button_config_id] = radio_button
+
+        delete_axis_button = ctk.CTkButton(master=axis_button_row,
+                height=20,
+                width=80,
+                text="Delete",
+                fg_color="transparent",
+                # border_color="red",
+                font=ctk.CTkFont(family="Noto Sans"),
+                text_color="#6C757D",
+                border_color="#6C757D",
+                hover_color="#450C0F",
+                border_width=1,
+                corner_radius=2,
+                command=lambda c=button_config_id, f=axis_button_row, : self.axis_deletion_warning(c, f,)
+                                           )
+        delete_axis_button.grid(row=0, column=3, pady="5", sticky="e")
+
+        axis_button_row.columnconfigure(1, weight=2)
+
+
+    def axis_deletion_warning(self, c, f):
+        msg = CTkMessagebox(title="Delete Action?",
+                                message="Delete action?",
+                                option_1="Delete",
+                                option_2="Cancel",
+                                width=600,
+                                height=300,
+                                fade_in_duration=200
+                                )
+        if msg.get() == "Delete":
+            if self.button.selected_button_config_id == c:
+                self.radio_buttons_dictionary[self.button.button_default].radio_button_clicked()
+            self.button.delete_axis(button_config_id=c)
+            f.destroy()
+            if len(self.button.button_axes) == 0:
+                self.axis_radio_buttons_frame.grid_forget()
+
 
 
     def create_changedpi_radio_button_row(self, button_config_id):
