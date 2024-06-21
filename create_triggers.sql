@@ -356,11 +356,11 @@ WHEN NEW.action_type = 'Gestures'
 BEGIN
     INSERT INTO Gestures(button_config_id, direction, gesture_action, is_selected)
     VALUES
-    (NEW.button_config_id, 'Up', 'None', 1),
-    (NEW.button_config_id, 'Down', 'None', 1),
-    (NEW.button_config_id, 'Left', 'None', 1),
-    (NEW.button_config_id, 'Right', 'None', 1),
-    (NEW.button_config_id, 'None', 'None', 1);
+    (NEW.button_config_id, 'Up', 'NoPress', 1),
+    (NEW.button_config_id, 'Down', 'NoPress', 1),
+    (NEW.button_config_id, 'Left', 'NoPress', 1),
+    (NEW.button_config_id, 'Right', 'NoPress', 1),
+    (NEW.button_config_id, 'None', 'NoPress', 1);
 
     INSERT INTO GestureProperties(button_config_id, direction)
     VALUES

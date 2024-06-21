@@ -134,7 +134,7 @@ CREATE TABLE IF NOT EXISTS Gestures (
     gesture_id INTEGER PRIMARY KEY,
     button_config_id INTEGER NOT NULL,
     direction TEXT NOT NULL CHECK (direction IN ('Up', 'Down', 'Left', 'Right', 'None')),
-    gesture_action TEXT NOT NULL CHECK (gesture_action IN ('None', 'Axis', 'Keypress', 'ToggleSmartShift', 'ToggleHiresScroll', 'CycleDPI', 'ChangeDPI', 'ChangeHost')),
+    gesture_action TEXT NOT NULL CHECK (gesture_action IN ('NoPress', 'Axis', 'Keypress', 'ToggleSmartShift', 'ToggleHiresScroll', 'CycleDPI', 'ChangeDPI', 'ChangeHost')),
     is_selected INTEGER NOT NULL DEFAULT 0 CHECK (is_selected IN (0,1)),
 
     FOREIGN KEY (button_config_id) REFERENCES ButtonConfigs(button_config_id) ON DELETE CASCADE

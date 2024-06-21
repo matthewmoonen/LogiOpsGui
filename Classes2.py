@@ -703,7 +703,8 @@ class DeviceConfig:
                             """, (configuration_id, button_id))
             changehost_list = cursor.fetchall()
             if len(changehost_list) != 0:
-                print(changehost_list)
+                # print(changehost_list)
+                pass
 
 
             cursor.execute("""
@@ -723,7 +724,8 @@ class DeviceConfig:
                             """, (configuration_id, button_id))
             cycledpi_list = cursor.fetchall()
             if len(cycledpi_list) != 0:
-                print(cycledpi_list)
+                pass
+                # print(cycledpi_list)
 
 
             cursor.execute("""
@@ -744,7 +746,8 @@ class DeviceConfig:
                             """, (configuration_id, button_id))
             axes_list = cursor.fetchall()
             if len(axes_list) != 0:
-                print(axes_list)
+                pass
+                # print(axes_list)
 
             cursor.execute("""
                             SELECT button_config_id
