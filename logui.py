@@ -1138,8 +1138,12 @@ class KeyPressFrame(ctk.CTkFrame):
             self.save_button.pack()
 
     def save_button_clicked(self):
-        new_button_config_id = self.settings_object.add_new_keypress_action(keypresses=str(self.db_keypress_array))
-        self.origin_frame.create_keypress_radio_button_row(i=new_button_config_id)
+        new_primary_key = self.settings_object.add_new_keypress_action(keypresses=str(self.db_keypress_array))
+        
+        if isinstance(self.origin_frame, ButtonConfigFrame):
+            print("isinstance")
+
+        self.origin_frame.create_keypress_radio_button_row(i=new_primary_key)
         self.origin_frame.keypress_radio_buttons_frame.grid(row=2, column=0)
         self.go_back_function()
 
@@ -1450,14 +1454,20 @@ class GestureRadioFrame(ctk.CTkFrame):
         def show_new_action_frame():
             print("HI")
             self.edit_config_frame_instance.add_action_frame = AddActionFrame(
+
+                                            # Need to figure out 
                                             origin_frame=self.edit_config_frame_instance.frames[self.edit_config_frame_instance.currently_selected_menu],
+                                            
+                                            
                                             master_frame=self.master_frame,
                                             edit_config_frame_master = self.edit_config_frame_master,
-
                                             configuration = self.configuration,
                                             settings_object = config_object,
                                             )
             self.container_outer_frame.pack_forget()
+
+
+
 
 
 
@@ -1500,6 +1510,39 @@ class GestureRadioFrame(ctk.CTkFrame):
             self.radio_buttons_dictionary[v[1]] = radio_button
 
 
+
+
+
+
+
+
+
+
+
+        self.keypress_radio_buttons_frame = ctk.CTkFrame(master=radio_buttons_frame)
+        self.keypress_radio_buttons_frame.grid(row=2, column=0)
+
+
+        if len(self.config_object.gesture_keypresses) > 0:
+            for i in self.config_object.gesture_keypresses.keys():
+                self.create_keypress_radio_button_row(i=i)
+        else:
+            self.keypress_radio_buttons_frame.grid_forget()
+
+
+
+        self.changehost_radio_buttons_frame = ctk.CTkFrame(master=radio_buttons_frame)
+        self.changehost_radio_buttons_frame.grid(row=4, column=0)
+
+        if len(self.config_object.gesture_changehost) > 0:
+            for i in self.config_object.gesture_changehost.keys():
+                self.create_changehost_radio_button_row(gesture_id=i)
+        else:
+            self.changehost_radio_buttons_frame.grid_forget()
+
+
+
+
     def select_configuration(self, gesture_id):
         try:
             Classes.update_selected_gesture_id(gesture_id)
@@ -1507,6 +1550,96 @@ class GestureRadioFrame(ctk.CTkFrame):
             self.config_object.selected_gesture_id = gesture_id
         except KeyError:
             pass
+
+
+
+
+    def create_keypress_radio_button_row(self, i):     
+        keypress_button_row = ctk.CTkFrame(master=self.keypress_radio_buttons_frame)                
+        keypress_button_row.pack()
+
+        radio_button = MatthewsRadioButton(master=keypress_button_row, width=300, 
+                                        #    text=f"Keypress",
+                                           text=f"Keypress: {self.config_object.gesture_keypresses[i].keypresses[0:29]}",
+                                            #  font=ctk.CTkFont(family="Noto Sans", size=12),
+                                               command=lambda c=i: self.select_configuration(c))
+        radio_button.grid(row=0, column=0, sticky="w")            
+
+        if self.config_object.selected_gesture_id == i:
+            radio_button.radio_button_clicked()
+
+        self.radio_buttons_dictionary[i] = radio_button
+
+        edit_keypress_button = ctk.CTkButton(
+                master=keypress_button_row,
+                height=20,
+                width=80,
+                text="Edit",
+                fg_color="transparent",
+                # border_color="red",
+                font=ctk.CTkFont(family="Noto Sans"),
+                text_color="#6C757D",
+                border_color="#6C757D",
+                hover_color="#450C0F",
+                border_width=1,
+                corner_radius=2,
+                # command=
+        )
+        edit_keypress_button.grid(row=0, column=2, pady="5", sticky="e")
+
+        delete_keypress_button = ctk.CTkButton(
+                master=keypress_button_row,
+                height=20,
+                width=80,
+                text="Delete",
+                fg_color="transparent",
+                # border_color="red",
+                font=ctk.CTkFont(family="Noto Sans"),
+                text_color="#6C757D",
+                border_color="#6C757D",
+                hover_color="#450C0F",
+                border_width=1,
+                corner_radius=2,
+                command=lambda c=i, f=keypress_button_row, : self.keypress_deletion_warning(c, f,)
+        )
+        delete_keypress_button.grid(row=0, column=3, pady="5", sticky="e")
+
+        keypress_button_row.columnconfigure(1, weight=2)
+
+
+
+
+    def create_changehost_radio_button_row(self, gesture_id):
+        changehost_button_row = ctk.CTkFrame(master=self.changehost_radio_buttons_frame)
+        changehost_button_row.pack()
+
+        radio_button = MatthewsRadioButton(master=changehost_button_row, width=600, text=f"Changehost {self.config_object.gesture_changehost[gesture_id].host_change}", command=lambda c=gesture_id: self.select_configuration(c))
+        radio_button.grid(row=0, column=0, sticky="w")            
+
+        if self.config_object.selected_gesture_id == gesture_id:
+            radio_button.radio_button_clicked()
+
+        delete_changehost_button = ctk.CTkButton(
+                master=changehost_button_row,
+                height=20,
+                width=80,
+                text="Delete",
+                fg_color="transparent",
+                # border_color="red",
+                font=ctk.CTkFont(family="Noto Sans"),
+                text_color="#6C757D",
+                border_color="#6C757D",
+                hover_color="#450C0F",
+                border_width=1,
+                corner_radius=2,
+                command=lambda c=gesture_id, f=changehost_button_row, : self.changehost_deletion_warning(c, f,)
+        )
+        delete_changehost_button.grid(row=0, column=3, pady="5", sticky="e")
+
+        changehost_button_row.columnconfigure(1, weight=2)
+
+
+
 
 
 class GestureFrame(ctk.CTkFrame):
@@ -1946,14 +2079,7 @@ class ButtonConfigFrame():
         if self.button.selected_button_config_id == i:
             radio_button.radio_button_clicked()
 
-
-        # keypresses_label = ctk.CTkLabel(master=keypress_button_row,
-        #                                 text=self.button.button_keypresses[i].keypresses)
-        # keypresses_label.grid(row=1, column=0)
-
-
         self.radio_buttons_dictionary[i] = radio_button
-
 
         edit_keypress_button = ctk.CTkButton(
                 master=keypress_button_row,

@@ -325,13 +325,13 @@ class GestureSettings:
             """
             UPDATE ChangeHost
             SET host_change = ?
-            WHERE action_id = ? and source_table = "ButtonConfigs";
+            WHERE action_id = ? and source_table = 'Gestures';
             """, ("prev" if host == "Previous" else "next" if host == "Next" else host, inserted_row_button_config_id))
 
         cursor.execute("""
             SELECT host_id
             FROM ChangeHost
-            WHERE action_id = ? AND source_table = 'ButtonConfigs';
+            WHERE action_id = ? AND source_table = 'Gestures';
             """, (inserted_row_button_config_id,))
         
         new_changehost_id = cursor.fetchone()[0]
