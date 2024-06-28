@@ -1,3 +1,10 @@
+CREATE TABLE IF NOT EXISTS UserSettings(
+    key TEXT PRIMARY KEY,
+    value TEXT
+);
+
+-- ### QUERY_SEPARATOR ###
+
 CREATE TABLE IF NOT EXISTS Devices (
     device_id INTEGER PRIMARY KEY,
     device_name TEXT NOT NULL,

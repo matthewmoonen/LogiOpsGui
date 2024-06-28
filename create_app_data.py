@@ -28,6 +28,7 @@ def initialise_database():
         
         execute_db_queries.execute_queries(cursor, parse_sql_file_into_array("create_tables.sql")) # Create database tables
         execute_db_queries.execute_queries(cursor, parse_sql_file_into_array("create_triggers.sql")) # Create database triggers
+        execute_db_queries.execute_queries(cursor, parse_sql_file_into_array("insert_settings.sql")) # Create database triggers
         add_devices(cursor)
 
         conn.commit()

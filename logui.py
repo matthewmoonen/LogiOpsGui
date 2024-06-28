@@ -164,6 +164,7 @@ class FloatSpinbox(ctk.CTkFrame):
         if self.value != value:
             self.value = value
             self.run_db_query()
+            self.run_command()
 
     def add_button_callback(self):
         try:
@@ -177,6 +178,8 @@ class FloatSpinbox(ctk.CTkFrame):
         if self.value != value:
             self.value = value
             self.run_db_query()
+            self.run_command()
+
 
     def subtract_button_callback(self):
         try:
@@ -190,6 +193,7 @@ class FloatSpinbox(ctk.CTkFrame):
         if self.value != value:
             self.value = value
             self.run_db_query()
+            self.run_command()
 
     def get(self) -> float:
         try:
@@ -210,6 +214,10 @@ class FloatSpinbox(ctk.CTkFrame):
         self.entry.configure(state=state)
         self.add_button.configure(state=state)
         self.subtract_button.configure(state=state)
+
+    def run_command(self):
+        if callable(self.command):
+            self.command()
 
     def run_db_query(self):
         if callable(self.db_query):
@@ -807,7 +815,48 @@ class FrontPage(ctk.CTkFrame):
                           columnspan=2
                           )
 
-        save_devices_button = ctk.CTkButton(master=bottom_frame, height=40, width=120, text="Generate CFG")
+
+
+        def new_window():
+            new_window = ctk.CTkToplevel(master)
+            new_window.title = "Hi"
+            new_window.geometry("800x800")
+
+            def set_widget_scaling(value):
+                ctk.set_widget_scaling(value)
+                conn, cursor = execute_db_queries.create_db_connection()
+                cursor.execute("""UPDATE UserSettings SET value = ? WHERE key = 'widget_scaling'""",(value,))
+                execute_db_queries.commit_changes_and_close(conn)
+
+            def set_window_scaling(value):
+                ctk.set_window_scaling(value)
+                conn, cursor = execute_db_queries.create_db_connection()
+                cursor.execute("""UPDATE UserSettings SET value = ? WHERE key = 'window_scaling'""",(value,))
+                execute_db_queries.commit_changes_and_close(conn)
+
+            window_scaling, widget_scaling = get_window_and_widget_scaling()
+
+            widget_scaling_button = FloatSpinbox(master=new_window,
+                                                value=widget_scaling,
+                                                width=200,
+                                                step_size=0.05,
+                                                decimal_places=2,
+                                                min_value=-1000,
+                                                max_value=1000,
+                                                command=lambda: set_widget_scaling(widget_scaling_button.get()))
+            widget_scaling_button.pack()
+            
+            window_scaling_button = FloatSpinbox(master=new_window,
+                                                value=window_scaling,
+                                                width=200,
+                                                step_size=0.05,
+                                                decimal_places=2,
+                                                min_value=-1000,
+                                                max_value=1000,
+                                                command=lambda: set_window_scaling(window_scaling_button.get()))
+            window_scaling_button.pack()
+
+        save_devices_button = ctk.CTkButton(master=bottom_frame, height=40, width=120, text="Set Scaling", command=new_window)
         save_devices_button.grid(pady=30, sticky="e")
 
         bottom_frame.grid_columnconfigure((0), weight=1)
@@ -3672,17 +3721,26 @@ class SplashScreen(ctk.CTkFrame):
         update_position()
 
 
-
-
+def get_window_and_widget_scaling():
+    conn, cursor = execute_db_queries.create_db_connection()
+    cursor.execute("""SELECT value FROM UserSettings WHERE key = 'window_scaling'""")
+    window_scaling = float(cursor.fetchone()[0])
+    cursor.execute("""SELECT value FROM UserSettings WHERE key = 'widget_scaling'""")
+    widget_scaling = float(cursor.fetchone()[0])
+    execute_db_queries.close_without_committing_changes(conn)
+    return window_scaling, widget_scaling
 
 def setup_gui(root):
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("dark-blue")
-    ctk.set_widget_scaling(1.2)  # widget dimensions and text size
-    # ctk.set_window_scaling(0.4)  # window geometry dimensions
+    
+    window_scaling, widget_scaling = get_window_and_widget_scaling()
+    ctk.set_window_scaling(window_scaling)
+    ctk.set_widget_scaling(widget_scaling)
 
 
-    root.geometry("1920x1080+2000+2000")
+
+    root.geometry("1920x1080")
     root.resizable(True, True)
     root.title("LogiOpsGUI")
     # ctk.DrawEngine.preferred_drawing_method = "circle_shapes"
