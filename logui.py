@@ -16,6 +16,7 @@ import time
 import threading
 import Classes2
 import keymates
+import json
 
 from PIL import Image, ImageTk
 import io
@@ -1146,6 +1147,17 @@ class KeyPressFrame(ctk.CTkFrame):
         self.click_box.pack(pady=50, padx=50, fill="both", expand=True)
         self.app_root.wm_attributes('-type', 'dialog')
 
+        self.enter_manually_button = ctk.CTkButton(master=self, text="Enter Array Manually", command=self.enter_manually)
+        self.enter_manually_button.pack()
+
+    def enter_manually(self):
+        self.enter_manually_button.pack_forget()
+        textbox = ctk.CTkTextbox(master=self)
+        textbox.insert("0.0", "[  ]")
+        textbox.pack()
+        self.click_box.pack_forget()
+        save_manual_button = ctk.CTkButton(master=self, text="Save Manual")
+
     def initialise_clickbox(self):
         self.click_box.configure(text="Click here to enter keyboard shortcut",
                                        command=self.activate_key_listener,
@@ -1188,7 +1200,7 @@ class KeyPressFrame(ctk.CTkFrame):
             self.save_button.pack()
 
     def save_button_clicked(self):
-        new_primary_key = self.settings_object.add_new_keypress_action(keypresses=str(self.db_keypress_array))
+        new_primary_key = self.settings_object.add_new_keypress_action(keypresses=json.dumps(self.db_keypress_array))
 
         if not isinstance(self.added_from, GestureRadioFrame):
             self.origin_frame.create_keypress_radio_button_row(i=new_primary_key)
@@ -1472,7 +1484,7 @@ class AddActionFrame(ctk.CTkFrame):
         self.configuration = configuration
         self.settings_object = settings_object
         self.added_from = added_from
-        print(type(self.added_from))
+
 
         self.container_frame = ctk.CTkFrame(master=master_frame, corner_radius=0, fg_color="transparent")
         self.container_frame.pack()
@@ -1535,14 +1547,35 @@ class GestureRadioFrame(ctk.CTkFrame):
         radio_buttons_to_create = []
         self.radio_buttons_dictionary = {}
 
-
-
         self.container_outer_frame = container_outer_frame 
         self.master_frame = master_frame
         self.edit_config_frame_instance = edit_config_frame_instance
         self.configuration = configuration
         self.edit_config_frame_master = edit_config_frame_master
     
+
+        mode_stringvar = ctk.StringVar(value=self.config_object.mode)
+        mode_dropdown = ctk.CTkOptionMenu(master=self,
+                                               variable=mode_stringvar,
+                                               values=["OnRelease", "OnThreshold"],
+                                               state="normal",
+                                               width=200,
+                                               height=36,
+                                            command=lambda new_mode=mode_stringvar: self.config_object.update_mode(new_mode)
+                                               )
+        mode_dropdown.grid(row=0, column=0)
+
+        threshold_spinbox = IntSpinbox(master=self,
+                                       db_query=self.config_object.update_threshold,
+                                        width=140,
+                                        step_size=1,
+                                        max_value=99999,
+                                        min_value=1,
+                                        value=self.config_object.threshold
+        )
+        threshold_spinbox.grid(row=0, column=1)
+
+
 
 
         def show_new_action_frame():
@@ -1557,21 +1590,17 @@ class GestureRadioFrame(ctk.CTkFrame):
                                             master_frame=self.master_frame,
                                             edit_config_frame_master = self.edit_config_frame_master,
                                             configuration = self.configuration,
-                                            settings_object = config_object,
+                                            settings_object = self.config_object,
                                             )
             self.container_outer_frame.pack_forget()
 
 
 
-
+        
 
 
         add_new_action_button = ctk.CTkButton(master=self, command= lambda: show_new_action_frame(), text="Add New Action")
         add_new_action_button.grid(row=99, column=0)
-
-
-
-
 
 
 
@@ -3738,6 +3767,8 @@ def setup_gui(root):
     ctk.set_window_scaling(window_scaling)
     ctk.set_widget_scaling(widget_scaling)
 
+    # print(root.winfo_screenwidth())
+    # print(root.winfo_screenheight())
 
 
     root.geometry("1920x1080")
@@ -3746,8 +3777,6 @@ def setup_gui(root):
     # ctk.DrawEngine.preferred_drawing_method = "circle_shapes"
     ctk.DrawEngine.preferred_drawing_method = "font_shapes"
     # ctk.DrawEngine.preferred_drawing_method = "polygon_shapes"
-
-
 
 
     front_page = FrontPage(root)

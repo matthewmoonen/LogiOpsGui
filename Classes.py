@@ -47,6 +47,8 @@ class GestureSettings:
         button_config_id,
         gesture_property_id,
         selected_gesture_id,
+        threshold=None,
+        mode=None,
         gesture_changehost = {},
         gesture_cycledpi = {},
         gesture_changedpi = {},
@@ -59,6 +61,8 @@ class GestureSettings:
         self.button_config_id = button_config_id
         self.gesture_property_id = gesture_property_id
         self.selected_gesture_id = selected_gesture_id
+        self.threshold = threshold
+        self.mode = mode 
         self.gesture_changehost = gesture_changehost 
         self.gesture_cycledpi = gesture_cycledpi 
         self.gesture_changedpi = gesture_changedpi 
@@ -188,7 +192,7 @@ class GestureSettings:
                             AND
                             direction = ?
                             AND
-                            gesture_action = 'ChangeHost' 
+                            gesture_action = 'CycleDPI' 
                         """, (button_config_id, direction))
         cycledpi_list = cursor.fetchall()
         if len(cycledpi_list) != 0:
@@ -266,6 +270,26 @@ class GestureSettings:
         execute_db_queries.commit_changes_and_close(conn)
         return inserted_row_gesture_id
 
+
+    def update_threshold(self, new_threshold):
+        conn, cursor = execute_db_queries.create_db_connection()
+        cursor.execute("""
+                        UPDATE GestureProperties
+                       SET threshold = ?
+                       WHERE gesture_property_id = ?
+                        """, (new_threshold, self.gesture_property_id))
+        execute_db_queries.commit_changes_and_close(conn)
+        self.threshold = new_threshold
+
+    def update_mode(self, new_mode):
+        conn, cursor = execute_db_queries.create_db_connection()
+        cursor.execute("""
+                        UPDATE GestureProperties
+                       SET mode = ?
+                       WHERE gesture_property_id = ?
+                        """, (new_mode, self.gesture_property_id))
+        execute_db_queries.commit_changes_and_close(conn)
+        self.mode = new_mode
 
     def add_new_axis(self, axis, axis_multiplier):
 
@@ -359,6 +383,18 @@ class GestureSettings:
         self.gesture_keypresses[inserted_row_button_config_id] = Keypress(button_config_id=inserted_row_button_config_id, keypress_id=new_keypress_id, keypresses=keypresses)
         execute_db_queries.commit_changes_and_close(conn)
         return inserted_row_button_config_id
+
+    def request_selected_type(self):
+        conn, cursor = execute_db_queries.create_db_connection()
+        cursor.execute("""
+            SELECT gesture_action   
+            FROM Gestures
+            WHERE gesture_id = ?
+""", (self.selected_gesture_id,))
+        selected = cursor.fetchone()[0]
+        execute_db_queries.close_without_committing_changes(conn)
+        return selected
+
 
 
 
@@ -505,11 +541,6 @@ class ButtonSettings:
         if len(changedpi_list) != 0:
             for i in changedpi_list:
                 button.button_changedpi[i[0]] = ChangeDPI(button_config_id=i[0], change_dpi_id=i[1], increment=i[2])
-
-
-
-
-    
 
 
         button.button_cycledpi = {}
@@ -768,7 +799,16 @@ class ButtonSettings:
         execute_db_queries.commit_changes_and_close(conn)
         del self.button_keypresses[button_config_id]
 
-
+    def request_selected_type(self):
+        conn, cursor = execute_db_queries.create_db_connection()
+        cursor.execute("""
+            SELECT action_type
+            FROM ButtonConfigs
+            WHERE button_config_id = ?
+""", (self.selected_button_config_id,))
+        selected = cursor.fetchone()[0]
+        execute_db_queries.close_without_committing_changes(conn)
+        return selected
 
 class Configuration:
     def __init__(
@@ -1738,128 +1778,6 @@ class DeviceConfig:
         config.buttons = []
 
         for i in button_id_list:
-            # button_id = i[0]
-            # button_name = i[1]
-            # button_cid = i[2]
-            # gesture_support = bool(i[3])
-    
-            # one_config_values = {"Default":None, "Gestures":None, "NoPress":None, "ToggleHiresScroll":None, "ToggleSmartShift":None}
-            # for key in one_config_values:
-            #     cursor.execute("""
-            #                 SELECT button_config_id
-            #                 FROM ButtonConfigs
-            #                 WHERE button_id = ? AND action_type = ? AND configuration_id = ?
-            #     """, (button_id, key, configuration_id))
-            #     result = cursor.fetchone()
-
-            #     if result:
-            #         one_config_values[key] = result[0]
-    
-
-            # default = one_config_values["Default"]
-            # gestures = one_config_values["Gestures"]
-            # nopress = one_config_values["NoPress"]
-            # togglehiresscroll = one_config_values["ToggleHiresScroll"]
-            # togglesmartshift = one_config_values["ToggleSmartShift"]
-
-
-
-            # cursor.execute("""
-            #                 SELECT 
-            #                     ButtonConfigs.button_config_id,
-            #                     Keypresses.keypress_id,
-            #                     Keypresses.keypresses
-            #                 FROM 
-            #                     ButtonConfigs
-            #                 JOIN 
-            #                     Keypresses ON Keypresses.action_id = ButtonConfigs.button_config_id
-            #                 WHERE 
-            #                     ButtonConfigs.configuration_id = ?
-            #                     AND ButtonConfigs.button_id = ?
-            #                     AND ButtonConfigs.action_type = 'Keypress' 
-            #                     AND Keypresses.source_table = 'ButtonConfigs';
-            #                 """, (configuration_id, button_id))
-            
-            # keypress_list = cursor.fetchall()
-            # if len(keypress_list) != 0:
-            #     print(keypress_list)
-
-
-            # cursor.execute("""
-            #                 SELECT
-            #                     ButtonConfigs.button_config_id,
-            #                     ChangeHost.host_id,
-            #                     ChangeHost.host_change
-            #                 FROM
-            #                     ButtonConfigs
-            #                 JOIN
-            #                     ChangeHost ON ChangeHost.action_id = ButtonConfigs.button_config_id
-            #                 WHERE
-            #                     ButtonConfigs.configuration_id = ?
-            #                     AND ButtonConfigs.button_id = ?
-            #                     AND ButtonConfigs.action_type = 'Keypress'
-            #                     AND ChangeHost.source_table = 'ButtonConfigs';
-            #                 """, (configuration_id, button_id))
-            # changehost_list = cursor.fetchall()
-            # if len(changehost_list) != 0:
-            #     print(changehost_list)
-
-
-            # cursor.execute("""
-            #                 SELECT
-            #                     ButtonConfigs.button_config_id,
-            #                     CycleDPI.cycle_dpi_id,
-            #                     CycleDPI.dpi_array
-            #                 FROM
-            #                     ButtonConfigs
-            #                 JOIN
-            #                     CycleDPI ON CycleDPI.action_id = ButtonConfigs.button_config_id
-            #                 WHERE 
-            #                     ButtonConfigs.configuration_id = ?
-            #                     AND ButtonConfigs.button_id = ?
-            #                     AND ButtonConfigs.action_type = 'CycleDPI'
-            #                     AND CycleDPI.source_table = 'ButtonConfigs';
-            #                 """, (configuration_id, button_id))
-            # cycledpi_list = cursor.fetchall()
-            # if len(cycledpi_list) != 0:
-            #     print(cycledpi_list)
-
-
-            # cursor.execute("""
-            #                 SELECT
-            #                     ButtonConfigs.button_config_id,
-            #                     Axes.axis_id,
-            #                     Axes.axis_button,
-            #                     Axes.axis_multiplier
-            #                 FROM
-            #                     ButtonConfigs
-            #                 JOIN
-            #                     Axes ON Axes.action_id = ButtonConfigs.button_config_id
-            #                 WHERE 
-            #                     ButtonConfigs.configuration_id = ?
-            #                     AND ButtonConfigs.button_id = ?
-            #                     AND ButtonConfigs.action_type = 'Keypress'
-            #                     AND Axes.source_table = 'ButtonConfigs';
-            #                 """, (configuration_id, button_id))
-            # axes_list = cursor.fetchall()
-            # if len(axes_list) != 0:
-            #     print(axes_list)
-
-            # cursor.execute("""
-            #                 SELECT button_config_id
-            #                 FROM ButtonConfigs
-            #                 WHERE is_selected = 1
-            #                 AND configuration_id = ?
-            #                 AND button_id = ?
-            #                 """, (configuration_id, button_id))
-
-            # selected_button_config_id = cursor.fetchone()[0]
-            
-            
-            # button_to_add = ButtonSettings(button_cid=button_cid, button_name=button_name, button_id=button_id, gesture_support=gesture_support, selected_button_config_id=selected_button_config_id, button_default=default, button_nopress=nopress, button_gestures=gestures, button_togglehiresscroll=togglehiresscroll, 
-            #                                button_togglesmartshift=togglesmartshift
-            #                                )
-
 
             button_to_add = ButtonSettings.create_object(cursor=cursor, device_id=config.device_id, configuration_id=configuration_id, button_id=i[0], button_name=i[1], button_cid=i[2], gesture_support=bool(i[3]))
             config.buttons.append(button_to_add)
@@ -1873,6 +1791,7 @@ class DeviceConfig:
         execute_db_queries.close_without_committing_changes(conn)
 
         # print(config.scroll_actions)
+
 
         return config
 
@@ -2087,7 +2006,32 @@ class DeviceConfig:
 
 
 
+class CFGConfig(DeviceConfig):
+    def __init__(self, *args, **kwargs): 
+        super().__init__(*args, **kwargs)
+        # self.get_data()
 
+    @classmethod
+    def create_from_configuration_id(cls, configuration_id):
+        # return cls(configuration_id)
+
+        instance = super().create_from_configuration_id(configuration_id)  # Ensure all data is loaded correctly
+        instance.get_data()  # Now safe to call get_data
+        return instance
+
+
+    def get_data(self):
+        conn, cursor = execute_db_queries.create_db_connection()
+        cursor.execute("""
+                            SELECT config_file_device_name
+                            FROM Devices
+                            WHERE device_id = ?
+""",(self.device_id,))
+        self.config_file_name = cursor.fetchone()[0]
+
+
+
+        execute_db_queries.close_without_committing_changes(conn)
 
 
 
