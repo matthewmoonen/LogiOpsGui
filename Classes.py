@@ -239,7 +239,15 @@ class GestureSettings:
 
         return gesture
 
+    def delete_keypresses(self, gesture_id):
+        conn, cursor = execute_db_queries.create_db_connection()
+        cursor.execute("""
+                    DELETE FROM Gestures
+                    WHERE gesture_id = ?;
+                        """, (gesture_id,))
 
+        execute_db_queries.commit_changes_and_close(conn)
+        del self.gesture_keypresses[gesture_id]
 
     def add_action(self, cursor, action_type):
         cursor.execute(""" INSERT INTO Gestures (button_config_id, direction, gesture_action)

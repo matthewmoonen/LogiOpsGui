@@ -1557,7 +1557,7 @@ class GestureRadioFrame(ctk.CTkFrame):
         mode_stringvar = ctk.StringVar(value=self.config_object.mode)
         mode_dropdown = ctk.CTkOptionMenu(master=self,
                                                variable=mode_stringvar,
-                                               values=["OnRelease", "OnThreshold"],
+                                               values=["OnRelease", "OnInterval", "OnThreshold"],
                                                state="normal",
                                                width=200,
                                                height=36,
@@ -1833,6 +1833,25 @@ class GestureRadioFrame(ctk.CTkFrame):
 
 
 
+    def keypress_deletion_warning(self, c, f,):
+        msg = CTkMessagebox(title="Delete Action?",
+                                message="Delete action?",
+                                option_1="Delete",
+                                option_2="Cancel",
+                                width=600,
+                                height=300,
+                                fade_in_duration=200
+                                )
+        if msg.get() == "Delete":
+            if self.config_object.selected_gesture_id == c:
+                self.radio_buttons_dictionary[self.config_object.gesture_nopress].radio_button_clicked()
+            self.config_object.delete_keypresses(gesture_id=c)
+            f.destroy()
+            if len(self.config_object.gesture_keypresses) == 0:
+                self.keypress_radio_buttons_frame.grid_forget()
+
+
+
     def create_changehost_radio_button_row(self, gesture_id):
         changehost_button_row = ctk.CTkFrame(master=self.changehost_radio_buttons_frame)
         changehost_button_row.pack()
@@ -1908,14 +1927,6 @@ class GestureFrame(ctk.CTkFrame):
         super().__init__(*args, **kwargs)
         if button.gesture_support == False:
             pass
-
-        # print(new_action_function)
-
-        # add_new_action_button = ctk.CTkButton(master=self.container_frame, command= lambda: new_action_function(), text="Add New Action")
-        # add_new_action_button.grid(row=99, column=0)
-
-
-
 
 
         self.container_frame = ctk.CTkFrame(master=self)

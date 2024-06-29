@@ -70,12 +70,8 @@ def get_configurations():
     return [i[0] for i in configuration_ids]
 
 
-def write_intro(file, settings_object):
-    file.write(
-"""devices: (
-{
-"""
-+ f'    name: "{settings_object.config_file_name}"')
+def write_intro(file):
+    file.write("devices: (\n")
 
 
 def write_smartshift(file, settings_object):
@@ -206,43 +202,54 @@ def write_button(file, button):
         write_gestures(file, button.gesture_dict)
     file.write("             };\n")
 
+# def start_cfg_file(file, settings_object):
 
-def create_cfg_file(settings_object, cfg_dir="app_data/logid.cfg"):
+
+def write_outro(file):
+    file.write(");")
+
+
+def create_cfg_file(cfg_dir="app_data/logid.cfg"):
 
     if os.path.exists(cfg_dir):
        os.remove(cfg_dir)
 
+    return cfg_dir
 
-    with open(cfg_dir, 'w') as file:
-        write_intro(file, settings_object)        
-        
-        if settings_object.smartshift_support == True:
-            write_smartshift(file, settings_object)
-        
-        if settings_object.hires_scroll_support == True:
-            write_hires_scroll(file, settings_object)
+def write_device_cfg(file, settings_object):
+    file.write("{\n"
+        +f'    name: "{settings_object.config_file_name}"')
 
-        file.write(f"    dpi: {settings_object.dpi};\n \n"
-                + f"    buttons: (\n")
+    if settings_object.smartshift_support == True:
+        write_smartshift(file, settings_object)
+    
+    if settings_object.hires_scroll_support == True:
+        write_hires_scroll(file, settings_object)
 
-        for button in settings_object.buttons:
-            if button.selected_button_config_id != button.button_default:
-                write_button(file, button)
-                file.write("        },\n")
-        file.write("    );\n")
+    file.write(f"    dpi: {settings_object.dpi};\n \n"
+            + f"    buttons: (\n")
 
-        file.write("}\n")
+    for button in settings_object.buttons:
+        if button.selected_button_config_id != button.button_default:
+            write_button(file, button)
+            file.write("        },\n")
+    file.write("    );\n")
 
-        file.write(");")
+    file.write("},\n")
+
 
 
 def main():
     configuration_ids = get_configurations()
+    cfg_dir = create_cfg_file()
 
-    settings_object = Classes.CFGConfig.create_from_configuration_id(configuration_ids[0])
-
-    create_cfg_file(settings_object = settings_object)
-
+    with open(cfg_dir, 'w') as file:
+        write_intro(file)        
+        for configuration_id in configuration_ids:
+            settings_object = Classes.CFGConfig.create_from_configuration_id(configuration_id)
+            # start_cfg_file(file, settings_object)
+            write_device_cfg(file, settings_object)
+        write_outro(file)
 
 if __name__ == "__main__":
     main()
