@@ -687,10 +687,10 @@ class LeftButtons():
         self.left_buttons_frame.grid(row=3, column=0, columnspan=2, sticky="ew", padx=0)
         self.currently_selected_device = currently_selected_device        
         
+        self.button_objects_dict = {}
         self.setup_left_buttons()
 
     def setup_left_buttons(self):
-        self.button_objects_dict = {}
                 
         for i in self.user_devices.values():
             device_button = ctk.CTkButton(master=self.left_buttons_frame, corner_radius=0, height=40, border_spacing=10, text=i.device_name, font=ctk.CTkFont(family="Noto Sans",size=18 ), command=lambda d=i.device_id: self.button_clicked(d), fg_color="transparent", text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), anchor="w")
@@ -747,6 +747,8 @@ class FrontPage(ctk.CTkFrame):
                         # rowspan=2
                         )
 
+
+
         app_title = ctk.CTkLabel(master=left_frame, text="  LogiOpsGUI  ", font=ctk.CTkFont(family="Noto Sans",size=44),text_color=gui_variables.primary_colour,pady=20,corner_radius=0)
         app_title.grid(row=0, column=0, columnspan=2, sticky="ew")
 
@@ -758,7 +760,7 @@ class FrontPage(ctk.CTkFrame):
         right_frame.grid_columnconfigure(0, weight=1)
         right_frame.grid_rowconfigure(0, weight=2)
 
-        
+        self.edit_windows = {}
 
         self.grid_columnconfigure(1, weight=1)  # Set the weight of the column in the main frame
         self.grid_rowconfigure(1, weight=1)
@@ -868,6 +870,24 @@ class FrontPage(ctk.CTkFrame):
         self.grid_rowconfigure(0, weight=1)     # Allow right_frame row to expand
         self.grid_rowconfigure(1, weight=0)     # Keep bottom_frame from expanding vertically
 
+        def start_window_creation():
+            threading.Thread(target=self.create_windows).start()
+
+        self.after(10, start_window_creation())
+
+
+
+    def create_windows(self):
+
+        for i in self.user_devices_and_configs.user_devices.values():
+            for j in i.config_ids:
+                if j not in self.edit_windows.keys():
+                    self.edit_configuration(configuration_id=j, radio_button=self.devices_frames.device_frame_dict[i.device_id].configuration_frames[j].radio_button, add_to_dictionary=True)
+                else:
+                    print("already there")
+                # radio_button = self.devices_frames.device_frame_dict[device_id].configuration_frames[newest_configuration_id].radio_button
+        print("windows created")
+
 
 
     def edit_configuration(self, 
@@ -878,22 +898,28 @@ class FrontPage(ctk.CTkFrame):
                             create_and_update_device_dropdown=None,
                             is_new_device=False,
                             is_new_config=False,
+                            add_to_dictionary = False
                            ):
 
+        if configuration_id in self.edit_windows.keys():
+            self.pack_forget()
+            self.edit_windows[configuration_id].pack(fill="both", expand=True)
 
+        else:
+            configuration = Classes.DeviceConfig.create_from_configuration_id(configuration_id)
+            edit_page = EditConfigFrame(self.master, configuration=configuration, radio_button=radio_button, is_new_config=is_new_config, is_new_device=is_new_device, main_page=self, devices_scrollable_frame=devices_scrollable_frame, create_devices_inner_frame=create_devices_inner_frame, create_and_update_device_dropdown=create_and_update_device_dropdown, 
+                                        front_page=self,
+                                        show_main_page=self.show)
 
-        configuration = Classes.DeviceConfig.create_from_configuration_id(configuration_id)
-        # scrolling = Classes.Scrolling.create_from_configuration_id(configuration_id)
+            self.edit_windows[configuration_id] = edit_page
+            
+            if add_to_dictionary == False:
+                # self.edit_page = edit_page
+                # edit_page.added_to_dict = False
+                self.pack_forget()
+                edit_page.pack(fill="both", expand=True)
+            
 
-        self.edit_page = EditConfigFrame(self.master, configuration=configuration, radio_button=radio_button, is_new_config=is_new_config, is_new_device=is_new_device, main_page=self, devices_scrollable_frame=devices_scrollable_frame, create_devices_inner_frame=create_devices_inner_frame, create_and_update_device_dropdown=create_and_update_device_dropdown, show_main_page=self.show)
-        # self.edit_page = EditPage(self.master, configuration=configuration, is_new_config=is_new_config, is_new_device=is_new_device, main_page=self, devices_scrollable_frame=devices_scrollable_frame, create_devices_inner_frame=create_devices_inner_frame, create_and_update_device_dropdown=create_and_update_device_dropdown, show_main_page=self.show)
-
-
-
-        self.pack_forget()
-        
-        self.edit_page.pack(fill="both", expand=True)
-        
     def show(self):
         self.pack(fill="both", expand=True)
 
@@ -911,6 +937,7 @@ class EditConfigFrame(ctk.CTkFrame):
                 create_and_update_device_dropdown=None,
             is_new_device=False,
             is_new_config=False,
+            front_page = None,
             add_action_frame=None
                 ):
         super().__init__(master)
@@ -920,7 +947,7 @@ class EditConfigFrame(ctk.CTkFrame):
         self.configuration = configuration
         self.main_page_radio_button = radio_button
         self.add_action_frame = add_action_frame
-
+        self.front_page = front_page
 
 
         """Create the page's frames. Add title to page."""
@@ -1118,17 +1145,17 @@ class EditConfigFrame(ctk.CTkFrame):
 
 
     def go_back(self):
+        if self not in self.front_page.edit_windows.values():
+            print("not in dict")
+            try:
+                self.front_page.edit_windows[self.configuration.configuration_id].destroy()
+                del self.front_page.edit_windows[self.configuration.configuration_id]
+            except KeyError:
+                print("error in deleting")
+            self.front_page.edit_windows[self.configuration.configuration_id] = self
         self.pack_forget()
         self.show_main_page()
 
-# class RecordKeypressFrame(ctk.CTkFrame):
-#     def __init__(self, master, **kwargs):
-#         super().__init__(master, **kwargs)
-
-#         label=ctk.CTkLabel(master=self, text="Keypresses")
-#         label.pack()
-        
-#         # event_listener_frame = ctk.CTkFrame()
 
 
 
@@ -1829,6 +1856,25 @@ class GestureRadioFrame(ctk.CTkFrame):
         delete_keypress_button.grid(row=0, column=3, pady="5", sticky="e")
 
         keypress_button_row.columnconfigure(1, weight=2)
+
+
+
+    def axis_deletion_warning(self, c, f):
+        msg = CTkMessagebox(title="Delete Action?",
+                                message="Delete action?",
+                                option_1="Delete",
+                                option_2="Cancel",
+                                width=600,
+                                height=300,
+                                fade_in_duration=200
+                                )
+        if msg.get() == "Delete":
+            if self.config_object.selected_gesture_id == c:
+                self.radio_buttons_dictionary[self.config_object.gesture_nopress].radio_button_clicked()
+            self.config_object.delete_axis(gesture_id=c)
+            f.destroy()
+            if len(self.config_object.gesture_axes) == 0:
+                self.axis_radio_buttons_frame.grid_forget()
 
 
 
