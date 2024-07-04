@@ -1,31 +1,17 @@
 import customtkinter as ctk
-import tkinter as tk
-from tkinter import ttk
-# from CTkListbox import *
 import create_app_data
 import execute_db_queries
-import DeviceData
-from typing import Union, Callable
+from typing import Callable
 import gui_variables
 import Classes
 from CTkMessagebox import CTkMessagebox
-import inspect
-import time
 import threading
-import Classes2
 import keymates
 import json
-
-from PIL import Image, ImageTk
+from PIL import Image
 import io
 import cairosvg
-
-
-
-
-
-
-
+import time
 
 
 
@@ -765,9 +751,9 @@ class FrontPage(ctk.CTkFrame):
         
 
 
-        self.user_devices_and_configs = Classes2.DevicesAndConfigs()
+        self.user_devices_and_configs = Classes.DevicesAndConfigs()
         def refresh_user_devices_and_configs():
-            self.user_devices_and_configs = Classes2.DevicesAndConfigs()
+            self.user_devices_and_configs = Classes.DevicesAndConfigs()
             self.devices_frames.update_user_devices_and_configs = self.user_devices_and_configs
 
         def device_added(new_device_name): # Logic to update the device list with the new device
@@ -1172,8 +1158,8 @@ class KeyPressFrame(ctk.CTkFrame):
         self.click_box.pack(pady=50, padx=50, fill="both", expand=True)
         self.app_root.wm_attributes('-type', 'dialog')
 
-        self.enter_manually_button = ctk.CTkButton(master=self, text="Enter Array Manually", command=self.enter_manually)
-        self.enter_manually_button.pack()
+        # self.enter_manually_button = ctk.CTkButton(master=self, text="Enter Array Manually", command=self.enter_manually)
+        # self.enter_manually_button.pack()
 
     def enter_manually(self):
         self.enter_manually_button.pack_forget()
@@ -1972,12 +1958,10 @@ class GestureFrame(ctk.CTkFrame):
         if button.gesture_support == False:
             pass
 
-
         self.container_frame = ctk.CTkFrame(master=self)
         self.container_frame.pack(fill="both", expand="true")
 
         self.gesture_dict = button.gesture_dict
-
 
         button_label2 = ctk.CTkLabel(master=self.container_frame, text = f"{f"GESTURES HERE"} ({button.button_cid})")
         button_label2.grid(row=0, column=0)
@@ -2142,10 +2126,6 @@ class ButtonConfigFrame():
                 self.create_axes_radio_button_row(button_config_id=i)
         else:
             self.axis_radio_buttons_frame.grid_forget()
-
-
-        # self.gestures_label = ctk.CTkLabel(master=self.container_frame, text="Here are the gestures")
-        # self.gestures_label.grid(row=0, column=1)
 
 
 

@@ -2,6 +2,150 @@ import execute_db_queries
 import button_cid_names
 
 
+
+def get_new_user_device(new_device_id, new_device_name, new_configuration_id):
+    new_user_device = UserDevice(device_id=new_device_id, device_name=new_device_name, is_activated=True, config_ids=[new_configuration_id], 
+                                 selected_config=new_configuration_id)
+
+    return new_user_device
+
+def get_new_device_config(new_configuration_id):
+    # conn, cursor = execute_db_queries.create_db_connection()
+
+    new_user_configuration = DeviceConfig.create_from_configuration_id(configuration_id=new_configuration_id, 
+                                                                            #    cursor=cursor, conn=conn
+                                                                               )
+
+    return new_user_configuration
+
+
+
+class DevicesAndConfigs():
+    def __init__(self):
+        self.get_devices_and_configs()
+
+    def get_devices_and_configs(self):
+            conn, cursor = execute_db_queries.create_db_connection()
+
+            user_devices = {}
+            user_configurations = {}
+
+            cursor.execute("""
+                SELECT device_id, device_name, is_activated
+                FROM Devices
+                WHERE is_user_device = 1
+                ORDER BY date_added DESC
+                        """)
+
+            devices = cursor.fetchall()
+
+
+            for device in devices:
+
+                device_id, device_name, is_activated = device
+
+                config_ids = []
+
+                cursor.execute("""
+                    SELECT configuration_id
+                    FROM Configurations
+                    WHERE device_id = ?
+                    ORDER BY date_added DESC
+                """, (device_id,))
+
+                config_id_tuples = cursor.fetchall()
+
+
+                for [i] in config_id_tuples:
+                    config_ids.append(i)
+                    user_configurations[i] = DeviceConfig.create_from_configuration_id(configuration_id=i,
+                                                                                                cursor=cursor, conn=conn
+                                                                                                )
+
+                cursor.execute("""
+                    SELECT configuration_id
+                    FROM Configurations
+                    WHERE device_id = ? AND is_selected = 1
+                """, (device_id,))
+
+
+                query_result = cursor.fetchone()
+                # print(query_result)
+                if query_result is None:
+                    selected_config = None
+                else:
+                    selected_config = query_result[0]
+
+                user_device = UserDevice(device_id=device_id, device_name=device_name, is_activated=is_activated, config_ids=config_ids, 
+                                        selected_config=selected_config
+                                        )
+                user_devices[device_id] = user_device
+
+
+            execute_db_queries.close_without_committing_changes(conn)
+            self.user_devices = user_devices
+            self.user_configurations = user_configurations
+
+
+
+
+def get_devices_and_configs():
+    conn, cursor = execute_db_queries.create_db_connection()
+
+    user_devices = {}
+    user_configurations = {}
+
+    cursor.execute("""
+        SELECT device_id, device_name, is_activated
+        FROM Devices
+        WHERE is_user_device = 1
+        ORDER BY date_added DESC
+                   """)
+
+    devices = cursor.fetchall()
+
+
+    for device in devices:
+
+        device_id, device_name, is_activated = device
+
+        config_ids = []
+
+        cursor.execute("""
+            SELECT configuration_id
+            FROM Configurations
+            WHERE device_id = ?
+            ORDER BY date_added DESC
+        """, (device_id,))
+
+        config_id_tuples = cursor.fetchall()
+
+
+        for [i] in config_id_tuples:
+            config_ids.append(i)
+            user_configurations[i] = DeviceConfig.create_from_configuration_id(configuration_id=i, cursor=cursor, conn=conn)
+
+        cursor.execute("""
+            SELECT configuration_id
+            FROM Configurations
+            WHERE device_id = ? AND is_selected = 1
+        """, (device_id,))
+
+        selected_config = cursor.fetchone()[0]
+
+        user_device = UserDevice(device_id=device_id, device_name=device_name, is_activated=is_activated, config_ids=config_ids, 
+                                 selected_config=selected_config
+                                 )
+        user_devices[device_id] = user_device
+
+
+    execute_db_queries.close_without_committing_changes(conn)
+    return user_devices, user_configurations
+
+
+
+
+
 class DeviceID:
     def __init__(self, device_id):
         self.device_id = device_id
@@ -834,22 +978,45 @@ class Configuration:
         self.date_configuration_last_modified = date_configuration_last_modified
 
 
-class UserDevice(Device):
+class UserDevice():
     def __init__(
       self,
       device_id,
       device_name,
       is_activated,
-      configurations = None,
+      config_ids = None,
+      selected_config = None,
       date_device_added = None,
       date_device_last_edited = None,
         
     ):
-        super().__init__(device_id, device_name)
+        self.device_id = device_id
+        self.device_name = device_name
         self.is_activated = is_activated
-        self.configurations = configurations
+        self.config_ids = config_ids
+        self.selected_config = selected_config
         self.date_device_added = date_device_added
         self.date_device_last_edited = date_device_last_edited
+
+
+    @property
+    def selected_config(self):
+        return self._selected_config
+
+    @selected_config.setter
+    def selected_config(self, value):
+        self._selected_config = value
+
+        conn, cursor = execute_db_queries.create_db_connection()
+
+        cursor.execute("""
+        UPDATE Configurations
+        SET is_selected = 1
+        WHERE configuration_id = ?
+        """, (value,))
+
+        conn.commit()
+        conn.close()
 
 
 class DeviceProperties(Device):
@@ -1290,14 +1457,7 @@ class ScrollProperties:
             scroll_right_mode = None,
             scroll_actions = {}
 
-            # scroll_up_actions=None,
-            # scroll_down_actions=None,
-            # scroll_left_actions=None,
-            # scroll_right_actions=None,
-            # selected_scroll_up_action=None,
-            # selected_scroll_down_action=None,
-            # selected_scroll_left_action=None,
-            # selected_scroll_right_action=None,
+
     ):
 
             self.configuration_id = configuration_id
@@ -1311,35 +1471,12 @@ class ScrollProperties:
             self.scroll_left_threshold = scroll_left_threshold
             self.scroll_actions = scroll_actions
 
-            # self.scroll_up_actions = scroll_up_actions
-            # self.scroll_down_actions = scroll_down_actions
-            # self.scroll_left_actions = scroll_left_actions
-            # self.scroll_right_actions = scroll_right_actions
-            # self.selected_scroll_up_action = selected_scroll_up_action
-            # self.selected_scroll_down_action = selected_scroll_down_action
-            # self.selected_scroll_left_action = selected_scroll_left_action
-            # self.selected_scroll_right_action = selected_scroll_right_action
-
-
-
-
-
-    # if config.has_scrollwheel == True:   
-    #     get_scroll_actions("scrollwheel")
-    # if config.has_thumbwheel == True:
-    #     get_scroll_actions("thumbwheel")
-
-
-
-
     @classmethod
     def create_from_configuration_id(cls, configuration_id):
         conn, cursor = execute_db_queries.create_db_connection()
 
         def get_scroll_actions(direction):
-            # directions = ["Up", "Down"] if wheel_type == "scrollwheel" else ["Left", "Right"]
-            # for i in directions:
-            #     pass
+
             cursor.execute("""
                             SELECT scroll_action_id, action_type, is_selected
                             FROM ScrollActions
@@ -1581,44 +1718,7 @@ class ScrollAction():
         self.changehost = changehost
 
 
-
-# class ButtonSettings(Button):
-#     def __init__(
-#                     self,
-#                     device_id,
-#                     button_cid, 
-#                     button_name,
-#                     button_id,
-#                     gesture_support,
-#                     configuration_id,
-#                     gestures,
-#                     button_default = {"button_config_id": None, "is_selected": None},
-#                     button_nopress = {"button_config_id": None, "is_selected": None},
-#                     button_togglesmartshift = {"button_config_id": None, "is_selected": None},
-#                     button_togglehiresscroll = {"button_config_id": None, "is_selected": None},
-#                     button_gestures = {"button_config_id": None, "is_selected": None},
-#                     button_axes = [],
-#                     button_changehost = [],
-#                     button_cycledpi = []
-#     ):
-#         super().__init__(
-#             device_id,
-#             button_cid,
-#             button_name,
-#             button_id,
-#         )
-#         self.gesture_support = gesture_support
-#         self.configuration_id = configuration_id
-#         self.gestures = gestures
-#         self.button_default = button_default
-#         self.button_nopress = button_nopress
-#         self.button_togglesmartshift = button_togglesmartshift
-#         self.button_togglehiresscroll = button_togglehiresscroll
-#         self.button_gestures = button_gestures
-#         self.button_axes = button_axes
-#         self.button_changehost = button_changehost
-#         self.button_cycledpi = button_cycledpi
-        
+  
 
 def update_selected_ttt_id(touch_tap_proxy_id):
     conn, cursor = execute_db_queries.create_db_connection()
@@ -1734,8 +1834,13 @@ class DeviceConfig:
         self.scroll_actions=scroll_actions
 
     @classmethod
-    def create_from_configuration_id(cls, configuration_id):
-        conn, cursor = execute_db_queries.create_db_connection()
+    def create_from_configuration_id(cls, configuration_id, cursor=None, conn=None):
+        
+        close_db = False
+
+        if cursor == None:
+            close_db = True
+            conn, cursor = execute_db_queries.create_db_connection()
 
         cursor.execute("""
         SELECT *
@@ -1796,7 +1901,8 @@ class DeviceConfig:
             config.scroll_actions = Scrolling(configuration_id)
             # print(cls.scroll_actions)
 
-        execute_db_queries.close_without_committing_changes(conn)
+        if close_db == True:
+            execute_db_queries.close_without_committing_changes(conn)
 
         # print(config.scroll_actions)
 
@@ -2014,6 +2120,10 @@ class DeviceConfig:
 
 
 
+
+
+
+
 class CFGConfig(DeviceConfig):
     def __init__(self, *args, **kwargs): 
         super().__init__(*args, **kwargs)
@@ -2042,87 +2152,6 @@ class CFGConfig(DeviceConfig):
         execute_db_queries.close_without_committing_changes(conn)
 
 
-
-
-# def get_device_config(configuration_id):
-
-#     conn, cursor = execute_db_queries.create_db_connection()
-
-
-#     cursor.execute("""
-#     SELECT *
-#     FROM Configurations AS C
-#     JOIN Devices AS D ON C.device_id = D.device_id
-#     WHERE C.configuration_id = ?;
-
-#                     """, (configuration_id,))
-
-
-#     configuration_query_result = cursor.fetchone()
-
-#     configuration_id, device_id, configuration_name, date_configuration_added, date_configuration_last_modified, is_selected, \
-#     dpi, smartshift_on, smartshift_threshold, smartshift_torque, hiresscroll_hires, hiresscroll_invert, hiresscroll_target, \
-#     thumbwheel_divert, thumbwheel_invert, configuration_id, device_name, is_user_device, config_file_device_name, device_pids, \
-#     min_dpi, max_dpi, default_dpi, has_scrollwheel, has_thumbwheel, thumbwheel_tap_support, thumbwheel_proxy_support, \
-#     thumbwheel_touch_support, thumbwheel_timestamp_support, smartshift_support, hires_scroll_support, number_of_sensors, \
-#     date_device_added, date_device_last_edited, is_activated = configuration_query_result
-
-#     buttons = []
-
-
-#     cursor.execute("""
-#     SELECT *
-#     FROM Buttons
-#     WHERE device_id = ?
-#                     """, (device_id,))
-
-#     device_buttons = cursor.fetchall()
-
-#     # print(device_buttons)
-
-
-
-
-#     configuration = DeviceConfig(
-#                                     device_id=device_id,
-#                                     device_name=device_name,
-#                                     is_user_device=is_user_device,
-#                                     date_device_added=date_device_added,
-#                                     date_device_last_edited=date_device_last_edited,
-#                                     buttons=buttons,
-#                                     min_dpi=min_dpi,
-#                                     max_dpi=max_dpi,
-#                                     default_dpi=default_dpi,
-#                                     has_scrollwheel =bool(has_scrollwheel),
-#                                     smartshift_support = bool(smartshift_support),
-#                                     hires_scroll_support = bool(hires_scroll_support),
-#                                     has_thumbwheel = bool(has_thumbwheel),
-#                                     thumbwheel_tap_support = bool(thumbwheel_tap_support),
-#                                     thumbwheel_proxy_support = bool(thumbwheel_proxy_support),
-#                                     thumbwheel_touch_support = bool(thumbwheel_touch_support),
-#                                     thumbwheel_timestamp_support = bool(thumbwheel_timestamp_support),
-#                                     number_of_sensors=number_of_sensors,
-#                                     is_activated=is_activated,
-#                                     configuration_id=configuration_id,
-#                                     configuration_name=configuration_name,
-#                                     date_configuration_added=date_configuration_added,
-#                                     date_configuration_last_modified=date_configuration_last_modified,
-#                                     is_selected=is_selected,
-#                                     dpi=dpi,
-#                                     smartshift_on=smartshift_on,
-#                                     smartshift_threshold=smartshift_threshold,
-#                                     smartshift_torque=smartshift_torque,
-#                                     hiresscroll_hires=hiresscroll_hires,
-#                                     hiresscroll_invert=hiresscroll_invert,
-#                                     hiresscroll_target=hiresscroll_target,
-#                                     thumbwheel_divert=bool(thumbwheel_divert),
-#                                     thumbwheel_invert=bool(thumbwheel_invert),
-
-#     )
-
-#     execute_db_queries.close_without_committing_changes(conn)
-
-#     return configuration
 
 
 
@@ -2352,54 +2381,9 @@ class ToggleHiresScroll(Action):
 
 
 
-# class Axis(Action):
-#     def __init__(
-#         self,
-#         button_config_id,
-#         device_id,
-#         button_id,
-#         configuration_id,
-#         is_selected,
-#         action_id,
-#         axis_id,
-#         axis_button,
-#         axis_multiplier
-
-#     ):
-#         super().__init__(
-#             button_config_id,
-#             device_id,
-#             button_id,
-#             configuration_id,
-#             is_selected,
-#             action_type = "Keypresses"
-#         )
-#         self.action_type = action_type
-
-
-#         self.button_config_id = button_config_id
-#         self.device_id = device_id
-#         self.button_id = button_id
-#         self.configuration_id = configuration_id
-#         self.is_selected = is_selected
-
-
-#         self.action_id = action_id
-#         self.axis_id = axis_id
-#         self.axis_button = axis_button
-#         self.axis_multiplier = axis_multiplier
-
-
-
-
 
 def main():
     pass
-    # x = get_device_config(2)
-    # test(x)
-    # config = DeviceConfig.create_from_configuration_id(1)
-    # print(f"{config.configuration_id}, {config.configuration_name}, {config.smartshift_on}")
-
 
 if __name__ == "__main__":
     main()
