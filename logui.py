@@ -11,7 +11,6 @@ import json
 from PIL import Image
 import io
 import cairosvg
-import time
 
 
 
@@ -447,8 +446,6 @@ class DeviceFrame():
         self.device_options_frame = ctk.CTkFrame(master=self.container_frame, corner_radius=0, fg_color="transparent")
         self.device_options_frame.pack(fill="x", expand=False)
 
-        # self.new_configuration_button = ctk.CTkButton(master=self.device_options_frame, text="Add Device Configuration", text_color="white", fg_color="#198754", height=40, width=230, hover_color="#28A745", font=ctk.CTkFont(family="Noto Sans"), command=lambda d=self.user_device.device_id, n=self.user_device.device_name: self.add_new_configuration(d, n))
-        # self.new_configuration_button.grid(row=0, column=1, sticky="e",)
 
         self.new_configuration_button = ctk.CTkButton(
             master=self.device_options_frame, 
@@ -541,9 +538,11 @@ class DeviceFrame():
                             fade_in_duration=200
                             )
         if msg.get() == "Delete":
+            def delete():
+                self.delete_device_callback(device_id)
+                del self.user_device
             self.destroy()
-            self.delete_device_callback(device_id)
-            del self.user_device
+            threading.Thread(target=delete())
 
 
     def pack(self, *args, **kwargs):
@@ -726,6 +725,9 @@ class FrontPage(ctk.CTkFrame):
                  ):
         super().__init__(master)
 
+
+
+
         left_frame = ctk.CTkFrame(master=self, fg_color="#2B2B2B")
         left_frame.grid(row=0, column=0, sticky="nsew", 
                         # rowspan=2
@@ -804,10 +806,10 @@ class FrontPage(ctk.CTkFrame):
 
 
 
-        def new_window():
-            new_window = ctk.CTkToplevel(master)
-            new_window.title = "Hi"
-            new_window.geometry("800x800")
+        def create_settings_window():
+            settings_window = ctk.CTkToplevel(master)
+            settings_window.title = "Settings"
+            settings_window.geometry("800x800")
 
             def set_widget_scaling(value):
                 ctk.set_widget_scaling(value)
@@ -821,9 +823,11 @@ class FrontPage(ctk.CTkFrame):
                 cursor.execute("""UPDATE UserSettings SET value = ? WHERE key = 'window_scaling'""",(value,))
                 execute_db_queries.commit_changes_and_close(conn)
 
-            window_scaling, widget_scaling = get_window_and_widget_scaling()
+            window_scaling, widget_scaling, geometry = get_geometry_and_window_and_widget_scaling()
 
-            widget_scaling_button = FloatSpinbox(master=new_window,
+            widget_scaling_label = ctk.CTkLabel(master=settings_window, text="Widget Scaling")
+            widget_scaling_label.pack()
+            widget_scaling_button = FloatSpinbox(master=settings_window,
                                                 value=widget_scaling,
                                                 width=200,
                                                 step_size=0.05,
@@ -833,7 +837,9 @@ class FrontPage(ctk.CTkFrame):
                                                 command=lambda: set_widget_scaling(widget_scaling_button.get()))
             widget_scaling_button.pack()
             
-            window_scaling_button = FloatSpinbox(master=new_window,
+            window_scaling_label = ctk.CTkLabel(master=settings_window, text="Window Scaling")
+            window_scaling_label.pack()
+            window_scaling_button = FloatSpinbox(master=settings_window,
                                                 value=window_scaling,
                                                 width=200,
                                                 step_size=0.05,
@@ -841,10 +847,50 @@ class FrontPage(ctk.CTkFrame):
                                                 min_value=-1000,
                                                 max_value=1000,
                                                 command=lambda: set_window_scaling(window_scaling_button.get()))
+            
             window_scaling_button.pack()
 
-        save_devices_button = ctk.CTkButton(master=bottom_frame, height=40, width=120, text="Set Scaling", command=new_window)
-        save_devices_button.grid(pady=30, sticky="e")
+            def update_window_geometry():
+                conn, cursor = execute_db_queries.create_db_connection()
+                cursor.execute("""UPDATE UserSettings SET value = ? WHERE key = 'geometry' """, (current_dimensions,))
+                startup_dimensions_label.configure(text=current_dimensions)
+                execute_db_queries.commit_changes_and_close(conn)                
+
+            current_dimensions = f"{int(master.winfo_width()/window_scaling_button.get())}x{int(master.winfo_height()/window_scaling_button.get())}"
+            current_dimensions_label = ctk.CTkLabel(master=settings_window, text=f"Current Dimensions: {current_dimensions}")
+            current_dimensions_label.pack()
+            startup_dimensions_label = ctk.CTkLabel(master=settings_window, text=f"Dimensions on Startup: {geometry}")
+            startup_dimensions_label.pack()
+            update_dimensions_button = ctk.CTkButton(master=settings_window, text="Update Startup Dimensions to Current", command=update_window_geometry)
+            update_dimensions_button.pack()
+
+            manually_update_label = ctk.CTkLabel(master=settings_window, text="Manually Update Dimensions")
+            manually_update_label.pack()
+
+            def manually_update():
+                # print(width_button.get())
+                new_geometry = f"{width_button.get()}x{height_button.get()}"
+                print(new_geometry)
+                conn, cursor = execute_db_queries.create_db_connection()
+                cursor.execute("""UPDATE UserSettings SET value = ? WHERE key = 'geometry'""", (new_geometry,))
+                execute_db_queries.commit_changes_and_close(conn)
+                master.geometry(new_geometry)
+
+
+            width_button = IntSpinbox(master=settings_window, value=int(geometry.split("x")[0]), width=200, step_size=10, min_value=100, max_value=7680)
+            width_button.pack()
+            height_button = IntSpinbox(master=settings_window, value=int(geometry.split("x")[1]), width=200, step_size=10, min_value=100, max_value=4320)
+            height_button.pack()
+            manually_update_button = ctk.CTkButton(master=settings_window, text="Manually Update", command=manually_update)
+            manually_update_button.pack()
+
+
+
+        settings_window_button = ctk.CTkButton(master=bottom_frame, height=40, width=120, text="Set Scaling", command=create_settings_window)
+        settings_window_button.grid(pady=30, sticky="e")
+
+
+
 
         bottom_frame.grid_columnconfigure((0), weight=1)
 
@@ -1073,6 +1119,10 @@ class EditConfigFrame(ctk.CTkFrame):
             if len(config_name_stripped) > 0:
                 configuration.configuration_name = config_name_stripped
                 self.main_page_radio_button.update_text(config_name_stripped)
+
+        self.top_frame = ctk.CTkFrame(master=self,fg_color="transparent")
+        self.top_frame.grid(row=1, column=1)
+
 
         self.bottom_frame = ctk.CTkFrame(master=self,fg_color="transparent")
         self.bottom_frame.grid(row=1, column=1)
@@ -1607,12 +1657,9 @@ class GestureRadioFrame(ctk.CTkFrame):
 
 
 
-        
-
-
-        add_new_action_button = ctk.CTkButton(master=self, command= lambda: show_new_action_frame(), text="Add New Action")
+    
+        add_new_action_button = ctk.CTkButton(master=self, command= lambda: show_new_action_frame(), text="Add New Button Action")
         add_new_action_button.grid(row=99, column=0)
-
 
 
 
@@ -2004,8 +2051,10 @@ class ButtonConfigFrame():
 
 
 
-        self.container_outer_frame = ctk.CTkFrame(master=master_frame, corner_radius=0, fg_color="transparent")
+        self.container_outer_frame = ctk.CTkFrame(master=master_frame, corner_radius=0, fg_color="pink")
         self.container_outer_frame.pack_forget()
+
+
 
         self.container_frame = ctk.CTkFrame(master=self.container_outer_frame, corner_radius=0, fg_color="transparent")
         self.container_frame.grid(row=0, column=0)
@@ -2481,7 +2530,8 @@ class ButtonConfigFrame():
         Allows ButtonConfigFrame to be packed like a regular widget.
         Passes all arguments to its container_frame's pack method.
         """
-        self.container_outer_frame.pack(*args, **kwargs)
+        # self.container_outer_frame.pack(*args, **kwargs)
+        self.container_outer_frame.pack(fill="both", expand=True)
 
     def pack_forget(self, *args, **kwargs): # Same as pack method above, but for pack_forget
         self.container_outer_frame.pack_forget(*args, **kwargs)
@@ -2985,33 +3035,46 @@ class SplashScreen(ctk.CTkFrame):
         update_position()
 
 
-def get_window_and_widget_scaling():
+def get_geometry_and_window_and_widget_scaling():
     conn, cursor = execute_db_queries.create_db_connection()
     cursor.execute("""SELECT value FROM UserSettings WHERE key = 'window_scaling'""")
     window_scaling = float(cursor.fetchone()[0])
     cursor.execute("""SELECT value FROM UserSettings WHERE key = 'widget_scaling'""")
     widget_scaling = float(cursor.fetchone()[0])
+    cursor.execute("""SELECT value FROM UserSettings WHERE key = 'geometry'""")
+    geometry = cursor.fetchone()[0]
     execute_db_queries.close_without_committing_changes(conn)
-    return window_scaling, widget_scaling
+    return window_scaling, widget_scaling, geometry
+
+# def update_window_geometry_in_db(new_geometry):
+#     try:
+#         conn, cursor = execute_db_queries.create_db_connection()
+#         cursor.execute("""UPDATE UserSettings SET value = ? WHERE key = 'geometry' """, (f"{new_geometry.width}x{new_geometry.height}",))
+#         execute_db_queries.commit_changes_and_close(conn)
+#     except:
+#         print(f"tried to set to {new_geometry} but it didn't work")
 
 def setup_gui(root):
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("dark-blue")
     
-    window_scaling, widget_scaling = get_window_and_widget_scaling()
+    window_scaling, widget_scaling, geometry = get_geometry_and_window_and_widget_scaling()
+
     ctk.set_window_scaling(window_scaling)
     ctk.set_widget_scaling(widget_scaling)
 
-    # print(root.winfo_screenwidth())
-    # print(root.winfo_screenheight())
 
 
-    root.geometry("1920x1080")
+
+    root.geometry(geometry)
     root.resizable(True, True)
     root.title("LogiOpsGUI")
+
+
     # ctk.DrawEngine.preferred_drawing_method = "circle_shapes"
     ctk.DrawEngine.preferred_drawing_method = "font_shapes"
     # ctk.DrawEngine.preferred_drawing_method = "polygon_shapes"
+
 
 
     front_page = FrontPage(root)
