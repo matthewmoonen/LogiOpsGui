@@ -11,7 +11,8 @@ import json
 from PIL import Image
 import io
 import cairosvg
-
+import FileBrowserWindow
+import create_cfg
 
 
 def svg_to_image(path, output_width=300, output_height=300):
@@ -716,6 +717,18 @@ class LeftButtons():
         self.user_devices = user_devices
         self.refresh_left_buttons()
 
+def get_cfg_location():
+    conn, cursor = execute_db_queries.create_db_connection()
+    cursor.execute("""SELECT value FROM UserSettings WHERE key = 'cfg_directory'""")
+    result = cursor.fetchone()[0]
+    execute_db_queries.close_without_committing_changes(conn)
+    return result
+
+def set_cfg_location(new_location):
+    conn, cursor = execute_db_queries.create_db_connection()
+    cursor.execute("""UPDATE UserSettings SET value = ? WHERE key = 'cfg_directory'""",(new_location,))
+    execute_db_queries.commit_changes_and_close(conn)
+    return new_location
 
 class FrontPage(ctk.CTkFrame):
     def __init__(self,
@@ -741,6 +754,38 @@ class FrontPage(ctk.CTkFrame):
         user_devices_label = ctk.CTkLabel(master=left_frame, text="User Devices", font=ctk.CTkFont(family="Noto Sans", weight="bold", size=20),)
         user_devices_label.grid(row=2, column=0, columnspan=2, pady=(30,0))
 
+        ignored_devices_label = ctk.CTkLabel(master=left_frame, text="Ignored Devices", font=ctk.CTkFont(family="Noto Sans", weight="bold", size=20),)
+        ignored_devices_label.grid(row=4, column=0, columnspan=2, pady=(30,0))
+
+
+        cfg_file_label = ctk.CTkLabel(master=left_frame, text="Logid Configuration", font=ctk.CTkFont(family="Noto Sans", weight="bold", size=20),)
+        cfg_file_label.grid(row=6, column=0, columnspan=2, pady=(30,0))
+
+        cfg_location = get_cfg_location()
+
+        def handle_file_selection(selected_path):
+            cfg_location = set_cfg_location(selected_path)
+            print("handled file selection")
+
+        def on_create_cfg_button_click():
+            create_cfg.main(cfg_location)
+
+        create_cfg_button = ctk.CTkButton(master=left_frame, text="Create CFG", command=on_create_cfg_button_click)
+        create_cfg_button.grid(row=7, column=0)
+        # set_logid_path_button = ctk.CTkButton(master=left_frame, text="Edit CFG location", command=lambda master=self, on_select=handle_file_selection: FileBrowserWindow.BrowserWindow(master, on_select))
+        set_logid_path_button = ctk.CTkButton(
+                master=left_frame,
+                text="Edit CFG location",
+                command=lambda: FileBrowserWindow.BrowserWindow(self, on_select=handle_file_selection)
+            )
+        set_logid_path_button.grid(row=7, column=1)
+
+
+        restart_logid_button = ctk.CTkButton(master=left_frame, text="Restart Logid")
+        restart_logid_button.grid(row=8, column=0, columnspan=2)
+
+
+
         right_frame = ctk.CTkFrame(master=self, corner_radius=0)
         right_frame.grid(row=0, column=1, sticky="nsew")
         right_frame.grid_columnconfigure(0, weight=1)
@@ -751,6 +796,8 @@ class FrontPage(ctk.CTkFrame):
         self.grid_columnconfigure(1, weight=1)  # Set the weight of the column in the main frame
         self.grid_rowconfigure(1, weight=1)
         
+
+
 
 
         self.user_devices_and_configs = Classes.DevicesAndConfigs()
@@ -850,43 +897,37 @@ class FrontPage(ctk.CTkFrame):
             
             window_scaling_button.pack()
 
-            def update_window_geometry():
-                conn, cursor = execute_db_queries.create_db_connection()
-                cursor.execute("""UPDATE UserSettings SET value = ? WHERE key = 'geometry' """, (current_dimensions,))
-                startup_dimensions_label.configure(text=current_dimensions)
-                execute_db_queries.commit_changes_and_close(conn)                
 
             current_dimensions = f"{int(master.winfo_width()/window_scaling_button.get())}x{int(master.winfo_height()/window_scaling_button.get())}"
             current_dimensions_label = ctk.CTkLabel(master=settings_window, text=f"Current Dimensions: {current_dimensions}")
             current_dimensions_label.pack()
             startup_dimensions_label = ctk.CTkLabel(master=settings_window, text=f"Dimensions on Startup: {geometry}")
             startup_dimensions_label.pack()
-            update_dimensions_button = ctk.CTkButton(master=settings_window, text="Update Startup Dimensions to Current", command=update_window_geometry)
-            update_dimensions_button.pack()
 
             manually_update_label = ctk.CTkLabel(master=settings_window, text="Manually Update Dimensions")
             manually_update_label.pack()
 
             def manually_update():
-                # print(width_button.get())
+                
                 new_geometry = f"{width_button.get()}x{height_button.get()}"
                 print(new_geometry)
                 conn, cursor = execute_db_queries.create_db_connection()
                 cursor.execute("""UPDATE UserSettings SET value = ? WHERE key = 'geometry'""", (new_geometry,))
                 execute_db_queries.commit_changes_and_close(conn)
                 master.geometry(new_geometry)
+                current_dimensions_label.configure(text=f"Current Dimensions: {new_geometry}")
+                startup_dimensions_label.configure(text=f"Startup Dimensions: {new_geometry}")
 
-
-            width_button = IntSpinbox(master=settings_window, value=int(geometry.split("x")[0]), width=200, step_size=10, min_value=100, max_value=7680)
+            width_button = IntSpinbox(master=settings_window, value=int(master.winfo_width()/window_scaling_button.get()), width=200, step_size=10, min_value=100, max_value=7680)
             width_button.pack()
-            height_button = IntSpinbox(master=settings_window, value=int(geometry.split("x")[1]), width=200, step_size=10, min_value=100, max_value=4320)
+            height_button = IntSpinbox(master=settings_window, value=int(master.winfo_height()/window_scaling_button.get()), width=200, step_size=10, min_value=100, max_value=4320)
             height_button.pack()
-            manually_update_button = ctk.CTkButton(master=settings_window, text="Manually Update", command=manually_update)
+            manually_update_button = ctk.CTkButton(master=settings_window, text="Set Dimensions", command=manually_update)
             manually_update_button.pack()
 
 
 
-        settings_window_button = ctk.CTkButton(master=bottom_frame, height=40, width=120, text="Set Scaling", command=create_settings_window)
+        settings_window_button = ctk.CTkButton(master=bottom_frame, height=40, width=120, text="App Settings", command=create_settings_window)
         settings_window_button.grid(pady=30, sticky="e")
 
 

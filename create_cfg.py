@@ -239,17 +239,19 @@ def write_device_cfg(file, settings_object):
 
 
 
-def main():
+def main(directory="app_data/logid.cfg"):
     configuration_ids = get_configurations()
-    cfg_dir = create_cfg_file()
+
+    cfg_dir = create_cfg_file(directory)
 
     with open(cfg_dir, 'w') as file:
         write_intro(file)        
         for configuration_id in configuration_ids:
             settings_object = Classes.CFGConfig.create_from_configuration_id(configuration_id)
-            # start_cfg_file(file, settings_object)
             write_device_cfg(file, settings_object)
         write_outro(file)
+    print(f"cfg written to {cfg_dir}")
+
 
 if __name__ == "__main__":
     main()

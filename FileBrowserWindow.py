@@ -2,6 +2,7 @@ import os
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
 
+
 class ListboxEntry(ctk.CTkButton):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -128,8 +129,8 @@ class FileScroller(ctk.CTkScrollableFrame):
                     folders.append(entry)
                 else:
                     files.append(entry)
-        self.create_folder_buttons(folders)
-        self.create_file_buttons(files)
+        self.create_folder_buttons(sorted(folders))
+        self.create_file_buttons(sorted(files))
 
     def folder_selected(self, selected_folder):
         
@@ -143,13 +144,16 @@ class FileScroller(ctk.CTkScrollableFrame):
 
 
 class BrowserWindow(ctk.CTkToplevel):
-    def __init__(self, master):
+    def __init__(self, master, current_path=None, on_select=None):
         super().__init__(master)
 
-        self.current_path = os.path.expanduser("~")
+        if current_path is not None:
+            self.current_path = current_path
+        else:
+            self.current_path = os.path.expanduser("~")
         self.title = "Browse"
         self.geometry("800x600")
-        
+        self.on_select=on_select
 
 
         def highlight_open_button(event):
@@ -192,25 +196,27 @@ class BrowserWindow(ctk.CTkToplevel):
 
     def open_button_callback(self):
         textbox_contents = self.input_box.get("1.0", "end-1c").strip()
+        if "//" in textbox_contents:
+            textbox_contents = textbox_contents.replace("//", "/")
+            print("had to replace")
+            
         if textbox_contents == "⤴..":
-            # print(self.file_scroller.current_path)
             self.current_path = self.file_scroller.current_path.rsplit('/', 1)[0]
             self.file_scroller.folder_selected(selected_folder=self.current_path)
         elif textbox_contents[0] != "/":
             textbox_contents = f"/{textbox_contents}"
-        if textbox_contents == self.current_path or textbox_contents == f"{self.current_path}/" or textbox_contents == "/⤴..":
+        if textbox_contents == self.current_path or textbox_contents == f"{self.current_path}/" or textbox_contents == "/⤴.." or textbox_contents == "⤴..":
             pass
         elif os.path.isdir(textbox_contents):
             self.file_scroller.folder_selected(selected_folder=textbox_contents)
             self.current_path = textbox_contents
-            # print(self.current_path)
         else:
             if os.path.isdir(textbox_contents.rsplit('/', 1)[0]):
-                # chatgpt, finish this
-                self.master.input_box.delete("1.0", "end")
-                self.master.input_box.insert("1.0", textbox_contents)
+                if callable(self.on_select):
+                    self.on_select(textbox_contents)
                 self.destroy()
             else:
+                print(textbox_contents)
                 CTkMessagebox(title="Invalid Filename", message="Invalid Filename", icon="warning", option_1="Okay")
 
 
