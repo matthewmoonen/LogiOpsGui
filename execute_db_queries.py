@@ -26,7 +26,7 @@ def create_db_connection():
         return conn, cursor
     except sqlite3.Error as e:
         logging.error(e)
-
+        
 
 def commit_changes_and_close(conn):
     conn.commit()

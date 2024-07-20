@@ -12,3 +12,7 @@ INSERT INTO UserSettings (key, value) VALUES ('geometry', "1920x1080")
 
 INSERT INTO UserSettings (key, value) VALUES ('cfg_directory', "default")
 
+-- ### QUERY_SEPARATOR ###
+
+INSERT INTO UserSettings(key, value) VALUES ('cfg_filename', "logid.cfg")
+

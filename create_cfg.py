@@ -2,8 +2,6 @@ import execute_db_queries
 import Classes
 import os
 
-conn, cursor = execute_db_queries.create_db_connection()
-
 
 
 def print_object(settings_object):
@@ -60,13 +58,16 @@ def print_object(settings_object):
     print(settings_object.update_smartshift_torque)
 
 
+
 def get_configurations():
+    conn, cursor = execute_db_queries.create_db_connection()
     cursor.execute("""
                         SELECT configuration_id
                    FROM Configurations
                    WHERE is_selected = 1
 """)
     configuration_ids = cursor.fetchall()
+    execute_db_queries.close_without_committing_changes(conn)
     return [i[0] for i in configuration_ids]
 
 
@@ -209,12 +210,6 @@ def write_outro(file):
     file.write(");")
 
 
-def create_cfg_file(cfg_dir="app_data/logid.cfg"):
-
-    if os.path.exists(cfg_dir):
-       os.remove(cfg_dir)
-
-    return cfg_dir
 
 def write_device_cfg(file, settings_object):
     file.write("{\n"
@@ -237,20 +232,90 @@ def write_device_cfg(file, settings_object):
 
     file.write("},\n")
 
+def set_cfg_location(new_location, new_filename):
+    conn, cursor = execute_db_queries.create_db_connection()
+    cursor.execute("""UPDATE UserSettings SET value = ? WHERE key = 'cfg_directory'""",(new_location,))
+    cursor.execute("""UPDATE UserSettings SET value = ? WHERE key = 'cfg_filename'""",(new_filename,))
+
+    execute_db_queries.commit_changes_and_close(conn)
+    return new_location, new_filename
+
+def get_cfg_location():
+    conn, cursor = execute_db_queries.create_db_connection()
+    cursor.execute("""SELECT value FROM UserSettings WHERE key = 'cfg_directory'""")
+    cfg_location = cursor.fetchone()[0]
+    cursor.execute("""SELECT value FROM UserSettings WHERE key = 'cfg_filename'""")
+    cfg_filename = cursor.fetchone()[0]
+    execute_db_queries.close_without_committing_changes(conn)
+    return cfg_location, cfg_filename
 
 
-def main(directory="app_data/logid.cfg"):
+def automatically_generate_in_home_directory(old_location=None):
+    # home_dir = "/etc"
+    home_dir = os.path.expanduser("~")
+    default_location = os.path.join(home_dir, "logid.cfg")
+
+    def found_new_location(new_location):
+        return generate_config_file(cfg_dir=new_location, previously_tried_location=old_location)
+
+    if not os.path.exists(default_location):
+        return found_new_location(default_location)
+    else:
+        for i in range(2, 10000):
+            location_to_check = os.path.join(home_dir, f"logid({i}).cfg")
+            if i == 10000:
+                raise FileGenError("Cannot create a unique file name in the home directory.")
+            elif not os.path.exists(location_to_check):
+                return found_new_location(location_to_check)
+
+def generate_config_file(cfg_dir, previously_tried_location=None):
     configuration_ids = get_configurations()
-
-    cfg_dir = create_cfg_file(directory)
-
-    with open(cfg_dir, 'w') as file:
-        write_intro(file)        
+    
+    def write_to_file(file):
+        write_intro(file)
         for configuration_id in configuration_ids:
             settings_object = Classes.CFGConfig.create_from_configuration_id(configuration_id)
             write_device_cfg(file, settings_object)
         write_outro(file)
-    print(f"cfg written to {cfg_dir}")
+    
+    try:
+        with open(cfg_dir, 'w') as file:
+            write_to_file(file)
+    except PermissionError:
+        if previously_tried_location:
+            return f"Something went wrong. Do not have permission to write to {previously_tried_location} or {cfg_dir}"
+        return automatically_generate_in_home_directory(cfg_dir)
+
+    return f"Success! Config file saved as {cfg_dir}" if previously_tried_location is None else \
+           f"Permission Error: Do not have permission to write to {previously_tried_location}. Saved as {cfg_dir} instead."
+
+
+
+class FileGenError(Exception):
+    "Raised when the file cannot be created"
+    pass
+
+def generate_in_user_chosen_directory():
+    directory = get_cfg_location()
+    if directory[0] == "default":
+        home_dir = os.path.expanduser("~")
+        directory = os.path.join(home_dir, "logid.cfg")
+    else:
+        directory = "/".join(directory)
+
+    if os.path.exists(directory):
+        try:
+            os.remove(directory)
+        except PermissionError:
+            pass
+
+    message = generate_config_file(directory)
+    return message
+
+
+def main():
+    generate_config_file()
+    
 
 
 if __name__ == "__main__":
