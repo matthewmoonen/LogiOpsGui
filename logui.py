@@ -14,6 +14,7 @@ import cairosvg
 import FileBrowserWindow
 import create_cfg
 import ast
+import needs_super
 
 
 def svg_to_image(path, output_width=300, output_height=300):
