@@ -20,8 +20,14 @@ def execute_queries(cursor, queries, placeholders=None, data=None):
 
 def create_db_connection():
     try:
+        # print('creating connection')
         conn = sqlite3.connect('app_data/app_records.db')
+        
         cursor = conn.cursor()
+        # conn.execute('PRAGMA journal_mode=WAL;')
+        # cursor.execute('PRAGMA journal_mode;')
+        result = cursor.fetchone()
+        # print(f"Current journal mode: {result[0]}")
         conn.execute("PRAGMA foreign_keys = ON")  # Enable foreign key constraints
         return conn, cursor
     except sqlite3.Error as e:
@@ -29,119 +35,123 @@ def create_db_connection():
         
 
 def commit_changes_and_close(conn):
+    # print("committing and closing")
     conn.commit()
     conn.close()
 
 
 def close_without_committing_changes(conn):
+    # print("closing, no changes")
     conn.close()
 
-def get_next_sequential_name(name_to_match, similar_names):
-    if len(similar_names) == 0 or name_to_match not in similar_names:
-        return name_to_match
+# def get_next_sequential_name(name_to_match, similar_names):
+#     if len(similar_names) == 0 or name_to_match not in similar_names:
+#         return name_to_match
 
-    else:
-        pattern = rf'{re.escape(name_to_match)}(?: \((\d+)\))?'
-        numbers = []
+#     else:
+#         pattern = rf'{re.escape(name_to_match)}(?: \((\d+)\))?'
+#         numbers = []
 
-        for similar_name in similar_names:
-            match = re.match(pattern, similar_name)
-            if match:
-                number_str = match.group(1)
-                if number_str:
-                    number = int(number_str)
-                    if number >= 2:
-                        numbers.append(number)
+#         for similar_name in similar_names:
+#             match = re.match(pattern, similar_name)
+#             if match:
+#                 number_str = match.group(1)
+#                 if number_str:
+#                     number = int(number_str)
+#                     if number >= 2:
+#                         numbers.append(number)
 
-        if len(numbers) == 0:
-            return f"{name_to_match} (2)"
+#         if len(numbers) == 0:
+#             return f"{name_to_match} (2)"
 
-        numbers.sort()
+#         numbers.sort()
 
-        for i in range(1):
-            if numbers[0] < 2:
-                del numbers[0]
-                if len(numbers) == 0:
-                    return f"{name_to_match} (2)"
+#         for i in range(1):
+#             if numbers[0] < 2:
+#                 del numbers[0]
+#                 if len(numbers) == 0:
+#                     return f"{name_to_match} (2)"
 
-        new_highest_number = 2
+#         new_highest_number = 2
             
-        for i in numbers:
-            if i == new_highest_number:
-                new_highest_number += 1
-                continue
-            else:
-                break
+#         for i in numbers:
+#             if i == new_highest_number:
+#                 new_highest_number += 1
+#                 continue
+#             else:
+#                 break
 
-        return f"{name_to_match} ({new_highest_number})"
+#         return f"{name_to_match} ({new_highest_number})"
 
-def new_empty_configuration(device_id, device_name):
-    conn, cursor = create_db_connection()
 
-    cursor.execute("""
-                SELECT configuration_name
-                FROM Configurations
-                WHERE device_id = ? AND configuration_name LIKE ? || '%'
-""", (device_id, device_name))
+
+# def new_empty_configuration(device_id, device_name):
+#     conn, cursor = create_db_connection()
+
+#     cursor.execute("""
+#                 SELECT configuration_name
+#                 FROM Configurations
+#                 WHERE device_id = ? AND configuration_name LIKE ? || '%'
+# """, (device_id, device_name))
     
-    similar_names = cursor.fetchall()
+#     similar_names = cursor.fetchall()
     
-    similar_names_as_strings = [str(row[0]) for row in similar_names]
-    # print(similar_names_as_strings)
+#     similar_names_as_strings = [str(row[0]) for row in similar_names]
+#     # print(similar_names_as_strings)
 
-    next_config_name = get_next_sequential_name(device_name, similar_names_as_strings)
+#     next_config_name = get_next_sequential_name(device_name, similar_names_as_strings)
 
-    # print(f"next config name: {next_config_name}")
+#     # print(f"next config name: {next_config_name}")
 
-    cursor.execute("""
-                SELECT smartshift_support, hires_scroll_support, has_thumbwheel
-                FROM Devices
-                WHERE device_id = ?
-""", (device_id,))
+#     cursor.execute("""
+#                 SELECT smartshift_support, hires_scroll_support, has_thumbwheel
+#                 FROM Devices
+#                 WHERE device_id = ?
+# """, (device_id,))
 
-    smartshift_support, hires_scroll_support, has_thumbwheel = cursor.fetchone()
+#     smartshift_support, hires_scroll_support, has_thumbwheel = cursor.fetchone()
 
-    if bool(smartshift_support) == True:
-        smartshift_on = 1
-        smartshift_threshold = smartshift_torque = 10
-    else:
-        smartshift_on = smartshift_threshold = smartshift_torque = None
+#     if bool(smartshift_support) == True:
+#         smartshift_on = 1
+#         smartshift_threshold = smartshift_torque = 10
+#     else:
+#         smartshift_on = smartshift_threshold = smartshift_torque = None
 
 
-    if bool(hires_scroll_support) == True:
-        hiresscroll_hires = hiresscroll_invert = hiresscroll_target = True
+#     if bool(hires_scroll_support) == True:
+#         hiresscroll_hires = hiresscroll_invert = hiresscroll_target = True
 
-    else:
-        hiresscroll_hires = hiresscroll_invert = hiresscroll_target = None
+#     else:
+#         hiresscroll_hires = hiresscroll_invert = hiresscroll_target = None
 
-    if bool(has_thumbwheel) == True:
-        thumbwheel_divert = thumbwheel_invert = True
+#     if bool(has_thumbwheel) == True:
+#         thumbwheel_divert = thumbwheel_invert = True
 
-    else:
-        thumbwheel_divert = thumbwheel_invert = None
+#     else:
+#         thumbwheel_divert = thumbwheel_invert = None
 
-    cursor.execute("""
-    INSERT INTO Configurations (
-        device_id,
-        configuration_name,
-        last_modified,
-        is_selected,
-        smartshift_on,
-        smartshift_threshold,
-        smartshift_torque,
-        hiresscroll_hires,
-        hiresscroll_invert,
-        hiresscroll_target,
-        thumbwheel_divert,
-        thumbwheel_invert
-    ) VALUES (?, ?, NULL, 0, ?, ?, ?, ?, ?, ?, ?, ?)
-""", (device_id, next_config_name, smartshift_on, smartshift_threshold, smartshift_torque, hiresscroll_hires, hiresscroll_invert, hiresscroll_target, thumbwheel_divert, thumbwheel_invert)) 
+#     cursor.execute("""
+#     INSERT INTO Configurations (
+#         device_id,
+#         configuration_name,
+#         last_modified,
+#         is_selected,
+#         smartshift_on,
+#         smartshift_threshold,
+#         smartshift_torque,
+#         hiresscroll_hires,
+#         hiresscroll_invert,
+#         hiresscroll_target,
+#         thumbwheel_divert,
+#         thumbwheel_invert
+#     ) VALUES (?, ?, NULL, 0, ?, ?, ?, ?, ?, ?, ?, ?)
+# """, (device_id, next_config_name, smartshift_on, smartshift_threshold, smartshift_torque, hiresscroll_hires, hiresscroll_invert, hiresscroll_target, thumbwheel_divert, thumbwheel_invert)) 
 
-    newest_configuration_id = cursor.lastrowid
+#     newest_configuration_id = cursor.lastrowid
 
-    commit_changes_and_close(conn)
+#     commit_changes_and_close(conn)
     
-    return newest_configuration_id
+#     return newest_configuration_id
 
 
     # TODO: can't import the appropriate class from Classes.py as this would create a circular import, 
@@ -264,18 +274,18 @@ def get_user_device_objects():
 
 
 
-def update_selected_configuration(selected_configuration_id):
-    # print(selected_configuration_id)
+# def update_selected_configuration(selected_configuration_id):
+#     # print(selected_configuration_id)
 
-    conn, cursor = create_db_connection()
+#     conn, cursor = create_db_connection()
 
-    cursor.execute("""
-        UPDATE Configurations
-        SET is_selected = 1
-        WHERE configuration_id = ?
-""", (selected_configuration_id,))
+#     cursor.execute("""
+#         UPDATE Configurations
+#         SET is_selected = 1
+#         WHERE configuration_id = ?
+# """, (selected_configuration_id,))
 
-    commit_changes_and_close(conn)
+#     commit_changes_and_close(conn)
     
 
 def get_existing_device_config(config_id):
@@ -424,38 +434,37 @@ def get_configured_devices():
     return [row[0] for row in user_devices]
 
 
-def add_new_device(new_device_name):
+# def add_new_device(new_device_name):
 
-    conn, cursor = create_db_connection()
+#     conn, cursor = create_db_connection()
 
-    cursor.execute("""
-        UPDATE Devices
-        SET is_user_device = 1
-        WHERE device_name = ?
-""", (new_device_name,))
+#     cursor.execute("""
+#         UPDATE Devices
+#         SET is_user_device = 1
+#         WHERE device_name = ?
+# """, (new_device_name,))
 
-    # print(new_device_name)
 
-    cursor.execute("""
-        SELECT Configurations.configuration_id
-        FROM Configurations
-        JOIN Devices ON Configurations.device_id = Devices.device_id
-        WHERE Devices.device_name = ?;
-""", (new_device_name,))
+#     cursor.execute("""
+#         SELECT Configurations.configuration_id
+#         FROM Configurations
+#         JOIN Devices ON Configurations.device_id = Devices.device_id
+#         WHERE Devices.device_name = ?;
+# """, (new_device_name,))
     
-    new_configuration_id = cursor.fetchone()[0]
+#     new_configuration_id = cursor.fetchone()[0]
 
-    cursor.execute("""
-        SELECT device_id
-        FROM Devices
-        WHERE device_name = ?
-        """, (new_device_name,))
+#     cursor.execute("""
+#         SELECT device_id
+#         FROM Devices
+#         WHERE device_name = ?
+#         """, (new_device_name,))
 
-    new_device_id = cursor.fetchone()[0]
+#     new_device_id = cursor.fetchone()[0]
 
-    commit_changes_and_close(conn)
+#     commit_changes_and_close(conn)
 
-    return new_configuration_id, new_device_id
+#     return new_configuration_id, new_device_id
 
 
 def get_unconfigured_devices_dictionary():

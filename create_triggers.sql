@@ -51,6 +51,8 @@ BEGIN
 END;
 
 
+
+
 -- ### QUERY_SEPARATOR ###
 
 -- Delete all configurations associated with a device when a deletes it from their user device list
@@ -164,6 +166,7 @@ CREATE TRIGGER add_touch_option_toggle_smartshift
 AFTER INSERT ON Configurations
 FOR EACH ROW
 WHEN (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1
+AND (SELECT thumbwheel_touch FROM Devices WHERE device_id = NEW.device_id) = 1
 BEGIN
     INSERT INTO TouchTapProxy (configuration_id, touch_tap_proxy, action_type, is_selected)
     VALUES (NEW.configuration_id, 'Touch', 'ToggleSmartShift', 0);
@@ -177,6 +180,7 @@ CREATE TRIGGER add_touch_option_toggle_hires_scroll
 AFTER INSERT ON Configurations
 FOR EACH ROW
 WHEN (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1
+AND (SELECT thumbwheel_touch FROM Devices WHERE device_id = NEW.device_id) = 1
 BEGIN
     INSERT INTO TouchTapProxy (configuration_id, touch_tap_proxy, action_type, is_selected)
     VALUES (NEW.configuration_id, 'Touch', 'ToggleHiresScroll', 0);
@@ -206,6 +210,7 @@ CREATE TRIGGER add_tap_option_toggle_smartshift
 AFTER INSERT ON Configurations
 FOR EACH ROW
 WHEN (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1
+AND (SELECT thumbwheel_tap FROM Devices WHERE device_id = NEW.device_id) = 1
 BEGIN
     INSERT INTO TouchTapProxy (configuration_id, touch_tap_proxy, action_type, is_selected)
     VALUES (NEW.configuration_id, 'Tap', 'ToggleSmartShift', 0);
@@ -219,6 +224,7 @@ CREATE TRIGGER add_tap_option_toggle_hires_scroll
 AFTER INSERT ON Configurations
 FOR EACH ROW
 WHEN (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1
+AND (SELECT thumbwheel_tap FROM Devices WHERE device_id = NEW.device_id) = 1
 BEGIN
     INSERT INTO TouchTapProxy (configuration_id, touch_tap_proxy, action_type, is_selected)
     VALUES (NEW.configuration_id, 'Tap', 'ToggleHiresScroll', 0);
@@ -249,6 +255,7 @@ CREATE TRIGGER add_proxy_option_toggle_smartshift
 AFTER INSERT ON Configurations
 FOR EACH ROW
 WHEN (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1
+AND (SELECT thumbwheel_proxy FROM Devices WHERE device_id = NEW.device_id) = 1
 BEGIN
     INSERT INTO TouchTapProxy (configuration_id, touch_tap_proxy, action_type, is_selected)
     VALUES (NEW.configuration_id, 'Proxy', 'ToggleSmartShift', 0);
@@ -262,6 +269,7 @@ CREATE TRIGGER add_proxy_option_toggle_hires_scroll
 AFTER INSERT ON Configurations
 FOR EACH ROW
 WHEN (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1
+AND (SELECT thumbwheel_proxy FROM Devices WHERE device_id = NEW.device_id) = 1
 BEGIN
     INSERT INTO TouchTapProxy (configuration_id, touch_tap_proxy, action_type, is_selected)
     VALUES (NEW.configuration_id, 'Proxy', 'ToggleHiresScroll', 0);
@@ -274,7 +282,7 @@ END
 
 
 
-CREATE TRIGGER add_vertical_scroll_actions
+CREATE TRIGGER add_vertical_scroll_properties
 AFTER INSERT ON Configurations
 FOR EACH ROW
 WHEN (SELECT has_scrollwheel FROM Devices WHERE device_id = NEW.device_id) = 1
@@ -285,34 +293,11 @@ BEGIN
     (NEW.configuration_id, 'Down'),
     (NEW.configuration_id, 'Up');
 
-    INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
-    VALUES
-    (NEW.configuration_id, 'Up', 'Default', 1),
-    (NEW.configuration_id, 'Down', 'Default', 1),
-    (NEW.configuration_id, 'Up', 'NoPress', 0),
-    (NEW.configuration_id, 'Down', 'NoPress', 0);
-
-    -- Check for smartshift_support and insert if true
-    INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
-    SELECT NEW.configuration_id, 'Up', 'ToggleSmartShift', 0
-    WHERE (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1;
-    INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
-    SELECT NEW.configuration_id, 'Down', 'ToggleSmartShift', 0
-    WHERE (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1;
-
-    -- Check for hires_scroll_support and insert if true
-    INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
-    SELECT NEW.configuration_id, 'Up', 'ToggleHiresScroll', 0
-    WHERE (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1;
-    INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
-    SELECT NEW.configuration_id, 'Down', 'ToggleHiresScroll', 0
-    WHERE (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1;
-
 END;
 
--- -- ### QUERY_SEPARATOR ###
+-- ### QUERY_SEPARATOR ###
 
-CREATE TRIGGER add_horizontal_scroll_actions
+CREATE TRIGGER add_horizontal_scroll_properties
 AFTER INSERT ON Configurations
 FOR EACH ROW
 WHEN (SELECT has_thumbwheel FROM Devices WHERE device_id = NEW.device_id) = 1
@@ -321,31 +306,32 @@ BEGIN
     VALUES
     (NEW.configuration_id, 'Right'),
     (NEW.configuration_id, 'Left');
-
-    INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
-    VALUES
-    (NEW.configuration_id, 'Left', 'Default', 1),
-    (NEW.configuration_id, 'Right', 'Default', 1),
-    (NEW.configuration_id, 'Left', 'NoPress', 0),
-    (NEW.configuration_id, 'Right', 'NoPress', 0);
-
-    -- Check for smartshift_support and insert if true
-    INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
-    SELECT NEW.configuration_id, 'Left', 'ToggleSmartShift', 0
-    WHERE (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1;
-    INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
-    SELECT NEW.configuration_id, 'Right', 'ToggleSmartShift', 0
-    WHERE (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1;
-
-    -- Check for hires_scroll_support and insert if true
-    INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
-    SELECT NEW.configuration_id, 'Left', 'ToggleHiresScroll', 0
-    WHERE (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1;
-    INSERT INTO ScrollActions (configuration_id, scroll_direction, action_type, is_selected)
-    SELECT NEW.configuration_id, 'Right', 'ToggleHiresScroll', 0
-    WHERE (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1;
 END;
 
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER add_scroll_actions
+AFTER INSERT ON ScrollActionProperties
+FOR EACH ROW
+BEGIN
+    -- Insert default actions
+    INSERT INTO ScrollActions (scroll_action_property_id, configuration_id, action_type, is_selected)
+    VALUES
+    (NEW.scroll_action_property_id, NEW.configuration_id, 'Default', 1),
+    (NEW.scroll_action_property_id, NEW.configuration_id, 'NoPress', 0);
+
+    -- Insert ToggleSmartShift action if smartshift_support is true
+    INSERT INTO ScrollActions (scroll_action_property_id, configuration_id, action_type, is_selected)
+    SELECT NEW.scroll_action_property_id, NEW.configuration_id, 'ToggleSmartShift', 0
+    FROM Devices
+    WHERE device_id = (SELECT Configurations.device_id FROM Configurations JOIN ScrollActionProperties ON Configurations.configuration_id = ScrollActionProperties.configuration_id WHERE ScrollActionProperties.scroll_action_property_id = NEW.scroll_action_property_id) AND smartshift_support = 1;
+
+    -- Insert ToggleHiresScroll action if hires_scroll_support is true
+    INSERT INTO ScrollActions (scroll_action_property_id, configuration_id, action_type, is_selected)
+    SELECT NEW.scroll_action_property_id, NEW.configuration_id, 'ToggleHiresScroll', 0
+    FROM Devices
+    WHERE device_id = (SELECT Configurations.device_id FROM Configurations JOIN ScrollActionProperties ON Configurations.configuration_id = ScrollActionProperties.configuration_id WHERE ScrollActionProperties.scroll_action_property_id = NEW.scroll_action_property_id) AND hires_scroll_support = 1;
+END;
 
 
 -- ### QUERY_SEPARATOR ###
@@ -415,6 +401,20 @@ BEGIN
     AND action_type = "Default"
     AND OLD.is_selected = 1
     AND EXISTS (SELECT 1 FROM ButtonConfigs WHERE configuration_id = OLD.configuration_id AND button_id = OLD.button_id);
+END;
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS touch_tap_proxy_update_selected_after_delete
+AFTER DELETE ON TouchTapProxy
+BEGIN
+    UPDATE TouchTapProxy
+    SET is_selected = 1
+    WHERE configuration_id = OLD.configuration_id
+    AND touch_tap_proxy = OLD.touch_tap_proxy
+    AND action_type = "NoPress"
+    AND OLD.is_selected = 1
+    AND EXISTS (SELECT 1 FROM TouchTapProxy WHERE configuration_id = OLD.configuration_id AND touch_tap_proxy = OLD.touch_tap_proxy);
 END;
 
 -- ### QUERY_SEPARATOR ###
@@ -505,10 +505,7 @@ BEGIN
     WHERE configuration_id = NEW.configuration_id;
 END;
 
-
-
 -- ### QUERY_SEPARATOR ###
-
 CREATE TRIGGER IF NOT EXISTS button_configs_update_selected_after_update
 AFTER UPDATE ON ButtonConfigs
 FOR EACH ROW
@@ -523,9 +520,7 @@ BEGIN
         AND button_config_id != NEW.button_config_id;
 END;
 
-
 -- ### QUERY_SEPARATOR ###
-
 CREATE TRIGGER IF NOT EXISTS getures_update_selected_after_update
 AFTER UPDATE ON Gestures
 FOR EACH ROW
@@ -552,8 +547,7 @@ BEGIN
         WHEN NEW.is_selected = 1 AND OLD.is_selected = 0 THEN 0
         ELSE is_selected
         END
-    WHERE configuration_id = NEW.configuration_id
-        AND scroll_direction = NEW.scroll_direction
+    WHERE scroll_action_property_id = NEW.scroll_action_property_id
         AND scroll_action_id != NEW.scroll_action_id;
 END;
 
@@ -924,7 +918,6 @@ DELETE FROM Keypresses WHERE action_id = OLD.scroll_action_id AND source_table =
 END;
 
 -- ### QUERY_SEPARATOR ###
-
 CREATE TRIGGER IF NOT EXISTS delete_scroll_action_destination_cycledpi
 AFTER DELETE ON ScrollActions 
 FOR EACH ROW
@@ -934,7 +927,6 @@ DELETE FROM CycleDPI WHERE action_id = OLD.scroll_action_id AND source_table = '
 END;
 
 -- ### QUERY_SEPARATOR ###
-
 CREATE TRIGGER IF NOT EXISTS delete_scroll_action_destination_changedpi
 AFTER DELETE ON ScrollActions 
 FOR EACH ROW
@@ -943,9 +935,7 @@ BEGIN
 DELETE FROM ChangeDPI WHERE action_id = OLD.scroll_action_id AND source_table = 'ScrollActions';
 END;
 
-
 -- ### QUERY_SEPARATOR ###
-
 CREATE TRIGGER IF NOT EXISTS delete_scroll_action_destination_changehost
 AFTER DELETE ON ScrollActions 
 FOR EACH ROW
@@ -954,9 +944,7 @@ BEGIN
 DELETE FROM ChangeHost WHERE action_id = OLD.scroll_action_id AND source_table = 'ScrollActions';
 END;
 
-
 -- ### QUERY_SEPARATOR ###
-
 CREATE TRIGGER IF NOT EXISTS delete_scroll_action_destination_axes
 AFTER DELETE ON ScrollActions 
 FOR EACH ROW
@@ -965,10 +953,7 @@ BEGIN
 DELETE FROM Axes WHERE action_id = OLD.scroll_action_id AND source_table = 'ScrollActions';
 END;
 
-
-
 -- ### QUERY_SEPARATOR ###
-
 CREATE TRIGGER IF NOT EXISTS delete_touch_tap_proxy_action_destination_axes
 AFTER DELETE ON TouchTapProxy 
 FOR EACH ROW
@@ -978,7 +963,6 @@ DELETE FROM Axes WHERE action_id = OLD.touch_tap_proxy_id AND source_table = 'To
 END;
 
 -- ### QUERY_SEPARATOR ###
-
 CREATE TRIGGER IF NOT EXISTS delete_touch_tap_proxy_action_destination_keypresses
 AFTER DELETE ON TouchTapProxy 
 FOR EACH ROW
@@ -988,7 +972,6 @@ DELETE FROM Keypresses WHERE action_id = OLD.touch_tap_proxy_id AND source_table
 END;
 
 -- ### QUERY_SEPARATOR ###
-
 CREATE TRIGGER IF NOT EXISTS delete_touch_tap_proxy_action_destination_cycledpi
 AFTER DELETE ON TouchTapProxy 
 FOR EACH ROW
@@ -997,9 +980,7 @@ BEGIN
 DELETE FROM CycleDPI WHERE action_id = OLD.touch_tap_proxy_id AND source_table = 'TouchTapProxy';
 END;
 
-
 -- ### QUERY_SEPARATOR ###
-
 CREATE TRIGGER IF NOT EXISTS delete_touch_tap_proxy_action_destination_changehost
 AFTER DELETE ON TouchTapProxy 
 FOR EACH ROW
@@ -1009,7 +990,6 @@ DELETE FROM ChangeHost WHERE action_id = OLD.touch_tap_proxy_id AND source_table
 END;
 
 -- ### QUERY_SEPARATOR ###
-
 CREATE TRIGGER IF NOT EXISTS delete_touch_tap_proxy_action_destination_changedpi
 AFTER DELETE ON TouchTapProxy 
 FOR EACH ROW
@@ -1018,9 +998,7 @@ BEGIN
 DELETE FROM ChangeDPI WHERE action_id = OLD.touch_tap_proxy_id AND source_table = 'TouchTapProxy';
 END;
 
-
 -- ### QUERY_SEPARATOR ###
-
 CREATE TRIGGER IF NOT EXISTS delete_touch_tap_proxy_action_destination_axes
 AFTER DELETE ON TouchTapProxy 
 FOR EACH ROW
@@ -1029,4 +1007,46 @@ BEGIN
 DELETE FROM Axes WHERE action_id = OLD.touch_tap_proxy_id AND source_table = 'TouchTapProxy';
 END;
 
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_date_on_scroll_action
+AFTER INSERT ON ScrollActions
+FOR EACH ROW
+WHEN NEW.action_type IN ('Keypress', 'Axis', 'CycleDPI', 'ChangeDPI', 'ChangeHost')
+BEGIN
+    UPDATE ScrollActions
+    SET date_added = CURRENT_TIMESTAMP
+    WHERE scroll_action_id = NEW.scroll_action_id;
+END;
 
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_date_on_touch_tap_proxy
+AFTER INSERT ON TouchTapProxy
+FOR EACH ROW
+WHEN NEW.action_type IN ('Keypress', 'Axis', 'CycleDPI', 'ChangeDPI', 'ChangeHost')
+BEGIN
+    UPDATE TouchTapProxy
+    SET date_added = CURRENT_TIMESTAMP
+    WHERE touch_tap_proxy_id = NEW.touch_tap_proxy_id;
+END;
+
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_date_on_button_configs
+AFTER INSERT ON ButtonConfigs
+FOR EACH ROW
+WHEN NEW.action_type IN ('Keypress', 'Axis', 'CycleDPI', 'ChangeDPI', 'ChangeHost')
+BEGIN
+    UPDATE ButtonConfigs
+    SET date_added = CURRENT_TIMESTAMP
+    WHERE button_config_id = NEW.button_config_id;
+END;
+
+-- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS insert_date_on_gestures
+AFTER INSERT ON Gestures
+FOR EACH ROW
+WHEN NEW.gesture_action IN ('Keypress', 'Axis', 'CycleDPI', 'ChangeDPI', 'ChangeHost')
+BEGIN
+    UPDATE Gestures
+    SET date_added = CURRENT_TIMESTAMP
+    WHERE gesture_id = NEW.gesture_id;
+END;

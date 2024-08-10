@@ -9,7 +9,7 @@ import Classes
 logitech_devices = [ 
 
 Classes.DeviceDatabase(
-device_id = 1,
+device_id = 1900,
 device_name = "MX Master 3S for Mac",
 config_file_device_name = "MX Master 3S for Mac",
 min_dpi = 200,
@@ -41,7 +41,7 @@ device_pids = [
 
 
 Classes.DeviceDatabase(
-device_id = 2,
+device_id = 1800,
 device_name = "MX Master 3S",
 config_file_device_name = "MX Master 3S",
 
@@ -77,7 +77,7 @@ device_pids = [
 
 
 Classes.DeviceDatabase(
-device_id = 3,
+device_id = 1700,
 device_name = "MX Master 3 for Mac",
 config_file_device_name = "MX Master 3 for Mac",
 
@@ -115,7 +115,7 @@ device_pids = [
 
 
 Classes.DeviceDatabase(
-device_id = 4,
+device_id = 1600,
 device_name = "MX Master 3",
 config_file_device_name = "Wireless Mouse MX Master 3",
 
@@ -152,7 +152,7 @@ device_pids = [
 ),
 
 Classes.DeviceDatabase(
-device_id = 5,
+device_id = 1500,
 device_name = "MX Master 2S",
 config_file_device_name = "Wireless Mouse MX Master 2S",
 
@@ -189,7 +189,7 @@ device_pids = [
 ),    
 
 Classes.DeviceDatabase(
-device_id = 6,
+device_id = 1400,
 device_name = "MX Master",
 config_file_device_name = "Wireless Mouse MX Master",
 
@@ -226,7 +226,7 @@ device_pids = [
 ),    
 
 Classes.DeviceDatabase(
-device_id = 7,
+device_id = 1300,
 device_name = "MX Anywhere 3S",
 config_file_device_name = "MX Anywhere 3S",
 
@@ -266,7 +266,7 @@ device_pids = [
 ),
 
 Classes.DeviceDatabase(
-device_id = 8,
+device_id = 1200,
 device_name = "MX Anywhere 3",
 config_file_device_name = "MX Anywhere 3",
 
@@ -304,7 +304,7 @@ device_pids = [
 ),
 
 Classes.DeviceDatabase(
-device_id = 9,
+device_id = 1100,
 device_name = "MX Anywhere 2", 
 config_file_device_name = "Wireless Mouse MX Anywhere 2",   
 
@@ -342,7 +342,7 @@ device_pids = [
 ),
 
 Classes.DeviceDatabase(
-device_id = 10,
+device_id = 1000,
 device_name = "MX Anywhere 2S",
 config_file_device_name = "Wireless Mobile Mouse MX Anywhere 2S",
 
@@ -378,7 +378,7 @@ device_pids = [
 ),
 
 Classes.DeviceDatabase(
-device_id = 11,
+device_id = 900,
 device_name = "MX Vertical", 
 config_file_device_name = "MX Vertical Advanced Ergonomic Mouse",
 
@@ -411,7 +411,7 @@ device_pids = [
 ),
 
 Classes.DeviceDatabase(
-device_id = 12,
+device_id = 800,
 device_name = "MX Ergo", 
 config_file_device_name = "MX Ergo Multi-Device Trackball",
 
@@ -447,7 +447,7 @@ device_pids = [
 ),
 
 Classes.DeviceDatabase(
-device_id = 13,
+device_id = 700,
 device_name = "MX Ergo M575",
 config_file_device_name = "ERGO M575 Trackball",
 
@@ -479,7 +479,7 @@ device_pids = [
 ),
 
 Classes.DeviceDatabase(
-device_id = 14,
+device_id = 600,
 device_name = "M720 Triathlon", 
 config_file_device_name = "M720 Triathlon Multi-Device Mouse",
 
@@ -515,7 +515,7 @@ device_pids = [
 ),
 
 Classes.DeviceDatabase(
-device_id = 15,
+device_id = 500,
 device_name = "M585/M590", 
 config_file_device_name = "M585/M590 Multi-Device Mouse",
 

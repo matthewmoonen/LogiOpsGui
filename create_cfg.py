@@ -61,12 +61,13 @@ def print_object(settings_object):
 
 def get_configurations():
     conn, cursor = execute_db_queries.create_db_connection()
-    cursor.execute("""
-                        SELECT configuration_id
-                   FROM Configurations
-                   WHERE is_selected = 1
-""")
+    cursor.execute("""SELECT c.configuration_id
+                   FROM Configurations c
+                   JOIN Devices d ON c.device_id = d.device_id
+                   WHERE d.is_activated = 1 AND c.is_selected = 1;
+                   """)
     configuration_ids = cursor.fetchall()
+
     execute_db_queries.close_without_committing_changes(conn)
     return [i[0] for i in configuration_ids]
 
@@ -92,7 +93,7 @@ def write_hires_scroll(file, settings_object):
 """
 + f"        hires: {str(settings_object.hiresscroll_hires).lower()};\n"
 + f"        invert: {str(settings_object.hiresscroll_invert).lower()};\n"
-+ f"        target: {str(settings_object.hiresscroll_target).lower()}\n"
++ f"        target: {str(settings_object.hiresscroll_target).lower()};\n"
 + "    }; \n")
 
 def write_keypress(file, keypress, spacer_string=''):
@@ -133,7 +134,7 @@ def write_gestures(file, gestures):
  f'                 gestures: (\n'
     )
 
-    for gesture in gestures.keys():
+    for index, gesture in enumerate(gestures.keys()):
         action_type = gestures[gesture].request_selected_type()
 
         threshold_line = '' if gestures[gesture].threshold == 50 else f'                         threshold: {gestures[gesture].threshold};\n'
@@ -170,7 +171,10 @@ f'                         mode: "{gestures[gesture].mode}";\n'
         if action_type != "NoPress":
             file.write(
   '                             };\n')
-        file.write('                     },\n'  )
+        if index == 4:
+            file.write('                     }\n'  )
+        else:
+            file.write('                     },\n'  )
 
 
     file.write(
@@ -213,7 +217,7 @@ def write_outro(file):
 
 def write_device_cfg(file, settings_object):
     file.write("{\n"
-        +f'    name: "{settings_object.config_file_name}"')
+        +f'    name: "{settings_object.config_file_name}";')
 
     if settings_object.smartshift_support == True:
         write_smartshift(file, settings_object)
@@ -224,13 +228,17 @@ def write_device_cfg(file, settings_object):
     file.write(f"    dpi: {settings_object.dpi};\n \n"
             + f"    buttons: (\n")
 
-    for button in settings_object.buttons:
+    length = len(settings_object.buttons)
+    for index, button in enumerate(settings_object.buttons):
         if button.selected_button_config_id != button.button_default:
             write_button(file, button)
-            file.write("        },\n")
+            if index == length - 1:
+                file.write("        }\n")
+            else:
+                file.write("        },\n")
     file.write("    );\n")
 
-    file.write("},\n")
+    
 
 def set_cfg_location(new_location, new_filename):
     conn, cursor = execute_db_queries.create_db_connection()
@@ -273,9 +281,14 @@ def generate_config_file(cfg_dir, previously_tried_location=None):
     
     def write_to_file(file):
         write_intro(file)
-        for configuration_id in configuration_ids:
+        length = len(configuration_ids)
+        for index, configuration_id in enumerate(configuration_ids):
             settings_object = Classes.CFGConfig.create_from_configuration_id(configuration_id)
             write_device_cfg(file, settings_object)
+            if index == length - 1:
+                file.write("}\n")
+            else:
+                file.write("},")
         write_outro(file)
     
     try:

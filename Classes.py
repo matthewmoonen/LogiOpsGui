@@ -20,10 +20,60 @@ def get_new_device_config(new_configuration_id):
 
 
 
+
+
+
+# class NonUserDevice():
+#     def __init__(self):
+
+
+#     @classmethod
+#     def query_all():
+#         conn, cursor = execute_db_queries.create_db_connection()
+#         cursor.execute("""SELECT device_id, device_name
+#                        FROM Devices
+#                        WHERE is_user_device = 0
+#                        """)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class DevicesAndConfigs():
     def __init__(self):
         self.get_devices_and_configs()
 
+    @classmethod
+    def get_all(cls, cursor=None, conn=None):
+        pass
+
+
+    def get_devices(self):
+        conn, cursor = execute_db_queries.create_db_connection()
+        user_devices = {}
+        cursor.execute("""
+                SELECT device_id, device_name, is_activated
+                FROM Devices
+                WHERE is_user_device = 1
+                ORDER BY date_added DESC
+                        """)
+        execute_db_queries.close_without_committing_changes(conn)
+
+        devices = cursor.fetchall()
+
+
+# todo delete
     def get_devices_and_configs(self):
             conn, cursor = execute_db_queries.create_db_connection()
 
@@ -150,19 +200,16 @@ class DeviceID:
     def __init__(self, device_id):
         self.device_id = device_id
 
-
 class Device(DeviceID):
     def __init__(self, device_id, device_name):
         DeviceID.__init__(self, device_id)
         self.device_name = device_name
-
 
 class Button(DeviceID):
     def __init__(self, device_id, button_cid, button_name):
         DeviceID.__init__(self, device_id)
         self.button_cid = button_cid
         self.button_name = button_name
-
 
 class ButtonProperties(Button):
     def __init__(
@@ -184,8 +231,7 @@ class ButtonProperties(Button):
         self.accessible = accessible
         self.button_name = button_cid_names.names.get(button_cid, 'Button Name Undefined')
 
-
-class GestureSettings:
+class GestureSettings():
     def __init__(
         self,
         button_config_id,
@@ -546,9 +592,6 @@ class GestureSettings:
         selected = cursor.fetchone()[0]
         execute_db_queries.close_without_committing_changes(conn)
         return selected
-
-
-
 
 class ButtonSettings:
     def __init__(
@@ -977,7 +1020,6 @@ class Configuration:
         self.date_configuration_added = date_configuration_added
         self.date_configuration_last_modified = date_configuration_last_modified
 
-
 class UserDevice():
     def __init__(
       self,
@@ -1018,7 +1060,6 @@ class UserDevice():
         conn.commit()
         conn.close()
 
-
 class DeviceProperties(Device):
     def __init__(
                 self,
@@ -1056,7 +1097,6 @@ class DeviceProperties(Device):
         self.thumbwheel_touch_support = thumbwheel_touch_support
         self.thumbwheel_timestamp_support = thumbwheel_timestamp_support
         self.number_of_sensors = number_of_sensors
-
 
 class DeviceDatabase(DeviceProperties):
     def __init__(
@@ -1903,9 +1943,6 @@ class DeviceConfig:
 
         if close_db == True:
             execute_db_queries.close_without_committing_changes(conn)
-
-        # print(config.scroll_actions)
-
 
         return config
 

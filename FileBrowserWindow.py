@@ -1,6 +1,9 @@
 import os
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
+import time
+import gui_variables
+import threading
 
 
 class ListboxEntry(ctk.CTkButton):
@@ -26,6 +29,10 @@ class FileScroller(ctk.CTkScrollableFrame):
         self.selected_entry = None
         self.buttons = []
         
+        self.bind_all("<Button-4>", self.handle_scroll_up)
+        self.bind_all("<Button-5>", self.handle_scroll_down)
+
+
         self.create_back_button()
 
         self.create_entries()
@@ -79,6 +86,7 @@ class FileScroller(ctk.CTkScrollableFrame):
             self.current_path = f"{self.current_path}/{selected_folder}"
         self.create_back_button()
         self.create_entries()
+        self._parent_canvas.yview_moveto(0)
         self.selected_entry = None
 
     def clicked_button(self, button_text):
@@ -105,7 +113,10 @@ class FileScroller(ctk.CTkScrollableFrame):
 
     def create_folder_buttons(self, folders):
         for folder in folders:
-            self.create_button(button_text=folder, is_folder=True)
+            if self.current_path != "/" or folder != "bin":
+                self.create_button(button_text=folder, is_folder=True)
+
+            
         
     def create_file_buttons(self, files):
         for file in files:
@@ -179,13 +190,18 @@ class FileScroller(ctk.CTkScrollableFrame):
     def create_entries(self):
         folders = []
         files = []
-    
+        # if self.current_path in ["/bin", "bin", "//bin"]:
+        #     self.current_path = "/"     
+            # self.input_box.delete("0.0", "end")
+            # self.input_box.insert("0.0", "/")
+            # self.selected_entry = "/"
+            # self.folder_selected(selected_folder="/")
+        # else:
         if self.current_path.count('/') == 0:
             self.current_path = "/"
         if len(self.current_path) > 1 and self.current_path[1] == "/":
             self.current_path = self.current_path[1:]
         entries = os.listdir(self.current_path)
-
         for entry in entries:
             if not entry.startswith('.'): 
                 full_path = os.path.join(self.current_path, entry)
@@ -198,21 +214,34 @@ class FileScroller(ctk.CTkScrollableFrame):
 
 
     def folder_selected(self, selected_folder):
-        
-        self.controller_frame.destroy()
-        self.buttons = []
-        self.create_controller_frame()
-        self.current_path = selected_folder
-        self.create_back_button()
-        self.create_entries()
-        self.selected_entry = None
+        if selected_folder != "/bin":
+            self.controller_frame.destroy()
+            self.buttons = []
+            self.create_controller_frame()
+            self.current_path = selected_folder
+            self.create_back_button()
+            self.create_entries()
+            self.selected_entry = None
+        else:
+            self.current_path = "/"
+            self.selected_entry = None
 
 
+    def handle_scroll_up(self, event):
+        if self._parent_canvas.winfo_height() < self.winfo_height():
+            self._parent_canvas.yview_scroll(-1, "units")
+            
+    def handle_scroll_down(self, event):
+        if self._parent_canvas.winfo_height() < self.winfo_height():
+            self._parent_canvas.yview_scroll(1, "units")
 
 class BrowserWindow(ctk.CTkToplevel):
     def __init__(self, master, current_path=None, current_filename='', on_select=None, permitted_formats=None):
         super().__init__(master)
 
+        
+
+        self.title("CFG File Location")
         self.current_filename = f"/{current_filename}"
 
         if current_path is not None:
@@ -243,11 +272,11 @@ class BrowserWindow(ctk.CTkToplevel):
         self.input_box.insert("0.0", f"{self.current_path}{self.current_filename}")
         self.input_box.bind("<Tab>", highlight_open_button)
 
-        button_frame = ctk.CTkFrame(master=self, fg_color="transparent")
-        cancel_button = ctk.CTkButton(master=button_frame, text="Cancel", command=self.destroy)
+        self.button_frame = ctk.CTkFrame(master=self, fg_color="transparent")
+        cancel_button = ctk.CTkButton(master=self.button_frame, text="Cancel", command=self.destroy)
 
 
-        open_button = ctk.CTkButton(master=button_frame, text="Open", command=self.open_button_callback)
+        open_button = ctk.CTkButton(master=self.button_frame, text="Open", command=self.open_button_callback)
         
         self.file_scroller = FileScroller(master=self, input_box=self.input_box, permitted_formats=self.permitted_formats, current_path=self.current_path)
         self.file_scroller.pack(fill="both", expand="true", padx=10, pady=10)
@@ -257,7 +286,7 @@ class BrowserWindow(ctk.CTkToplevel):
 
         self.input_box.pack(fill="x", padx=10, pady=10)
 
-        button_frame.pack(fill="x", padx=10, pady=(0, 10))
+        self.button_frame.pack(fill="x", padx=10, pady=(0, 10))
 
         cancel_button.pack(side="right", padx=(10, 0))
         open_button.pack(side="right")
@@ -269,16 +298,19 @@ class BrowserWindow(ctk.CTkToplevel):
 
     def open_button_callback(self, event=None):
         textbox_contents = self.input_box.get("1.0", "end-1c").strip()
-
         def open_reminder():
-            print("reminder already selected")
+            self.input_box.focus_set()
+            if not hasattr(self, "reminder_button"):
+                self.reminder_button = ctk.CTkButton(master=self.button_frame, text="Enter file name", fg_color="transparent", border_color=gui_variables.standard_red5, border_width=0, corner_radius=0, hover="false", font=ctk.CTkFont(size=12), text_color=gui_variables.standard_red6)
+                self.reminder_button.pack(side="left", fill="x", expand="true", padx=20)
+
 
         if "//" in textbox_contents:
             textbox_contents = textbox_contents.replace("///", "/").replace("//", "/").replace("//", "/")
             self.input_box.delete("0.0", "end")
             self.input_box.insert("0.0", textbox_contents)
             
-        if textbox_contents in ["⤴..", "/⤴.."]:
+        if textbox_contents in ["⤴..", "/⤴..",]:
             if self.current_path != "/":
                 self.current_path = self.file_scroller.current_path.rsplit('/', 1)[0]
                 self.file_scroller.folder_selected(selected_folder=self.current_path)
@@ -287,6 +319,8 @@ class BrowserWindow(ctk.CTkToplevel):
         elif textbox_contents == "":
             self.input_box.insert("0.0", f"{self.file_scroller.current_path}")
 
+        elif textbox_contents in ["bin", "/bin", "//bin"]:
+            pass
         else:
             if textbox_contents[0] != "/":
                 textbox_contents = f"/{textbox_contents}"
@@ -302,8 +336,6 @@ class BrowserWindow(ctk.CTkToplevel):
                 self.file_scroller.current_path = textbox_contents
             else:
                 directory, filename = textbox_contents.rsplit('/', 1)
-                print(directory)
-                print(filename)
                 if not os.path.isdir(directory):
                     self.input_box.delete("0.0", "end")
                     self.input_box.insert("0.0", f"{self.current_path}")
@@ -311,7 +343,6 @@ class BrowserWindow(ctk.CTkToplevel):
                 elif "." not in filename or filename.rsplit('.', 1)[1] not in self.permitted_formats:
                     self.input_box.delete("0.0", "end")
                     self.input_box.insert("0.0", f"{self.current_path}")
-                    print(len(self.permitted_formats))
                     format_message = self.permitted_formats[0] if len(self.permitted_formats) == 1 else ", ".join(self.permitted_formats)
                     CTkMessagebox(title="Invalid Filename", message=f"Invalid Format. File must be {format_message}", icon="warning", option_1="Okay")
                 

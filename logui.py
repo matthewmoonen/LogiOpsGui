@@ -1,426 +1,126 @@
 import customtkinter as ctk
+import logging
 import create_app_data
 import execute_db_queries
-from typing import Callable
-import gui_variables
 import Classes
 from CTkMessagebox import CTkMessagebox
 import threading
 import keymates
 import json
-from PIL import Image
-import io
-import cairosvg
 import FileBrowserWindow
 import create_cfg
 import ast
 import needs_super
+import alleventcodes
+import psutil
+import os
+import socket
+import time
+import gui_variables
+from PIL import Image
 
+import BackendData
+from GraphicalControlElements import svg_to_image, MatthewsRadioButton, FloatSpinbox, IntSpinbox
 
-def svg_to_image(path, output_width=300, output_height=300):
-    with open(path, 'rb') as svg_file:
-        svg_content = svg_file.read()
 
-    png_data = cairosvg.svg2png(bytestring=svg_content, output_width=output_width, output_height=output_height)
-    
-    # Convert PNG data to PIL Image
-    return ctk.CTkImage(Image.open(io.BytesIO(png_data)), size=(output_width, output_height))
 
 
-class MatthewsRadioButton:
-    """
-    Some UI elements have rendering issues in CustomTkinter on Linux, radio buttons in particular look blocky.
-    
-    This class creates smooth-looking radio buttons using SVG files.
-    
-    See here for further information:
-    https://github.com/TomSchimansky/CustomTkinter/issues/1384
-    """
 
-    def __init__(self, master, text, font=None, command=None, hover_elements=None, selected_image_path="images/radio_button_selected.svg", deselected_image_path="images/radio_button_deselected.svg", hover_image_path="images/radio_button_hover.svg", icon_size=27, width=400, height=None, fg_color="transparent",):
-
-        self.radio_button_selected = svg_to_image(path=selected_image_path, output_height=icon_size, output_width=icon_size)
-        self.radio_button_deselected = svg_to_image(path=deselected_image_path, output_height=icon_size, output_width=icon_size)
-        self.radio_button_hover = svg_to_image(path=hover_image_path, output_height=icon_size, output_width=icon_size)
-        self.user_command = command
-        self.hover_elements = None
-
-        if height is None: # Set height to icon_size if not explicitly set
-            height = icon_size
-
-        if font == None:
-            font=ctk.CTkFont(family="Noto Sans", size=17)
-
-        self.button = ctk.CTkButton(master=master, text=text, image=self.radio_button_deselected, command=self.radio_button_clicked, anchor="w", font=font, text_color="gray65", height=height, width=width, fg_color=fg_color, hover=False)
-        self.button.bind('<Enter>', lambda event: self.radio_button_enter(event))
-        self.button.bind('<Leave>', lambda event: self.radio_button_leave(event))
-        if hover_elements is not None:
-            self.hover_elements = hover_elements
-            if not isinstance(hover_elements, tuple):
-                self.hover_elements = (hover_elements,)
-            for i in self.hover_elements:
-                i.bind('<Enter>', lambda event: self.radio_button_enter(event))
-                i.bind('<Leave>', lambda event: self.radio_button_leave(event))
-                i.bind('<Button-1>', self.radio_button_clicked)
-
-
-        self.is_selected = False
-
-    def radio_button_enter(self, event):
-        self.button.configure(image=self.radio_button_hover)
-
-    def radio_button_leave(self, event):
-        self.button.configure(image=self.radio_button_deselected)
-        # self.button.configure('<Leave>', text_color="gray65")
-
-    def another_button_clicked(self):
-        try:
-            self.button.configure(image=self.radio_button_deselected)
-            self.is_selected = False
-            self.button.bind('<Enter>', lambda event: self.radio_button_enter(event))
-            self.button.bind('<Leave>', lambda event: self.radio_button_leave(event))
-            if self.hover_elements is not None:
-                for i in self.hover_elements:
-                    i.bind('<Enter>', lambda event: self.radio_button_enter(event))
-                    i.bind('<Leave>', lambda event: self.radio_button_leave(event))
-        except:
-            pass
-
-    def radio_button_clicked(self, event=None):
-        if self.is_selected: # If the button is already selected, just return without changing anything
-            return
-
-        self.is_selected = True
-
-        self.button.unbind('<Enter>')
-        self.button.unbind('<Leave>')
-        if self.hover_elements is not None:
-            for i in self.hover_elements:
-                i.unbind('<Enter>')
-                i.unbind('<Leave>')
-        self.button.configure(image=self.radio_button_selected)
-
-        if self.user_command: # Run the user's command, if provided
-            self.user_command()
-
-    def grid(self, **kwargs):
-        self.button.grid(**kwargs)
-    
-    def pack(self, **kwargs):
-        self.button.pack(**kwargs)
-
-    def update_text(self, new_text):
-        """Update the text of the radio button."""
-        self.button.configure(text=new_text)
-    
-
-
-class FloatSpinbox(ctk.CTkFrame):
-    def __init__(self, *args, width: int = 100, height: int = 32, step_size: float = 1.0, min_value: float = None, 
-                 max_value: float = None, decimal_places: int = 1, command: Callable = None, db_query=None, value=None, **kwargs):
-        super().__init__(*args, width=width, height=height, **kwargs)
-
-        self.step_size = step_size
-        self.min_value = min_value
-        self.max_value = max_value
-        self.decimal_places = decimal_places
-        self.command = command
-        self.db_query = db_query
-        self.value = value if value is not None else (min_value if min_value is not None else 0.0)
-
-        self.enabled = True  # Initial state is enabled
-        self.configure(fg_color=("gray78", "gray28"))  # set frame color
-
-        self.grid_columnconfigure((0, 2), weight=0)
-        self.grid_columnconfigure(1, weight=1)  # entry expands
-
-        self.subtract_button = ctk.CTkButton(self, text="-", width=height-2, height=height-2, command=self.subtract_button_callback)
-        self.subtract_button.grid(row=0, column=0, padx=(3, 0), pady=3)
-
-        vcmd = self.register(self.validate)
-        self.entry = ctk.CTkEntry(self, validate="key", validatecommand=(vcmd, '%P'), width=width-(2.8*height), height=height-4, border_width=0)
-        self.entry.grid(row=0, column=1, columnspan=1, padx=3, pady=3, sticky="ew")
-        self.entry.insert(0, self.format_value(self.value))
-
-        self.add_button = ctk.CTkButton(self, text="+", width=height-2.5, height=height-2.5, command=self.add_button_callback)
-        self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
-
-        self.entry.bind("<FocusOut>", self.on_focus_out)
-
-    def format_value(self, value):
-        return f"{value:.{self.decimal_places}f}"
-
-    def validate(self, new_text):
-        if new_text in ("", "-"):
-            return True
-        try:
-            float(new_text)
-            return True
-        except ValueError:
-            return False
-
-    def on_focus_out(self, event):
-        try:
-            value = float(self.entry.get())
-            value = max(self.min_value, value) if self.min_value is not None else value
-            value = min(self.max_value, value) if self.max_value is not None else value
-        except ValueError:
-            value = self.value  # Use stored value if parsing fails
-
-        self.entry.delete(0, "end")
-        self.entry.insert(0, self.format_value(value))
-        if self.value != value:
-            self.value = value
-            self.run_db_query()
-            self.run_command()
-
-    def add_button_callback(self):
-        try:
-            value = float(self.entry.get())
-            value = value + self.step_size
-            value = min(self.max_value, value) if self.max_value is not None else value
-        except ValueError:
-            return
-        self.entry.delete(0, "end")
-        self.entry.insert(0, self.format_value(value))
-        if self.value != value:
-            self.value = value
-            self.run_db_query()
-            self.run_command()
-
-
-    def subtract_button_callback(self):
-        try:
-            value = float(self.entry.get())
-            value = value - self.step_size
-            value = max(self.min_value, value) if self.min_value is not None else value
-        except ValueError:
-            return
-        self.entry.delete(0, "end")
-        self.entry.insert(0, self.format_value(value))
-        if self.value != value:
-            self.value = value
-            self.run_db_query()
-            self.run_command()
-
-    def get(self) -> float:
-        try:
-            return float(self.entry.get())
-        except ValueError:
-            return self.value
-
-    def set(self, value: float):
-        value = max(self.min_value, value) if self.min_value is not None else value
-        value = min(self.max_value, value) if self.max_value is not None else value
-        self.entry.delete(0, "end")
-        self.entry.insert(0, self.format_value(value))
-        self.value = value
-
-    def toggle_enable(self, new_enabled_state):
-        self.enabled = new_enabled_state
-        state = "normal" if self.enabled else "disabled"
-        self.entry.configure(state=state)
-        self.add_button.configure(state=state)
-        self.subtract_button.configure(state=state)
-
-    def run_command(self):
-        if callable(self.command):
-            self.command()
-
-    def run_db_query(self):
-        if callable(self.db_query):
-            self.db_query(self.value)
-
-
-class IntSpinbox(ctk.CTkFrame):
-    def __init__(self, *args, width: int = 100, height: int = 32, step_size: int = 1, min_value: int = None, max_value: int = None, 
-                 command: Callable = None, #TODO: Remove
-                 db_query = None, value=None,
-                  **kwargs):
-        super().__init__(*args, width=width, height=height, **kwargs)
-
-        self.step_size = step_size
-        self.min_value = min_value
-        self.max_value = max_value
-        self.command = command
-        self.db_query = db_query
-        self.value = value
-
-
-        self.enabled = True  # TODO: Initial state is enabled
-
-        self.configure(fg_color=("gray78", "gray28"))  # set frame color
-
-        self.grid_columnconfigure((0, 2), weight=0)  # buttons don't expand TODO: Fix repeats here
-        self.grid_columnconfigure(1, weight=1)  # entry expands
-
-        self.subtract_button = ctk.CTkButton(self, text="-", width=height-2, height=height-2, command=self.subtract_button_callback)
-        self.subtract_button.grid(row=0, column=0, padx=(3, 0), pady=3)
-
-        self.default_value = 0 if min_value is None else min_value  # Set default value based on min_value
-
-        vcmd = self.register(self.validate)
-        self.entry = ctk.CTkEntry(self, validate="key", validatecommand=(vcmd, '%P'), width=width-(2.8*height), height=height-4, border_width=0)
-        self.entry.grid(row=0, column=1, columnspan=1, padx=3, pady=3, sticky="ew")
-        
-        self.entry.bind("<FocusOut>", self.on_focus_out)  # Bind the FocusOut event
-
-        self.add_button = ctk.CTkButton(self, text="+", width=height-2.5, height=height-2.5, command=self.add_button_callback)
-        self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
-
-        self.entry.insert(0, ["0" if self.value == None else self.value]) 
-
-
-
-    def validate(self, new_text):
-        if new_text == "":
-            return True
-        if self.min_value < 0:
-            if new_text == "-":
-                return True        
-        try:
-            int(new_text)
-            return True
-        except ValueError:
-            return False
-
-
-
-    def on_focus_out(self, event):
-        try:
-            value = int(self.entry.get())
-            if self.min_value is not None and value < self.min_value:
-                value = self.min_value
-            if self.max_value is not None and value > self.max_value:
-                value = self.max_value
-        except ValueError:
-            value = self.default_value  # Use default_value if parsing fails
-
-        self.entry.delete(0, "end")
-        self.entry.insert(0, value)
-        if self.value != value:
-            self.value = value
-            self.run_db_query()
-
-    def add_button_callback(self):
-        try: 
-            value = int(self.entry.get()) // self.step_size * self.step_size + self.step_size # Set new value to closest multiple of step size after the current value
-            if self.max_value is not None and value > self.max_value:
-                value = self.max_value
-            self.entry.delete(0, "end")
-            self.entry.insert(0, value)
-            if self.value != value:
-                self.value = value
-                self.run_db_query()
-        except ValueError:
-            return
-
-    def run_db_query(self):
-
-        if callable(self.db_query):
-            self.db_query(self.value)
-
-
-    def subtract_button_callback(self):
-        # if self.command is not None:
-        #     self.command()
-        try:
-            def get_nearest_rounded_value(): # Set new value to closest multiple of step size after the current value
-                previous_value = int(self.entry.get())
-                return previous_value // self.step_size * self.step_size - self.step_size if previous_value % self.step_size == 0 else previous_value // self.step_size * self.step_size
-
-            value = get_nearest_rounded_value()
-            
-            if self.min_value is not None and value < self.min_value:
-                value = self.min_value
-            self.entry.delete(0, "end")
-            self.entry.insert(0, value)
-            if self.value != value:
-                self.value = value
-                self.run_db_query()
-        except ValueError:
-            return
-
-    def get(self) -> int:
-        try:
-            return int(self.entry.get())
-        except ValueError:
-            return 0
-
-    def set(self, value: int):
-        if self.min_value is not None and value < self.min_value:
-            value = self.min_value
-        if self.max_value is not None and value > self.max_value:
-            value = self.max_value
-        self.entry.delete(0, "end")
-        self.entry.insert(0, str(value))
-        self.value = value
-
-    def toggle_enable(self, new_enabled_state):
-        self.enabled = new_enabled_state
-        state = "normal" if self.enabled else "disabled"
-        self.entry.configure(state=state)
-        self.add_button.configure(state=state)
-        self.subtract_button.configure(state=state)
-
-
-
-class DeviceDropdown():
-    def __init__(self, master_frame, device_added_callback):
-        self.master_frame = master_frame
-        self.device_added_callback = device_added_callback
+class DeviceDropdown(ctk.CTkFrame):
+    def __init__(self, master, front_page, *args, **kwargs):
+        super().__init__(master, fg_color="transparent", *args, **kwargs)
+        self.master = master
+        self.front_page = front_page
+        self.add_device_button = ctk.CTkButton(master=self, height=37, width=140, state="disabled", text="Add Device", text_color="white", text_color_disabled=("#9FA5AB"), fg_color=gui_variables.secondary_colour, hover_color=("#28A745"), font=ctk.CTkFont(size=14, family="Veranda"))
+        self.add_device_button.grid(row=0, column=1)
         self.setup_option_menu()
-        self.create_add_device_button()
 
     def setup_option_menu(self):
-        if hasattr(self, 'option_menu'): # If the option menu already exists, destroy it first
+        # Create the new option menu first
+        self.options = [i.device_name for i in self.front_page.device_data.non_user_devices.values()]
+        self.selected_option_var = ctk.StringVar(value=' Select New Device')
+        new_option_menu = ctk.CTkOptionMenu(master=self, variable=self.selected_option_var, values=self.options, state="normal", width=350, height=35, corner_radius=0, dropdown_fg_color="#212121", dropdown_text_color="#D6D6D6", dropdown_hover_color="#1F538D", text_color="#D6D6D6", font=("Noto Sans", 14), dropdown_font=("Noto Sans", 16), command=self.device_dropdown_option_chosen)
+        new_option_menu.grid(row=0, column=0)
+
+        # Destroy the old option menu if it exists
+        if hasattr(self, 'option_menu'):
             self.option_menu.destroy()
 
-        self.options = execute_db_queries.get_unconfigured_devices()
-        self.selected_option_var = ctk.StringVar(value=' Select Device To Add')
-        self.option_menu = ctk.CTkOptionMenu(master=self.master_frame, variable=self.selected_option_var, values=self.options, state="normal", width=350, height=35, corner_radius=0, dropdown_fg_color="#212121", dropdown_text_color="#D6D6D6", dropdown_hover_color="#1F538D", text_color="#D6D6D6", font=("Noto Sans", 14), dropdown_font=("Noto Sans", 16), command=self.device_dropdown_option_chosen)
-        self.option_menu.grid(row=1, column=0, pady=20, padx=(15, 0), sticky="w")
-
-
-    def create_add_device_button(self):
-        if hasattr(self, 'button_for_adding_devices'):
-            self.button_for_adding_devices.destroy()
-
-        self.button_for_adding_devices = ctk.CTkButton(master=self.master_frame, height=37, width=140, state="disabled", text="Add Device", text_color="white", text_color_disabled=("#9FA5AB"), fg_color=gui_variables.secondary_colour, hover_color=("#28A745"), font=ctk.CTkFont( size=14, family="Veranda"))
-        self.button_for_adding_devices.grid(padx=15, row=1, column=1, sticky="w")
+        # Set the new option menu as the current one
+        self.option_menu = new_option_menu
 
     def add_device_button_clicked(self):
-        self.device_added_callback(self.selected_option_var.get())
-        self.create_add_device_button()
-        self.setup_option_menu()
+        self.front_page.pack_forget()
+        selected_device = self.selected_option_var.get()
+        self.front_page.make_a_splash(text=selected_device)
+
+        self.front_page.device_added(selected_device)
+        
+        self.front_page.take_a_splash()
+        def update_front_page():
+            self.add_device_button.configure(state="disabled", fg_color=gui_variables.secondary_colour)
+            self.setup_option_menu()
+        self.after(10, update_front_page())
 
     def device_dropdown_option_chosen(self, new_device):
         self.selected_device = new_device
-        self.button_for_adding_devices.configure(state="normal", fg_color="#198754")
-        self.button_for_adding_devices.configure(command=self.add_device_button_clicked) 
+        self.add_device_button.configure(state="normal", fg_color=gui_variables.standard_green1)
+        self.add_device_button.configure(command=self.add_device_button_clicked) 
 
 
-class ConfigurationFrame():
-    def __init__(self, master_frame, config, device_id, is_selected_configuration, edit_configuration_callback, delete_config_callback, select_configuration):
+
+class NewDeviceSplash1(ctk.CTkFrame):
+    def __init__(self, master, text, *args, **kwargs):
+        super().__init__(master, fg_color="transparent", *args, **kwargs)
+
+        self.title_label = ctk.CTkLabel(master=self, text=text, font=ctk.CTkFont(family="Roboto", size=60), text_color="#242424")
+
+        self.colours_array = [  '#242424', '#2C2C2C', '#353535', '#3D3D3D',
+                                '#454545', '#4D4D4D', '#565656', '#5E5E5E',
+                                '#666666', '#6E6E6E', '#777777', '#7F7F7F']
+
+        self.fade_in_index = 0
+        self.fade_in()
+
+    def fade_in(self):
+        self.title_label.pack(expand=True)
+        self.change_colour()
+
+    def change_colour(self):
+        if self.fade_in_index < len(self.colours_array):
+            current_colour = self.colours_array[self.fade_in_index]
+            self.title_label.configure(text_color=current_colour)
+            self.fade_in_index += 1
+            self.after(5, self.change_colour) 
+
+class NewDeviceSplash(ctk.CTkFrame):
+    def __init__(self, master, text, text_color="#4D4D4D", *args, **kwargs):
+        super().__init__(master, fg_color="transparent", *args, **kwargs)
+        
+        label = ctk.CTkLabel(master=self, text=text, font=ctk.CTkFont(family="Roboto", size=60), text_color=text_color)
+        label.pack(expand=True)
+        
+
+class ConfigurationFrame:
+    def __init__(self, master_frame, device_frame, config, front_page, select_configuration):
+        
+        self.device_frame = device_frame
+        self.front_page = front_page
         self.master_frame = master_frame
+
         self.config = config
-        self.device_id = device_id
-        self.edit_configuration_callback = edit_configuration_callback
+
         self.select_configuration = select_configuration
-        self.delete_config_callback = delete_config_callback
         self.config_row_frame = ctk.CTkFrame(master=master_frame, fg_color="transparent")
-        self.config_row_frame.pack()
+        self.config_row_frame.pack(side="bottom")
 
         self.radio_button = MatthewsRadioButton(master=self.config_row_frame, width=600, text=config.configuration_name, command=lambda c=self.config.configuration_id: select_configuration(c))
         self.radio_button.grid(row=0, column=0)
 
-        if is_selected_configuration == True:
-            self.radio_button.radio_button_clicked()
+        if self.config.user_device_object.selected_config == self.config.configuration_id:
+            self.radio_button.set_clicked()
 
-        duplicate_configuration_button = ctk.CTkButton(master=self.config_row_frame, height=20, width=80, fg_color="transparent", font=ctk.CTkFont(family="Noto Sans"), text_color="#6C757D", border_color="#6C757D", border_width=1, corner_radius=2, text=" Copy",)
-        duplicate_configuration_button.grid(row=0, column=1, sticky="e", padx=15)
-
-        self.edit_configuration_button = ctk.CTkButton(master=self.config_row_frame, height=20, width=80, fg_color="transparent", font=ctk.CTkFont(family="Noto Sans"), text_color="#6C757D", border_color="#6C757D", border_width=1, hover_color="#113A1B", corner_radius=2, text=" Edit", command=lambda c=self.config.configuration_id, d=self.device_id: self.edit_configuration(configuration_id=c, device_id=d))
+        self.edit_configuration_button = ctk.CTkButton(master=self.config_row_frame, height=20, width=80, fg_color="transparent", font=ctk.CTkFont(family="Noto Sans"), text_color="#6C757D", border_color="#6C757D", border_width=1, hover_color="#113A1B", corner_radius=2, text=" Edit", command=lambda c=self.config.configuration_id, d=self.config.device_id: self.edit_configuration(configuration_id=c, device_id=d))
         self.edit_configuration_button.grid(row=0, column=2, sticky="e")
 
         delete_configuration_button = ctk.CTkButton(master=self.config_row_frame, height=20, width=80, text="Delete", fg_color="transparent", font=ctk.CTkFont(family="Noto Sans"), text_color="#6C757D", border_color="#6C757D", hover_color="#450C0F", border_width=1, corner_radius=2, command=lambda: self.configuration_deletion_warning())
@@ -429,465 +129,234 @@ class ConfigurationFrame():
         self.config_row_frame.columnconfigure(1, weight=2)
         self.master_frame.columnconfigure(2, weight=1)
 
-
-
     def edit_configuration(self, configuration_id, device_id):
-        # Disable the edit button to prevent multiple clicks
         self.edit_configuration_button.configure(state='disabled')
-        self.edit_configuration_callback(configuration_id=configuration_id, device_id=device_id, radio_button=self.radio_button)
-
-        def task():
-
-            # Re-enable the button in the main thread
-            self.edit_configuration_button.after(0, lambda: self.edit_configuration_button.configure(state='normal'))
-        # Run the task in a separate thread
-        threading.Thread(target=task).start()
+        self.front_page.edit_configuration(configuration_id=configuration_id, device_id=device_id, radio_button=self.radio_button)
+        self.edit_configuration_button.configure(state='normal')
 
 
     def configuration_deletion_warning(self):
         msg = CTkMessagebox(title="Delete Configuration?", message="Delete configuration?", option_1="Delete", option_2="Cancel", width=600, height=300, fade_in_duration=200)
         if msg.get() == "Delete":
-            self.config_row_frame.destroy()
-            self.delete_config_callback(configuration_id=self.config.configuration_id)
-                    
 
-class DeviceFrame():
-    def __init__(self, master_frame, user_device, configs, delete_device_callback, edit_configuration_callback, delete_configuration_callback, add_configuration_callback, configuration_frames={}):
+            if len(self.front_page.device_data.user_devices[self.config.device_id].configurations) == 1:
+                self.front_page.device_deleted(self.config.device_id)
+
+            else:
+                self.config_row_frame.destroy()
+                self.config.user_device_object.delete_configuration(configuration_id=self.config.configuration_id)
+                try:
+                    self.front_page.edit_windows[(self.config.device_id, self.config.configuration_id)].destroy()
+                    del self.front_page.edit_windows[(self.config.device_id, self.config.configuration_id)] 
+                except KeyError:
+                    print("key error in configuration frame")
+            
+                if self.radio_button.is_selected == True:
+                    self.device_frame.configuration_frames[self.config.user_device_object.selected_config].radio_button.set_clicked()
+
+
+
+class DeviceFrame(ctk.CTkFrame):
+    def __init__(self, master, controller, user_device):
+        super().__init__(master, fg_color="transparent")
+
+        self.configuration_frames = {}
+        self.controller = controller
+        self.front_page = self.controller.front_page
+
         self.user_device = user_device
-        self.configs = configs
-        self.delete_device_callback = delete_device_callback
-        self.edit_configuration_callback = edit_configuration_callback
-        self.delete_configuration_callback = delete_configuration_callback
-        self.add_configuration_callback = add_configuration_callback
-        self.configuration_frames = configuration_frames
+        self.configurations = user_device.configurations
 
-        self.container_frame = ctk.CTkFrame(master=master_frame, corner_radius=0, fg_color="transparent")
-        self.container_frame.pack_forget()
-
-        self.frame_title = ctk.CTkLabel(master=self.container_frame, text=user_device.device_name, font=ctk.CTkFont(family="Roboto", size=60), text_color="gray50")
+        self.frame_title = ctk.CTkLabel(master=self, text=user_device.device_name, font=ctk.CTkFont(family="Roboto", size=60), text_color="gray50")
         self.frame_title.pack(fill="x", expand=False, pady=20)
 
-        self.device_options_frame = ctk.CTkFrame(master=self.container_frame, corner_radius=0, fg_color="transparent")
+        self.device_options_frame = ctk.CTkFrame(master=self, corner_radius=0, fg_color="transparent")
         self.device_options_frame.pack(fill="x", expand=False)
 
-
-        self.new_configuration_button = ctk.CTkButton(
-            master=self.device_options_frame, 
-            text="Add Device Configuration", 
-            text_color="white", 
-            fg_color="#198754", 
-            height=40, 
-            width=230, 
-            hover_color="#28A745", 
-            font=ctk.CTkFont(family="Noto Sans"), 
-            command=lambda d=self.user_device.device_id, n=self.user_device.device_name: self.add_new_configuration(d, n)
-        )
+        self.new_configuration_button = ctk.CTkButton(master=self.device_options_frame, text="Add Device Configuration", fg_color=gui_variables.standard_green1, height=55, width=300, hover_color=gui_variables.standard_green3, font=ctk.CTkFont(family="Helvetica Neue",size=15), command=lambda: self.add_new_configuration())
         self.new_configuration_button.grid(row=0, column=1, sticky="e")
 
-
-
-        self.delete_device_button = ctk.CTkButton(master=self.device_options_frame, text="Delete Device", fg_color="#DC3545", height=40, width=150, hover_color="red", font=ctk.CTkFont(family="Noto Sans"), command=lambda d=user_device.device_id: self.device_deletion_warning(d))
+        self.delete_device_button = ctk.CTkButton(master=self.device_options_frame, text="Delete Device", fg_color=gui_variables.standard_red4, hover_color=gui_variables.standard_red6,height=55, width=200, font=ctk.CTkFont(family="Helvetica Neue", size=16), command=lambda d=user_device.device_id: self.device_deletion_warning(d))
         self.delete_device_button.grid(row=0, column=2, sticky="e", padx=(25, 15))
-
-
-
         self.device_options_frame.columnconfigure((0), weight=1)
         self.device_options_frame.columnconfigure((1), weight=2)
-
-        self.radio_button_frame = ctk.CTkFrame(master=self.container_frame)
+        configurations_label = gui_variables.EditPageLabel1(master=self, text="Configurations:")
+        configurations_label.pack(anchor="w", pady=(20, 10), padx=10)
+        self.radio_button_frame = ctk.CTkFrame(master=self, fg_color="transparent")
         self.radio_button_frame.pack(fill="x", expand=False)
-
         self.create_configuration_frames()
 
-
-
-
-    def add_new_configuration(self, device_id, device_name):
-        # Disable the button to prevent multiple clicks
-        self.new_configuration_button.configure(state='disabled')
-        # Perform the long-running task
-        newest_configuration_id = execute_db_queries.new_empty_configuration(device_id, device_name)
-        self.add_configuration_callback(device_id, newest_configuration_id)
-
-        def task():
-
-            # Update the GUI in the main thread
-            self.new_configuration_button.after(200, lambda: self.new_configuration_button.configure(state='normal'))
-
-        # Run the task in a separate thread
-        threading.Thread(target=task).start()
-
-
+    def add_new_configuration(self):
+        self.front_page.pack_forget()
+        self.front_page.make_a_splash(text=self.user_device.device_name)
+        newest_configuration_id = self.user_device.add_new_configuration()
+        radio_button = self.create_configuration_frame(newest_configuration_id, return_button=True)
+        self.front_page.edit_configuration(configuration_id=newest_configuration_id, radio_button=radio_button, device_id=self.user_device.device_id)
+        self.configuration_frames[self.user_device.selected_config].radio_button.another_button_clicked()
+        radio_button.radio_button_clicked()
+        self.front_page.take_a_splash()
 
     def select_configuration(self, configuration_id):
         try:
             self.configuration_frames[self.user_device.selected_config].radio_button.another_button_clicked()
             self.user_device.selected_config = configuration_id
-        except KeyError:
-            pass 
-
-    def delete_configuration(self, configuration_id):
-        self.delete_configuration_callback(configuration_id=configuration_id, device_id=self.user_device.device_id)
-        self.user_device.config_ids.remove(configuration_id)
-
-        if len(self.user_device.config_ids) < 1:
-            self.delete_device_callback(device_id=self.user_device.device_id)
-        # del self.configuration_frames[configuration_id] TODO: Remove if no issues arise
-    
+        except KeyError as e:
+            pass
 
     def create_configuration_frame(self, configuration_id, return_button=False):
-        if self.user_device.selected_config == configuration_id:
-            is_selected_configuration = True
-        else:
-            is_selected_configuration = False
-        self.configuration_frames[configuration_id] = ConfigurationFrame(master_frame=self.radio_button_frame, device_id=self.user_device.device_id, config=self.configs[configuration_id], is_selected_configuration=is_selected_configuration, edit_configuration_callback=self.edit_configuration_callback, delete_config_callback=self.delete_configuration, select_configuration=self.select_configuration)
 
+        self.configuration_frames[configuration_id] = ConfigurationFrame(master_frame=self.radio_button_frame,device_frame=self,front_page=self.front_page,config=self.configurations[configuration_id], select_configuration=self.select_configuration)
         if return_button == True:
             return self.configuration_frames[configuration_id].radio_button
 
-    def add_new_config_row(self, newest_configuration_id, configs, user_device):
-        self.user_device = user_device
-        self.configs = configs
-        self.create_configuration_frame(configuration_id=newest_configuration_id, return_button=True)
-
     def create_configuration_frames(self):
-        for i in self.user_device.config_ids:
+        for i in self.user_device.configurations.keys():
             self.create_configuration_frame(i)
 
     def device_deletion_warning(self, device_id):
-        msg = CTkMessagebox(title="Delete Device?",
-                            message="Deleting device will also delete all its configurations.",
-                            option_1="Delete",
-                            option_2="Cancel",
-                            width=600,
-                            height=300,
-                            fade_in_duration=200
-                            )
+        msg = CTkMessagebox(title="Delete Device?",message="Deleting device will also delete all its configurations.",option_1="Delete",option_2="Cancel",width=600,height=300,fade_in_duration=200)
         if msg.get() == "Delete":
-            def delete():
-                self.delete_device_callback(device_id)
-                del self.user_device
-            self.destroy()
-            threading.Thread(target=delete())
+            self.front_page.device_deleted(device_id)
+            print(self.front_page.device_data.user_devices)
 
-
-    def pack(self, *args, **kwargs):
-        """
-        Allows DeviceFrame to be packed like a regular widget.
-        Passes all arguments to its container_frame's pack method.
-        """
-        self.container_frame.pack(*args, **kwargs)
-
-    def pack_forget(self, *args, **kwargs): # Same as pack method above, but for pack_forget
-        self.container_frame.pack_forget(*args, **kwargs)
-
-    def destroy(self, *args, **kwargs): # As above
-        self.container_frame.destroy(*args, **kwargs)
-
-
-
-
-class DeviceFrameController():
-    def __init__(self, master_frame, user_devices_and_configs, frontpage_test, delete_device_callback_to_main_page, left_buttons, refresh_user_devices_and_configs_callback, refresh_buttons_callback, edit_configuration_callback, configuration_added_callback_to_main_page, delete_configuration_callback, current_frame=None, device_frame_dict={}):
-        self.user_devices_and_configs = user_devices_and_configs
-        self.frontpage_test=frontpage_test
-        self.current_frame = current_frame
-        self.device_frame_dict = device_frame_dict
-        self.left_buttons = left_buttons
-        self.refresh_buttons_callback = refresh_buttons_callback
-        self.refresh_user_devices_and_configs_callback = refresh_user_devices_and_configs_callback
-        self.master_frame = master_frame
-        self.delete_device_callback_to_main_page = delete_device_callback_to_main_page
-        self.edit_configuration_callback = edit_configuration_callback
-        self.configuration_added_callback_to_main_page = configuration_added_callback_to_main_page
-        self.delete_configuration_callback = delete_configuration_callback
+class DeviceFrameController(dict):
+    def __init__(self, master, front_page):
+        super().__init__()
+        self.front_page = front_page
+        self.current_frame = None
+        self.master = master
         self.create_frames()
 
-        if len(self.user_devices_and_configs.user_devices) > 0:
-            self.pack_a_frame(frame_to_pack=next(iter(self.device_frame_dict)))
+        if len(self.front_page.device_data.user_devices) > 0:
+            self.pack_a_frame(frame_to_pack=next(iter(self.keys())))
         else:
             self.pack_a_frame()
 
-    def delete_device_callback(self, device_id):
-        self.device_frame_dict[device_id].pack_forget()
-        self.device_frame_dict[device_id].destroy()
-        del self.device_frame_dict[device_id]
-        self.delete_device_callback_to_main_page(device_id)
-
-        self.pack_a_frame(frame_to_pack=next(iter(self.device_frame_dict)), device_has_been_deleted=True)
-
-
     def create_single_frame(self, id_to_create):
-        self.device_frame_dict[id_to_create] = DeviceFrame(master_frame=self.master_frame, add_configuration_callback=self.configuration_added, edit_configuration_callback=self.edit_configuration_callback, delete_device_callback=self.delete_device_callback, delete_configuration_callback=self.delete_configuration, user_device=self.user_devices_and_configs.user_devices[id_to_create], configs=self.user_devices_and_configs.user_configurations)
-        
+
+        self[id_to_create] = DeviceFrame(master=self.master, controller=self, user_device=self.front_page.device_data.user_devices[id_to_create])
+
     def create_frames(self):
-        
-        for i in self.user_devices_and_configs.user_devices.keys():
+        self.placeholder_device_frame = ctk.CTkFrame(master=self.master, corner_radius=0, fg_color="transparent")
+        placeholder_device_frame_text = ctk.CTkLabel(master=self.placeholder_device_frame, text="Add your first device from the dropdown", font=ctk.CTkFont(size=16), text_color="gray50")
+        placeholder_device_frame_text.pack(padx=20)
+        if len(self.front_page.device_data.user_devices) == 0:
+            self.placeholder_device_frame.pack()
+        for i in self.front_page.device_data.user_devices.keys():
             self.create_single_frame(id_to_create=i)
 
-        placeholder_device_frame = ctk.CTkFrame(master=self.master_frame, corner_radius=0, fg_color="transparent")
-        placeholder_device_frame_text = ctk.CTkLabel(master=placeholder_device_frame, text="Add your first device to edit")
-        placeholder_device_frame_text.pack()
-        self.device_frame_dict[None] = placeholder_device_frame
+        self[None] = self.placeholder_device_frame
 
     def pack_a_frame(self, frame_to_pack=None, device_has_been_deleted=False):
-        for i in self.master_frame.winfo_children():
-            i.pack_forget()
-
-        if self.current_frame is not None and device_has_been_deleted == False:
+        if self.current_frame is not None and not device_has_been_deleted:
             self.current_frame.pack_forget()
-
-        self.current_frame = self.device_frame_dict[frame_to_pack]
+        self.current_frame = self[frame_to_pack]
         self.current_frame.pack()
 
-
-    def configuration_added(self, device_id, newest_configuration_id):
-
-        self.configuration_added_callback_to_main_page(device_id, newest_configuration_id)
-
-    def add_new_config_row(self, device_id, newest_configuration_id, user_devices_and_configs):
-        self.user_devices_and_configs = user_devices_and_configs
-        self.device_frame_dict[device_id].add_new_config_row(newest_configuration_id=newest_configuration_id, configs=self.user_devices_and_configs.user_configurations, 
-                                                             user_device=self.user_devices_and_configs.user_devices[device_id]
-                                                             )
-
-    def delete_configuration(self, configuration_id, device_id):
-        config_before = self.user_devices_and_configs.user_devices[device_id].selected_config
-        
-        try:
-            self.frontpage_test.edit_windows[(device_id,configuration_id)].destroy()
-            del self.frontpage_test.edit_windows[(device_id,configuration_id)]
-        except KeyError:
-            pass
-
-
-        self.delete_configuration_callback(configuration_id)
-
-        if config_before != self.user_devices_and_configs.user_devices[device_id].selected_config:
-            self.device_frame_dict[device_id].user_device.selected_config = self.user_devices_and_configs.user_devices[device_id].selected_config
-            # self.create_single_frame(id_to_create=device_id)
-            self.create_frames()
-            self.pack_a_frame(frame_to_pack=device_id)
-
-    def finish_deleting_configuration(self):
-        pass
-
-    def delete_config_row(self):
-        pass
-
-    @property
-    def add_new_device_frame(self):
-        return self.device_frame_dict
-
-    @add_new_device_frame.setter
     def add_new_device_frame(self, new_device_id):
-        self.device_frame_dict.clear()
-        self.create_frames()
+        self.create_single_frame(new_device_id)
         self.pack_a_frame(new_device_id)
 
-    @property
-    def update_user_devices_and_configs(self):
-        return self.user_devices_and_configs
 
-    @update_user_devices_and_configs.setter
-    def update_user_devices_and_configs(self, user_devices_and_configs):
-        self.user_devices_and_configs = user_devices_and_configs
-
-class LeftButtons():
-    def __init__(self, master_frame, user_devices, display_device_frame_callback, currently_selected_device=None):
-        self.master_frame = master_frame
-        self.user_devices = user_devices
-        self.display_device_frame_callback = display_device_frame_callback
-
-        self.left_buttons_frame = ctk.CTkFrame(master=master_frame)
-        self.left_buttons_frame.grid(row=3, column=0, columnspan=2, sticky="ew", padx=0)
-        self.currently_selected_device = currently_selected_device        
-        
-        self.button_objects_dict = {}
+class LeftButtons(ctk.CTkFrame):
+    def __init__(self, master, front_page, *args, **kwargs):
+        super().__init__(master, *args, **kwargs)
+        self.front_page = front_page
+        self.button_dict = {}
+        self.currently_selected_device = None
         self.setup_left_buttons()
+
+    def create_button(self, device):
+        self.button_dict[device.device_id] = ctk.CTkButton(master=self, corner_radius=0, height=40, border_spacing=10, text=device.device_name, font=ctk.CTkFont(family="Noto Sans",size=18 ), command=lambda d=device.device_id: self.on_button_click(d), fg_color="transparent", text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), anchor="w")
+        self.button_dict[device.device_id].pack(side="bottom", fill="both", expand=True)
+
+    def add_device(self, device):
+        self.create_button(device)
+        self.on_button_click(device.device_id)
 
     def setup_left_buttons(self):
-                
-        for i in self.user_devices.values():
-            device_button = ctk.CTkButton(master=self.left_buttons_frame, corner_radius=0, height=40, border_spacing=10, text=i.device_name, font=ctk.CTkFont(family="Noto Sans",size=18 ), command=lambda d=i.device_id: self.button_clicked(d), fg_color="transparent", text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), anchor="w")
-            device_button.pack(fill="x", expand=True)
-            self.button_objects_dict[i.device_id] = device_button
-        
-        if len(self.user_devices) > 0:
-            self.activate_button(device_id_to_activate=next(iter(self.user_devices)))
+        for i in reversed(self.front_page.device_data.user_devices.values()):
+            self.create_button(i)
+        if len(self.button_dict) > 0:
+            self.on_button_click(device_id=list(self.button_dict.keys())[-1])
 
-    def refresh_left_buttons(self):
-        for button in self.button_objects_dict.values():
-            button.pack_forget()
-        self.button_objects_dict = {}
-        self.setup_left_buttons()
+    def on_button_click(self, device_id):
+        if device_id != self.currently_selected_device:
+            self.front_page.device_frame_dict.pack_a_frame(frame_to_pack=device_id)
 
-    def button_clicked(self, id_of_clicked_button):
-        if id_of_clicked_button != self.currently_selected_device:
-            self.display_device_frame_callback(id_of_clicked_button)
-            self.button_objects_dict[self.currently_selected_device].configure(fg_color = "transparent")
-            self.activate_button(device_id_to_activate=id_of_clicked_button)
+            if self.currently_selected_device is not None:
+                self.button_dict[self.currently_selected_device].configure(fg_color="transparent")
 
-    def activate_button(self, device_id_to_activate):
-        self.currently_selected_device = device_id_to_activate
-        self.button_objects_dict[self.currently_selected_device].configure(fg_color = "gray25")
+            self.currently_selected_device = device_id
+            self.button_dict[device_id].configure(fg_color="gray25")
 
-    @property
-    def remove_button(self):
-        return self.button_objects_dict
+    def remove_device_button(self, device_id):
+        if device_id in self.button_dict:
+            # self.currently_selected_device = None
+            self.button_dict[device_id].destroy()
+            del self.button_dict[device_id]
 
-    def remove_button(self, device_id):
-        # self.button_objects_dict[device_id].destroy()
-        self.button_objects_dict[device_id].pack_forget()
-
-    @property
-    def update_user_devices(self):
-        return self.user_devices
-
-    @update_user_devices.setter
-    def update_user_devices(self, user_devices):
-        self.user_devices = user_devices
-        self.refresh_left_buttons()
-
+            self.currently_selected_device = None
+            if len(self.button_dict) > 0:
+                self.on_button_click(next(reversed(self.button_dict)))
+            else:
+                self.front_page.device_frame_dict.pack_a_frame()
 
 class FrontPage(ctk.CTkFrame):
-    def __init__(self,
-                 master,
-                 edit_page = None,
-                 selected_device = None
-                 ):
-        super().__init__(master)
+    def __init__(self, master):
+        super().__init__(master, fg_color="transparent")
 
+        self.device_data = BackendData.Devices.get_all_devices()
+        self.edit_windows = {}
 
+        left_frame = ctk.CTkFrame(master=self, fg_color=gui_variables.bg_grey7)
+        left_frame.grid(row=0, column=0, sticky="nsew")
 
-
-        left_frame = ctk.CTkFrame(master=self, fg_color="#2B2B2B")
-        left_frame.grid(row=0, column=0, sticky="nsew", 
-                        # rowspan=2
-                        )
-
-
-
-        app_title = ctk.CTkLabel(master=left_frame, text="  LogiOpsGUI  ", font=ctk.CTkFont(family="Noto Sans",size=44),text_color=gui_variables.primary_colour,pady=20,corner_radius=0)
-        app_title.grid(row=0, column=0, columnspan=2, sticky="ew")
-
-        user_devices_label = ctk.CTkLabel(master=left_frame, text="User Devices", font=ctk.CTkFont(family="Noto Sans", weight="bold", size=20),)
-        user_devices_label.grid(row=2, column=0, columnspan=2, pady=(30,0))
-
-        ignored_devices_label = ctk.CTkLabel(master=left_frame, text="Ignored Devices", font=ctk.CTkFont(family="Noto Sans", weight="bold", size=20),)
-        ignored_devices_label.grid(row=4, column=0, columnspan=2, pady=(30,0))
-
-
-        cfg_file_label = ctk.CTkLabel(master=left_frame, text="Logid Configuration", font=ctk.CTkFont(family="Noto Sans", weight="bold", size=20),)
-        cfg_file_label.grid(row=6, column=0, columnspan=2, pady=(30,0))
-
-        self.cfg_location, self.cfg_filename = create_cfg.get_cfg_location()
+        app_title_image = ctk.CTkImage(light_image=Image.open(os.path.join("images/logo.png")), size=(392, 132))
+        app_title = ctk.CTkLabel(master=left_frame, image=app_title_image, text='')
+        app_title.pack(padx=(0, 7), pady=(40,40))
 
         def handle_file_selection(selected_path, selected_filename):
             self.cfg_location, self.cfg_filename = create_cfg.set_cfg_location(selected_path, selected_filename)
             self.show_cfg_location.configure(text=f"{self.cfg_location}/{self.cfg_filename}")
 
-        def on_create_cfg_button_click():
-            
+        def on_create_cfg_button_click():            
             cfg_message = create_cfg.generate_in_user_chosen_directory()
-            print(cfg_message)
-            # CTkMessagebox(title="Error", message="Folder does not exist", icon="warning", option_1="Okay")
+            CTkMessagebox(title="Error", message=cfg_message, option_1="OK", width=600, height=300, fade_in_duration=200)
 
-            CTkMessagebox(title="Error",
-                                message=cfg_message,
-                                # icon="warning",
-                                option_1="OK",
-                                width=600,
-                                height=300,
-                                fade_in_duration=200
-                                )
-
-
-        self.show_cfg_location = ctk.CTkLabel(master=left_frame, text=f"{self.cfg_location}/{self.cfg_filename}")
-        self.show_cfg_location.grid(row=7, column=0, columnspan=2)
-
+        ignored_devices_label = gui_variables.MainPageLabel1(master=left_frame, text="Ignored Devices",)
+        cfg_file_label = ctk.CTkLabel(master=left_frame, text="Logid Configuration", font=ctk.CTkFont(family="Noto Sans", weight="bold", size=20),)
+        self.cfg_location, self.cfg_filename = create_cfg.get_cfg_location()
+        self.show_cfg_location = ctk.CTkLabel(master=left_frame, text=f"{self.cfg_location}/{self.cfg_filename}" if self.cfg_location != "default" else "etc/logid.cfg")
         create_cfg_button = ctk.CTkButton(master=left_frame, text="Create CFG", command=on_create_cfg_button_click)
-        create_cfg_button.grid(row=8, column=0)
-        # set_logid_path_button = ctk.CTkButton(master=left_frame, text="Edit CFG location", command=lambda master=self, on_select=handle_file_selection: FileBrowserWindow.BrowserWindow(master, on_select))
-        set_logid_path_button = ctk.CTkButton(
-                master=left_frame,
-                text="Edit CFG Location",
-                command=lambda: FileBrowserWindow.BrowserWindow(self, permitted_formats="cfg", current_path=self.cfg_location, current_filename=self.cfg_filename, on_select=handle_file_selection)
-            )
-        set_logid_path_button.grid(row=8, column=1)
-
-
+        set_logid_path_button = ctk.CTkButton(master=left_frame,text="Edit CFG Location",command=lambda: FileBrowserWindow.BrowserWindow(self, permitted_formats="cfg", current_path=self.cfg_location, current_filename=self.cfg_filename, on_select=handle_file_selection))
         restart_logid_button = ctk.CTkButton(master=left_frame, text="Restart Logid")
-        restart_logid_button.grid(row=9, column=0, columnspan=2)
 
-
-
-        right_frame = ctk.CTkFrame(master=self, corner_radius=0)
+        right_frame = ctk.CTkFrame(master=self, corner_radius=0, fg_color="transparent")
         right_frame.grid(row=0, column=1, sticky="nsew")
         right_frame.grid_columnconfigure(0, weight=1)
         right_frame.grid_rowconfigure(0, weight=2)
 
-        self.edit_windows = {}
-
         self.grid_columnconfigure(1, weight=1)  # Set the weight of the column in the main frame
         self.grid_rowconfigure(1, weight=1)
-        
 
+        self.device_dropdown = DeviceDropdown(master=left_frame, front_page=self,)
+        self.device_dropdown.pack()
 
-
-
-        self.user_devices_and_configs = Classes.DevicesAndConfigs()
-        def refresh_user_devices_and_configs():
-            self.user_devices_and_configs = Classes.DevicesAndConfigs()
-            self.devices_frames.update_user_devices_and_configs = self.user_devices_and_configs
-
-        def device_added(new_device_name): # Logic to update the device list with the new device
-            new_configuration_id, new_device_id = execute_db_queries.add_new_device(new_device_name)
-            refresh_user_devices_and_configs()
-            self.left_buttons.update_user_devices = self.user_devices_and_configs.user_devices
-            self.devices_frames.update_user_devices_and_configs = self.user_devices_and_configs
-            self.devices_frames.add_new_device_frame = new_device_id
-            radio_button = self.devices_frames.device_frame_dict[new_device_id].configuration_frames[new_configuration_id].radio_button
-            self.edit_configuration(configuration_id=new_configuration_id, device_id=new_device_id, radio_button=radio_button)
-
-        def configuration_deleted(configuration_id):
-            execute_db_queries.delete_configuration(configuration_id)
-            refresh_user_devices_and_configs()
-            self.devices_frames.update_user_devices_and_configs = self.user_devices_and_configs
-
-        def configuration_added(device_id, newest_configuration_id):
-            refresh_user_devices_and_configs()
-            self.devices_frames.update_user_devices_and_configs = self.user_devices_and_configs
-            self.devices_frames.add_new_config_row(device_id=device_id, newest_configuration_id=newest_configuration_id, user_devices_and_configs=self.user_devices_and_configs)
-            radio_button = self.devices_frames.device_frame_dict[device_id].configuration_frames[newest_configuration_id].radio_button
-            
-            self.edit_configuration(configuration_id=newest_configuration_id, device_id=device_id, radio_button=radio_button)
-
-        def device_deleted(deleted_device_id):
-            execute_db_queries.delete_device(deleted_device_id)
-            refresh_user_devices_and_configs()
-            self.devices_frames.update_user_devices_and_configs = self.user_devices_and_configs
-            self.left_buttons.update_user_devices = self.user_devices_and_configs.user_devices
-            self.left_buttons.refresh_left_buttons()
-            self.device_dropdown.setup_option_menu()
-            self.device_dropdown.create_add_device_button()
-
-        def refresh_buttons():
-            self.left_buttons.refresh_left_buttons
-
-        def display_device_frame(clicked_button_device_id): # Callback function to take the clicked left button's ID and display the corresponding right frame for the device. 
-            self.devices_frames.pack_a_frame(frame_to_pack=clicked_button_device_id)
-
-        self.left_buttons = LeftButtons(master_frame=left_frame, user_devices=self.user_devices_and_configs.user_devices, display_device_frame_callback=display_device_frame)
-        self.devices_frames = DeviceFrameController(master_frame=right_frame, frontpage_test=self, user_devices_and_configs=self.user_devices_and_configs, left_buttons=self.left_buttons, refresh_buttons_callback = refresh_buttons, edit_configuration_callback=self.edit_configuration, refresh_user_devices_and_configs_callback = refresh_user_devices_and_configs, delete_configuration_callback=configuration_deleted, configuration_added_callback_to_main_page=configuration_added, delete_device_callback_to_main_page=device_deleted)
-        self.device_dropdown = DeviceDropdown(master_frame=left_frame, device_added_callback=device_added)
+        user_devices_label = gui_variables.MainPageLabel1(master=left_frame, text="User Devices",)
+        user_devices_label.pack(padx=(0,0), pady=(50,0))
+        self.device_frame_dict = DeviceFrameController(master=right_frame, front_page=self,)
+        self.left_buttons = LeftButtons(master=left_frame, front_page=self, fg_color="transparent")
+        self.left_buttons.pack(anchor="w", fill="x")
+        ignored_devices_label.pack()
+        cfg_file_label.pack()
+        self.show_cfg_location.pack()
+        create_cfg_button.pack()
+        set_logid_path_button.pack()
+        restart_logid_button.pack()
 
         bottom_frame = ctk.CTkFrame(master=self, fg_color="transparent")
-        bottom_frame.grid(row=1, column=1, sticky="ew",
-                          columnspan=2
-                          )
-
-
+        bottom_frame.grid(row=1, column=0, sticky="ew",columnspan=2)
 
         def create_settings_window():
             settings_window = ctk.CTkToplevel(master)
@@ -910,29 +379,14 @@ class FrontPage(ctk.CTkFrame):
 
             widget_scaling_label = ctk.CTkLabel(master=settings_window, text="Widget Scaling")
             widget_scaling_label.pack()
-            widget_scaling_button = FloatSpinbox(master=settings_window,
-                                                value=widget_scaling,
-                                                width=200,
-                                                step_size=0.05,
-                                                decimal_places=2,
-                                                min_value=-1000,
-                                                max_value=1000,
-                                                command=lambda: set_widget_scaling(widget_scaling_button.get()))
+            widget_scaling_button = FloatSpinbox(master=settings_window, value=widget_scaling, width=200, step_size=0.05, decimal_places=2, min_value=-1000, max_value=1000, command=lambda: set_widget_scaling(widget_scaling_button.get()))
             widget_scaling_button.pack()
             
             window_scaling_label = ctk.CTkLabel(master=settings_window, text="Window Scaling")
             window_scaling_label.pack()
-            window_scaling_button = FloatSpinbox(master=settings_window,
-                                                value=window_scaling,
-                                                width=200,
-                                                step_size=0.05,
-                                                decimal_places=2,
-                                                min_value=-1000,
-                                                max_value=1000,
-                                                command=lambda: set_window_scaling(window_scaling_button.get()))
+            window_scaling_button = FloatSpinbox(master=settings_window, value=window_scaling, width=200, step_size=0.05, decimal_places=2, min_value=-1000, max_value=1000, command=lambda: set_window_scaling(window_scaling_button.get()))
             
             window_scaling_button.pack()
-
 
             current_dimensions = f"{int(master.winfo_width()/window_scaling_button.get())}x{int(master.winfo_height()/window_scaling_button.get())}"
             current_dimensions_label = ctk.CTkLabel(master=settings_window, text=f"Current Dimensions: {current_dimensions}")
@@ -946,7 +400,6 @@ class FrontPage(ctk.CTkFrame):
             def manually_update():
                 
                 new_geometry = f"{width_button.get()}x{height_button.get()}"
-                print(new_geometry)
                 conn, cursor = execute_db_queries.create_db_connection()
                 cursor.execute("""UPDATE UserSettings SET value = ? WHERE key = 'geometry'""", (new_geometry,))
                 execute_db_queries.commit_changes_and_close(conn)
@@ -961,189 +414,174 @@ class FrontPage(ctk.CTkFrame):
             manually_update_button = ctk.CTkButton(master=settings_window, text="Set Dimensions", command=manually_update)
             manually_update_button.pack()
 
-
-
         settings_window_button = ctk.CTkButton(master=bottom_frame, height=40, width=120, text="App Settings", command=create_settings_window)
-        settings_window_button.grid(pady=30, sticky="e")
-
-
-
+        settings_window_button.grid(pady=30, sticky="w")
 
         bottom_frame.grid_columnconfigure((0), weight=1)
-
 
         self.grid_columnconfigure(0, weight=0)  # Do not expand left_frame column
         self.grid_columnconfigure(1, weight=1)  # Allow right_frame column to expand
         self.grid_rowconfigure(0, weight=1)     # Allow right_frame row to expand
         self.grid_rowconfigure(1, weight=0)     # Keep bottom_frame from expanding vertically
 
+        self.master.protocol("WM_DELETE_WINDOW", self.on_close)  # Customize close button behavior
+
+        self.stop_event = threading.Event()
         def start_window_creation():
-            threading.Thread(target=self.create_windows).start()
+            self.stop_event.clear()  # Ensure the event is clear before starting
+            self.thread = threading.Thread(target=self.create_windows)
+            self.thread.start()
 
-        self.after(10, start_window_creation())
+        start_window_creation()
+
+    def on_close(self):
+        if not self.stop_event.is_set():
+            self.master.destroy()
+            os._exit(0)
+        else:
+            self.master.destroy()
+        
+    def device_added(self, new_device_name): 
+        new_device = self.device_data.add_new_user_device_given_name(new_device_name=new_device_name)
+        new_device_id = new_device.device_id
+        new_configuration_id, new_configuration = next(iter(new_device.configurations.items()))
+
+        self.device_frame_dict.add_new_device_frame(new_device_id)
+        self.left_buttons.add_device(new_device)
+
+        radio_button = self.device_frame_dict[new_device_id].configuration_frames[new_configuration_id].radio_button
+        radio_button.radio_button_clicked()
+
+        self.edit_configuration(configuration_id=new_configuration_id, configuration_object=new_configuration, device_id=new_device_id, radio_button=radio_button)
+
+    def make_a_splash(self, text="LogiOpsGUI"):
+        self.splash = NewDeviceSplash(master=self.master, text=text, text_color="#3D3D3D")
+        self.splash.pack(fill="both", expand=True)
+
+    def take_a_splash(self):
+        self.splash.destroy()
 
 
+    def device_deleted(self, deleted_device_id):
+# TODO: delete?
+        self.left_buttons.remove_device_button(deleted_device_id)
+
+        self.device_frame_dict[deleted_device_id].destroy()
+        del self.device_frame_dict[deleted_device_id]
+        
+        self.device_data.delete_user_device(self.device_data.user_devices[deleted_device_id])
+        self.device_dropdown.setup_option_menu()
+
+        to_delete = []
+        for i in self.edit_windows.keys():
+            if i[0] == deleted_device_id:
+                self.edit_windows[i].destroy()
+                to_delete.append(i)
+        for j in to_delete:
+            del self.edit_windows[j]
+
+
+    def configuration_added(self, device_id, newest_configuration_id):
+        self.pack_forget()
+        radio_button = self.device_frame_dict[device_id].configuration_frames[newest_configuration_id].radio_button
+        radio_button.radio_button_clicked()
+        
+        self.edit_configuration(configuration_id=newest_configuration_id, device_id=device_id, radio_button=radio_button)
 
     def create_windows(self):
+        print("start")
+        for i in [k for k in self.device_data.user_devices.values()]:
+            for j in [l for l in i.configurations.keys()]:
+                try:
+                    if (i.device_id, j) not in self.edit_windows.keys():
+                        if i.device_id in self.device_frame_dict:
+                            try:
+                                radio_button = self.device_frame_dict[i.device_id].configuration_frames[j].radio_button
+                                self.edit_configuration(configuration_id=j, device_id=i.device_id, radio_button=radio_button, add_to_dictionary=True)
+                            except KeyError as e:
+                                print(f"KeyError accessing radio_button: {e}")
+                        else:
+                            print(f"Error: device_id {i.device_id} not found in device_frame_dict.")
+                    else:
+                        print("already there")
+                except Exception as e:
+                    print(f"Exception occurred: {e}")
 
-        for i in self.user_devices_and_configs.user_devices.values():
-
-            for j in i.config_ids:
-                if (i.device_id,j) not in self.edit_windows.keys():
-                    self.edit_configuration(configuration_id=j, device_id=i.device_id, radio_button=self.devices_frames.device_frame_dict[i.device_id].configuration_frames[j].radio_button, add_to_dictionary=True)
-                else:
-                    print("already there")
-                # radio_button = self.devices_frames.device_frame_dict[device_id].configuration_frames[newest_configuration_id].radio_button
+        self.stop_event.set()
         print("windows created")
+        print(SystemMemory.get_memory_usage_mb())
 
-
-
-    def edit_configuration(self, 
-                           configuration_id,
-                           radio_button,
-                           device_id=None,
-                            devices_scrollable_frame=None,
-                            create_devices_inner_frame=None,
-                            create_and_update_device_dropdown=None,
-                            is_new_device=False,
-                            is_new_config=False,
-                            add_to_dictionary = False
-                           ):
-
+    def edit_configuration(self, configuration_id, radio_button, device_id, configuration_object=None, add_to_dictionary=False ):
+        if configuration_object == None:
+            configuration_object = self.device_data.user_devices[device_id].configurations[configuration_id]
         if (device_id,configuration_id) in self.edit_windows.keys():
-            print("packing window from dictionary")
             self.pack_forget()
-            self.edit_windows[(device_id,configuration_id)].pack(fill="both", expand=True)
-
+            self.edit_windows[(device_id,configuration_id)].show()
         else:
-            configuration = Classes.DeviceConfig.create_from_configuration_id(configuration_id)
-            edit_page = EditConfigFrame(self.master, configuration=configuration, radio_button=radio_button, is_new_config=is_new_config, is_new_device=is_new_device, main_page=self, devices_scrollable_frame=devices_scrollable_frame, create_devices_inner_frame=create_devices_inner_frame, create_and_update_device_dropdown=create_and_update_device_dropdown, 
-                                        front_page=self,
-                                        show_main_page=self.show)
-
+            edit_page = EditConfigFrame(self.master, front_page=self, configuration=configuration_object, radio_button=radio_button,)            
             self.edit_windows[(device_id,configuration_id)] = edit_page
-            
             if add_to_dictionary == False:
-                # self.edit_page = edit_page
-                # edit_page.added_to_dict = False
                 self.pack_forget()
-                edit_page.pack(fill="both", expand=True)
-                
-
+                edit_page.show()
     def show(self):
         self.pack(fill="both", expand=True)
-
-    def show_edit_page(self):
-        if self.edit_page:
-            self.pack_forget()
-            self.edit_page.pack(fill="both", expand=True)
-
+        self.master.unbind_all("<Button-4>")
+        self.master.unbind_all("<Button-5>")
 
 class EditConfigFrame(ctk.CTkFrame):
-    def __init__(self, master, show_main_page, radio_button,
-                   main_page, configuration=None,
-                devices_scrollable_frame = None,
-                create_devices_inner_frame= None,
-                create_and_update_device_dropdown=None,
-            is_new_device=False,
-            is_new_config=False,
-            front_page = None,
-            add_action_frame=None
-                ):
-        super().__init__(master)
-        
+    def __init__(self, master, radio_button, front_page, configuration=None, add_action_frame=None):
+        super().__init__(master, fg_color="transparent")
+
         self.master = master
-        self.show_main_page = show_main_page
         self.configuration = configuration
         self.main_page_radio_button = radio_button
         self.add_action_frame = add_action_frame
         self.front_page = front_page
 
-
         """Create the page's frames. Add title to page."""
-        self.left_frame_edit_page = ctk.CTkFrame(master=self, fg_color="#2B2B2B")
-        self.left_frame_edit_page.grid(row=0, column=0, rowspan=2, sticky="nsew")
+        self.left_frame_edit_page = ctk.CTkFrame(master=self, fg_color=gui_variables.bg_grey7)
+        self.left_frame_edit_page.grid(row=0, column=0, 
+                                    #    rowspan=2,
+                                         sticky="nsew")
         self.grid_rowconfigure(0, weight=1)  # Set the weight of the row in the main frame
 
-
-        self.edit_page_left_buttons_frame = ctk.CTkFrame(master=self.left_frame_edit_page)
+        self.edit_page_left_buttons_frame = ctk.CTkFrame(master=self.left_frame_edit_page, fg_color="transparent")
         self.edit_page_left_buttons_frame.grid(row=10, column=0, columnspan=2, sticky="ew", padx=0)
 
-
-
-        self.edit_page_scrollable_frame = ctk.CTkScrollableFrame(master=self,)
+        self.edit_page_scrollable_frame = ctk.CTkFrame(master=self,)
         self.edit_page_scrollable_frame.grid(row=0, column=1, sticky="nsew")
         self.grid_columnconfigure(1, weight=1)  
 
-        # self.grid_columnconfigure(2, weight=0)
-
-
-
-        # self.edit_page_scrollable_frame = ctk.CTkFrame(master=self.frame111,)
-        # self.edit_page_scrollable_frame.grid(row=0, column=1, sticky="nsew")
-        # self.edit_page_frame2 = ctk.CTkFrame(master=self.frame111,)
-        # self.edit_page_frame2.grid(row=0, column=2, sticky="nsew",
-                                #    )
-
-        # label9 = ctk.CTkLabel(master=self.edit_page_frame2, text="edit_page_frame2")
-        # label9.pack()
-
-
-
-
-
-
-
-
-        device_name_label = ctk.CTkLabel(master=self.left_frame_edit_page, text=configuration.device_name, font=ctk.CTkFont( family="Noto Sans", size=36 if len(configuration.device_name) < 15 else 26, ), text_color=gui_variables.primary_colour, pady=(20), corner_radius=0 )
+        device_name_label = ctk.CTkLabel(master=self.left_frame_edit_page, text=configuration.device_name, font=ctk.CTkFont( family="Noto Sans", size=30 if len(configuration.device_name) < 15 else 20, ), text_color=gui_variables.primary_colour, pady=(20), corner_radius=0 )
         device_name_label.grid(row=0, column=0, columnspan=2, sticky="ew")
 
-        """Create array to store left buttons, """
-        # self.left_buttons_array = []
+        back_button = ctk.CTkButton(master=self.left_frame_edit_page, text="Back",command=lambda: [self.go_back(),update_spinboxes_in_db(), update_config_file_name()])
+        back_button.grid(row=2, column=0)
+
         self.left_buttons_dictionary = {}
         self.currently_selected_menu = None
 
         self.frames = {}
 
-
-
         def create_left_buttons(button_text, button_reference):
-            created_button = ctk.CTkButton(master=self.edit_page_left_buttons_frame, corner_radius=0, height=40, border_spacing=10, text=button_text, font=ctk.CTkFont(family="Noto Sans",size=18 ), 
-                                                
-                                                command=lambda c=button_reference: self.left_button_clicked(c),
-
-                                                  fg_color="transparent", text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), anchor="w")
-            
+            created_button = ctk.CTkButton(master=self.edit_page_left_buttons_frame, corner_radius=0, height=40, border_spacing=10, text=button_text, font=ctk.CTkFont(family="Noto Sans",size=18 ), command=lambda c=button_reference: self.left_button_clicked(c), fg_color="transparent", text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), anchor="w")
             created_button.pack(fill="x", expand=True)
             self.left_buttons_dictionary[button_reference] = created_button
             if len(self.left_buttons_dictionary) == 1:
                 self.left_button_clicked(button_reference)
 
-
         if self.configuration.has_scrollwheel == True:
-            self.scroll_properties = Classes.ScrollProperties.create_from_configuration_id(configuration.configuration_id)
-            self.frames["Scrollwheel"] = VerticalScrollwheelFrame(master_frame=self.edit_page_scrollable_frame, scroll_properties=self.scroll_properties, configuration=self.configuration, )
+            self.frames["Scrollwheel"] = VerticalScrollwheelFrame(master=self.edit_page_scrollable_frame, root=self.master, configuration=self.configuration, )
             self.frames["Scrollwheel"].pack()
 
             if configuration.has_thumbwheel == True:
-                create_left_buttons(button_reference="Scrollwheel", button_text="Vertical Scrollwheel")
-                create_left_buttons(button_reference="Thumbwheel", button_text="Thumbwheel")
-
+                create_left_buttons(button_reference="Scrollwheel", button_text="Scrollwheels")
             else:
                 create_left_buttons(button_reference="Scrollwheel", button_text="Scrollwheel")
 
-        if self.configuration.has_thumbwheel == True:
-            self.frames["Thumbwheel"] = ThumbwheelFrame(master_frame=self.edit_page_scrollable_frame, scroll_properties=self.scroll_properties, configuration=self.configuration)
-
         for button in self.configuration.buttons:
             create_left_buttons(button_text=button.button_name, button_reference=button.button_cid)
-            self.frames[button.button_cid] = ButtonConfigFrame(edit_config_frame_master = self.master,
-                                                                edit_config_frame_instance=self,
-                                                                  master_frame=self.edit_page_scrollable_frame, configuration=self.configuration, button=button,
-                                                                #   toggle_second_scrollable_frame = self.toggle_second_scrollable_frame,
-                                                                #   second_scrollable_frame = self.edit_page_second_scrollable_frame,
-                                                                  )
-
+            self.frames[button.button_cid] = ButtonConfigFrame(edit_config_frame_master = self.master,edit_config_frame_instance=self, master_frame=self.edit_page_scrollable_frame, configuration=self.configuration, button=button,)
 
         def focus_next_widget(event):
             # Make TAB key push focus to next widget rather than inserting tabs
@@ -1157,14 +595,14 @@ class EditConfigFrame(ctk.CTkFrame):
         def update_config_name_in_db(event):
             # Update the DB on focus out from the textbox
             if configuration_name_textbox.get("1.0", "end-1c").strip() == "": #Prevent empty configuration name being inserted
-                configuration_name_textbox.insert("0.0", configuration.configuration_name)
+                configuration_name_textbox.insert("end", configuration.configuration_name, "center")
             elif configuration_name_textbox.get("1.0", "end-1c").strip() == configuration.configuration_name:
                 pass
             else:
                 config_name_stripped = configuration_name_textbox.get("1.0", "end-1c").strip()
                 configuration.configuration_name = config_name_stripped
                 configuration_name_textbox.delete("0.0", "end")
-                configuration_name_textbox.insert("0.0", config_name_stripped)
+                configuration_name_textbox.insert("end", config_name_stripped, "center")
                 # # TODO: make this target the desired widget more specifically. Now it's
                 # for widget in devices_scrollable_frame.winfo_children():
                 #     widget.destroy()
@@ -1173,72 +611,60 @@ class EditConfigFrame(ctk.CTkFrame):
 
 
 
-        configuration_name_label = ctk.CTkLabel(master=self.left_frame_edit_page,text=" Configuration Name",font=ctk.CTkFont(    family="Noto Sans",    weight="bold",    size=14))
-        configuration_name_label.grid(row=2, column=0, sticky="w", padx=10, pady=(20, 0))
+        configuration_name_label = gui_variables.EditPageLabel1(master=self.left_frame_edit_page,text="Configuration Name")
 
-        configuration_name_textbox = ctk.CTkTextbox(master=self.left_frame_edit_page, height=10, width=250, font=ctk.CTkFont(     family="Noto Sans",          size=16 ), corner_radius=1 )
-        configuration_name_textbox.grid(row=3, column=0, padx=10)
-        configuration_name_textbox.insert("0.0", configuration.configuration_name)
+        configuration_name_label.grid(row=3, column=0, columnspan=5, sticky="ew", padx=(0,0), pady=(20, 5))
+
+        configuration_name_textbox = ctk.CTkTextbox(master=self.left_frame_edit_page, height=30, width=250,
+                                                    activate_scrollbars=False,
+                                                    fg_color=gui_variables.bg_grey6,
+                                                    text_color=gui_variables.grey_standard2,
+                                                     font=ctk.CTkFont(     family="Noto Sans",          size=15 ), corner_radius=1, 
+                                                     
+                                                     )
+
+
+        configuration_name_textbox.grid(row=4, column=0, columnspan=5, padx=5, pady=(0,20), sticky="ew")
+        configuration_name_textbox.tag_config("center", justify="center")
+        configuration_name_textbox.insert("end", configuration.configuration_name, "center")
+
         configuration_name_textbox.bind("<Tab>", focus_next_widget)
         configuration_name_textbox.bind("<FocusOut>", update_config_name_in_db)
 
         dpi_spinbox = IntSpinbox(master=self.left_frame_edit_page, 
                                  db_query=self.configuration.update_dpi,
-                                 width=200, step_size=50, min_value=configuration.min_dpi, max_value=configuration.max_dpi, value=configuration.dpi)
+                                 width=250, step_size=50, min_value=configuration.min_dpi, max_value=configuration.max_dpi, value=configuration.dpi)
 
         def create_dpi_widgets():
-            dpi_label = ctk.CTkLabel( master=self.left_frame_edit_page, text=("DPI"), font=ctk.CTkFont( family="Roboto", size=18, ), )
-            dpi_label.grid(row=4, column=0)        
-            dpi_spinbox.grid(row=5, column=0)
+            dpi_label = gui_variables.EditPageLabel1(master=self.left_frame_edit_page, text=("DPI"),)
+            dpi_label.grid(row=5, column=0, columnspan=5, sticky="ew")        
+            dpi_spinbox.grid(row=6, column=0, padx=(5, 5), pady=(0, 20), columnspan=5, )
 
         create_dpi_widgets()
 
-        
         def update_config_file_name():
             config_name_stripped = configuration_name_textbox.get("1.0", "end-1c").strip()
             if len(config_name_stripped) > 0:
                 configuration.configuration_name = config_name_stripped
                 self.main_page_radio_button.update_text(config_name_stripped)
 
-        self.top_frame = ctk.CTkFrame(master=self,fg_color="transparent")
-        self.top_frame.grid(row=1, column=1)
-
-
-        self.bottom_frame = ctk.CTkFrame(master=self,fg_color="transparent")
-        self.bottom_frame.grid(row=1, column=1)
-
-        back_button = ctk.CTkButton(master=self.bottom_frame, text="Back",command=lambda: [self.go_back(),update_spinboxes_in_db(), update_config_file_name()])
-        back_button.pack(pady=20)
-
         def update_spinboxes_in_db():
 
             configuration.dpi = dpi_spinbox.get()
-            # if configuration.smartshift_support == True:
-            #     configuration.smartshift_threshold = smartshift_threshold_spinbox.get()
-            #     configuration.smartshift_torque = smartshift_torque_spinbox.get()
             if configuration.has_scrollwheel == True:
                 pass
                 # self.scroll_properties.scroll_up_threshold = self.frames["Scrollwheel"].scrollwheel_up_spinbox.get()
                 # self.scroll_properties.scroll_down_threshold = self.frames["Scrollwheel"].scrollwheel_down_spinbox.get()
             if configuration.has_thumbwheel == True:
-                self.scroll_properties.scroll_left_threshold = self.frames["Thumbwheel"].thumbwheel_left_spinbox.get()
-                self.scroll_properties.scroll_right_threshold = self.frames["Thumbwheel"].thumbwheel_right_spinbox.get()
-
-
-
-    # def button_clicked(self, id_of_clicked_button):
-    #     if id_of_clicked_button != self.currently_selected_device:
-    #         self.display_device_frame_callback(id_of_clicked_button)
-    #         self.button_objects_dict[self.currently_selected_device].configure(fg_color = "transparent")
-    #         self.activate_button(device_id_to_activate=id_of_clicked_button)
+                pass
+                # self.scroll_properties.scroll_left_threshold = self.frames["Thumbwheel"].thumbwheel_left_spinbox.get()
+                # self.scroll_properties.scroll_right_threshold = self.frames["Thumbwheel"].thumbwheel_right_spinbox.get()
 
 
 
     def left_button_clicked(self, clicked_menu_item):
         if clicked_menu_item != self.currently_selected_menu:
-            # self.display_device_frame_callback(id_of_clicked_button)
             if self.currently_selected_menu is not None:
-                # self.left_buttons_dictionary[self.currently_selected]
                 self.left_buttons_dictionary[self.currently_selected_menu].configure(fg_color = "transparent")
             self.activate_left_button(menu_to_activate=clicked_menu_item)
 
@@ -1256,26 +682,211 @@ class EditConfigFrame(ctk.CTkFrame):
                 self.add_action_frame.destroy()
                 self.add_action_frame = None
 
-
-
-    def go_back(self):
+    def go_back(self): 
         if self not in self.front_page.edit_windows.values():
-            print("not in dict")
+
             try:
                 self.front_page.edit_windows[(self.configuration.device_id,self.configuration.configuration_id)].destroy()
                 del self.front_page.edit_windows[(self.configuration.device_id, self.configuration.configuration_id)]
-                print("deleted from dict")
-            except KeyError:
-                print("error in deleting")
+
+            except KeyError as e:
+                print(e)
+                logging.error(f"EditConfigFrame.go_back KeyError: {e}")
             self.front_page.edit_windows[(self.configuration.device_id,self.configuration.configuration_id)] = self
         if self.add_action_frame is not None:
             self.add_action_frame.destroy()
             self.add_action_frame = None
-            # self.activate_left_button(menu_to_activate=self.currently_selected_menu)
             self.frames[self.currently_selected_menu].pack()
         self.pack_forget()
-        self.show_main_page()
+        self.front_page.show()
 
+    def show(self):
+        self.pack(fill="both", expand=True)
+
+    def on_mousewheel_linux(self, event):
+        
+        if event.num == 4:
+            self.edit_page_scrollable_frame._parent_canvas.yview_scroll(-1, "units")
+        elif event.num == 5:
+            self.edit_page_scrollable_frame._parent_canvas.yview_scroll(1, "units")
+
+class KeypressManual(ctk.CTkToplevel):
+    def __init__(self, master, db_keypress_array, click_box):
+        super().__init__(master)
+
+        # Create a scrollable frame to hold the buttons
+        self.button_container_frame = ctk.CTkFrame(master=self, fg_color="transparent")
+        self.button_container_frame.pack(fill='both', expand='true')
+        self.button_frame = ctk.CTkScrollableFrame(self.button_container_frame)
+        self.pack_button_frame()
+        
+        self.not_found_label = ctk.CTkLabel(master=self.button_frame, text="Not found")
+        
+        # Create a frame for the text box
+        self.entry_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.entry_frame.pack(fill='x', padx=10, pady=10)
+
+        # Create a text box for input
+        self.search_entry = ctk.CTkEntry(self.entry_frame, placeholder_text="Search input event codes")
+        self.search_entry.pack(fill='x', pady=5)
+        self.search_entry.bind("<KeyRelease>", self.filter_buttons)
+    
+        self.button_names = [i for i in alleventcodes.all_events]
+
+        self.buttons = []
+
+        # Create buttons
+        self.create_buttons()
+
+    def pack_button_frame(self):
+        self.button_frame.pack(fill='both', expand=True, padx=10, pady=10)
+
+
+    def create_buttons(self):
+        # Clear existing buttons
+        for button in self.buttons:
+            button.pack_forget()
+        
+        self.buttons = []
+        
+        # Create new buttons
+        for name in self.button_names:
+            button = ctk.CTkButton(self.button_frame, text=name, command=lambda n=name: self.on_button_click(n))
+            button.pack(pady=5)
+            self.buttons.append(button)
+
+    def button_click(self, button):
+        print(button)
+
+    def filter_buttons(self, event):
+        search_text = self.search_entry.get().lower()
+        
+        # Filter button names
+        filtered_names = [name for name in self.button_names if search_text in name.lower()]
+        
+        # Update button frame
+        for button in self.buttons:
+            if button.cget("text") in filtered_names:
+                button.pack_forget()
+                button.pack(pady=5)
+
+            else:
+                button.pack_forget()
+        if len(filtered_names) == 0:
+            self.not_found_label.pack()
+        else:
+            self.not_found_label.pack_forget()
+        self.button_frame.pack_forget()
+        self.pack_button_frame()
+        self.button_frame._parent_canvas.yview_moveto(0)
+    def on_button_click(self, button_text):
+        print(f"Button clicked: {button_text}")
+
+
+
+class AddKeypressFrame(ctk.CTkFrame):
+    def __init__(self, master, settings_object, action_selection_frame, go_back, root):
+        super().__init__(master, fg_color="transparent")
+        self.root=root
+        self.settings_object = settings_object
+        self.action_selection_frame=action_selection_frame
+        self.go_back=go_back
+
+        placeholder = ctk.CTkLabel(master=self, text="placeholder keypress")
+        placeholder.pack()
+
+
+        self.click_box = ctk.CTkButton(master=self, border_spacing=80)
+
+        self.initialise_clickbox()
+        self.click_box.pack(pady=50, padx=50, fill="both", expand=True)
+        self.root.wm_attributes('-type', 'dialog')
+
+    def initialise_clickbox(self):
+        self.click_box.configure(text="\nCLICK HERE \n to enter keyboard shortcut\n                                                                                    ",
+                                       command=self.activate_key_listener,
+                                       fg_color="transparent",
+                                       hover=False,
+                                       border_width=10,
+                                       border_color="#363636",
+                                       font=ctk.CTkFont(size=14, family="Veranda"),
+                                       border_spacing=80
+                                       )
+        if hasattr(self, "reset_button"):
+            self.reset_button.destroy()
+            self.save_button.destroy()
+        if hasattr(self, "db_keypress_array"):
+            del self.db_keypress_array
+            del self.gui_keypress_array
+
+    def activate_key_listener(self):
+        self.root.bind("<KeyPress>", self.handle_key_press)
+        self.root.bind("<KeyRelease>", self.handle_key_release)
+        self.stop_recording_button = ctk.CTkButton(self, text="Click here to stop recording",
+                                            command=self.deactivate_key_listener,
+                                            )
+        self.stop_recording_button.pack()
+        self.click_box.configure(border_spacing=97 , text="                                                                              \nStart typing...\n", command=None, border_color="#198754",)
+        self.click_box.focus_set()
+
+
+
+    def stop_listening(self):
+        self.root.unbind("<KeyPress>")
+        self.root.unbind("<KeyRelease>")
+
+    def deactivate_key_listener(self):
+        self.stop_listening()
+        self.stop_recording_button.destroy()
+
+        if not hasattr(self, "db_keypress_array"):
+            self.initialise_clickbox()
+        elif hasattr(self, "reset_button") and bool(self.reset_button.winfo_exists()):
+            pass
+        else:
+            self.click_box.configure(border_color="#DC3545")
+            self.reset_button = ctk.CTkButton(self, text="Reset", command=self.initialise_clickbox)
+            self.reset_button.pack()
+            self.save_button = ctk.CTkButton(self, text="Save new keypress shortcut", command=self.save_button_clicked)
+            self.save_button.pack()
+
+    def save_button_clicked(self):
+
+        new_keypress_object = self.settings_object.add_new_keypress_action(keypresses=json.dumps(self.db_keypress_array))
+        new_button = self.action_selection_frame.create_keypress_button(new_keypress_object)
+        new_button.pack(side="bottom")
+        new_button.radio_button_clicked()
+
+        self.go_back()
+
+    def pack_forget(self, *args, **kwargs):
+        if hasattr(self, 'stop_recording_button'):
+            self.deactivate_key_listener()
+        else:
+            print("no button")
+        super().pack_forget(*args, **kwargs)
+
+    def handle_key_press(self, event):
+
+        db_keymate, gui_keymate = keymates.get_keymates(event.keysym)
+        if not hasattr(self, "db_keypress_array"):
+            self.db_keypress_array = [db_keymate]            
+            self.gui_keypress_array = [gui_keymate]
+            self.click_box.configure(text=f"                                                                              \n{gui_keymate}\n")
+            
+        # elif db_keymate not in self.db_keypress_array:
+        else:
+            self.click_box.configure(text=f"{self.click_box._text[:-1]} {gui_keymate}\n")
+            self.db_keypress_array.append(db_keymate)
+            self.gui_keypress_array.append(gui_keymate)
+        if event.keysym == "Super_L":
+            self.root.after(150, lambda: self.root.focus_force())  # Try to force focus back after a short delay
+        return "break"
+
+
+    def handle_key_release(self, event):
+        if event.keysym == "Super_L":
+            self.root.after(150, lambda: self.root.focus_force())  # Try to force focus back after key is released
 
 
 
@@ -1283,13 +894,16 @@ class EditConfigFrame(ctk.CTkFrame):
 class KeyPressFrame(ctk.CTkFrame):
     def __init__(self, master, app_root, settings_object, go_back_function, origin_frame, added_from, **kwargs):
         super().__init__(master, **kwargs)
+
+        self.configure(fg_color="transparent")
+
         self.app_root = app_root
         self.origin_frame = origin_frame
         self.settings_object = settings_object
         self.go_back_function = go_back_function
         self.added_from = added_from
 
-
+    
 
         self.click_box = ctk.CTkButton(master=self, border_spacing=80)
 
@@ -1297,16 +911,17 @@ class KeyPressFrame(ctk.CTkFrame):
         self.click_box.pack(pady=50, padx=50, fill="both", expand=True)
         self.app_root.wm_attributes('-type', 'dialog')
 
-        # self.enter_manually_button = ctk.CTkButton(master=self, text="Enter Array Manually", command=self.enter_manually)
+        self.enter_manually_button = ctk.CTkButton(master=self, text="Enter Array Manually", command=self.enter_manually)
         # self.enter_manually_button.pack()
 
+
     def enter_manually(self):
-        self.enter_manually_button.pack_forget()
-        textbox = ctk.CTkTextbox(master=self)
-        textbox.insert("0.0", "[  ]")
-        textbox.pack()
-        self.click_box.pack_forget()
-        save_manual_button = ctk.CTkButton(master=self, text="Save Manual")
+        
+            
+        asdf = KeypressManual(master=self, db_keypress_array=self.db_keypress_array if hasattr(self, "db_keypress_array") else [], click_box=self.click_box)
+
+
+
 
     def initialise_clickbox(self):
         self.click_box.configure(text="\nCLICK HERE \n to enter keyboard shortcut\n                                                                                    ",
@@ -1336,9 +951,13 @@ class KeyPressFrame(ctk.CTkFrame):
         self.click_box.focus_set()
 
 
-    def deactivate_key_listener(self):
+
+    def stop_listening(self):
         self.app_root.unbind("<KeyPress>")
         self.app_root.unbind("<KeyRelease>")
+
+    def deactivate_key_listener(self):
+        self.stop_listening()
         self.stop_recording_button.destroy()
 
         if not hasattr(self, "db_keypress_array"):
@@ -1349,7 +968,7 @@ class KeyPressFrame(ctk.CTkFrame):
             self.click_box.configure(border_color="#DC3545")
             self.reset_button = ctk.CTkButton(self, text="Reset", command=self.initialise_clickbox)
             self.reset_button.pack()
-            self.save_button = ctk.CTkButton(self, text="Save new shortcut", command=self.save_button_clicked)
+            self.save_button = ctk.CTkButton(self, text="Save new keypress shortcut", command=self.save_button_clicked)
             self.save_button.pack()
 
     def save_button_clicked(self):
@@ -1357,10 +976,10 @@ class KeyPressFrame(ctk.CTkFrame):
 
         if not isinstance(self.added_from, GestureRadioFrame):
             self.origin_frame.create_keypress_radio_button_row(i=new_primary_key)
-            self.origin_frame.keypress_radio_buttons_frame.grid(row=2, column=0)
+            self.origin_frame.keypress_radio_buttons_frame.grid(row=3, column=0)
         else:
             self.added_from.create_keypress_radio_button_row(i=new_primary_key)
-            self.added_from.keypress_radio_buttons_frame.grid(row=2, column=0)
+            self.added_from.keypress_radio_buttons_frame.grid(row=3, column=0)
 
         self.go_back_function()
 
@@ -1399,6 +1018,8 @@ class AddAxisFrame(ctk.CTkFrame):
     def __init__(self, master, app_root, settings_object, go_back_function, origin_frame, added_from, **kwargs):
         super().__init__(master, **kwargs)
 
+        self.configure(fg_color="transparent")
+
         self.app_root = app_root
         self.origin_frame = origin_frame
         self.settings_object = settings_object
@@ -1412,7 +1033,7 @@ class AddAxisFrame(ctk.CTkFrame):
         rel_list = ["REL_X", "REL_Y", "REL_Z", "REL_RX", "REL_RY", "REL_RZ", "REL_HWHEEL", "REL_DIAL", "REL_WHEEL", "REL_MISC", "REL_RESERVED", "REL_WHEEL_HI_RES", "REL_HWHEEL_HI_RES", "REL_MAX", "REL_CNT"]
 
         def enable_save_button(selected_option):
-            self.save_button.configure(state="normal", fg_color="#198754")
+            self.save_button.configure(state="normal", fg_color=gui_variables.standard_green1)
 
 
         axis_dropdown_variable = ctk.StringVar(value="Select Axis")
@@ -1446,7 +1067,7 @@ class AddAxisFrame(ctk.CTkFrame):
                                                                         multiplier_floatspinbox.get()), 
                                         text_color="white", 
                                         text_color_disabled=("#9FA5AB"), 
-                                        fg_color="#198754", 
+                                        fg_color=gui_variables.standard_green1, 
                                         font=ctk.CTkFont(size=14, family="Veranda"),
                                         state="disabled")
                                         
@@ -1470,8 +1091,8 @@ class CycleDPIRemoveButton(ctk.CTkButton):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.button_not_hover = svg_to_image(path="images/delete_from_array_button.svg", output_height=34, output_width=34)
-        self.button_hover = svg_to_image(path="images/delete_from_array_button_highlighted.svg", output_height=34, output_width=34)
+        self.button_not_hover = svg_to_image(path="images/delete_from_array_button.svg", output_height=22, output_width=22)
+        self.button_hover = svg_to_image(path="images/delete_from_array_button_highlighted.svg", output_height=22, output_width=22)
 
 
         self.bind('<Enter>', lambda event: self.button_enter(event))
@@ -1482,6 +1103,119 @@ class CycleDPIRemoveButton(ctk.CTkButton):
 
     def button_leave(self, event):
         self.configure(image=self.button_not_hover)
+
+
+
+
+
+class AddCycleDPI1(ctk.CTkFrame):
+    def __init__(self, master, settings_object, action_selection_frame, go_back):
+        super().__init__(master, fg_color="transparent")
+        self.settings_object = settings_object
+        self.action_selection_frame = action_selection_frame
+        self.go_back = go_back
+
+        label=ctk.CTkLabel(master=self, text="CycleDPI")
+        label.pack()
+
+
+
+        self.spinbox = IntSpinbox(master=self,
+                                value=1000,
+                                width=200,
+                                step_size=100,
+                                min_value=self.settings_object.config_object.min_dpi,
+                                max_value=self.settings_object.config_object.max_dpi
+                                )
+        self.spinbox.pack()            
+
+        self.add_to_array_button = ctk.CTkButton(master=self, text="Add value to array", command=self.add_value_to_array, text_color="white", text_color_disabled=("#9FA5AB"), fg_color=gui_variables.standard_green1, font=ctk.CTkFont( size=14, family="Veranda"))
+        self.add_to_array_button.pack(padx=100, pady=100)
+
+        self.save_button = ctk.CTkButton(master=self, text="Save New Action", state="disabled", command=self.save_button_clicked, text_color="white", text_color_disabled=("#9FA5AB"), fg_color=gui_variables.standard_green1, font=ctk.CTkFont( size=14, family="Veranda"))
+        self.save_button.pack()
+
+
+        
+
+        self.array_frame_container = ctk.CTkFrame(master=self, fg_color="transparent")
+        self.array_frame_container.pack(
+            # fill="x", expand="false"
+            )
+
+        array_left_bracket = ctk.CTkLabel(master=self.array_frame_container,text="dpis = [", font=ctk.CTkFont(size=28), text_color="gray50")
+        array_right_bracket = ctk.CTkLabel(master=self.array_frame_container, text="]",font=ctk.CTkFont(size=28), text_color="gray50")
+
+        array_left_bracket.pack(side="left", 
+                                anchor=
+                                "center",
+                                # "w",
+                                  padx=(0, 10))
+        array_right_bracket.pack(side="right",
+                                  anchor="center",
+                                #   "e"
+                                  )
+
+        self.array_frame = ctk.CTkFrame(master=self.array_frame_container, fg_color="transparent")
+        self.array_frame.pack(pady=30)
+        self.array_frame_packer = ctk.CTkFrame(master=self.array_frame, fg_color="transparent")
+        self.array_frame_packer.pack(side="left")
+        packer_label = ctk.CTkLabel(master=self.array_frame_packer, text="    ", font=ctk.CTkFont(size=22))
+        packer_label.pack(side="left")
+
+        self.array_dict = {}
+
+
+    def save_button_clicked(self):
+
+        new_cycledpi_object = self.settings_object.add_new_cycledpi_action(str([i for i in self.array_dict.keys()]))
+        new_button = self.action_selection_frame.create_cycledpi_button(new_cycledpi_object)
+        new_button.pack(side="bottom")
+        new_button.radio_button_clicked()
+
+        self.go_back()
+
+    def add_to_array_frame(self, value):
+        if len(self.array_dict) == 0:
+            self.array_frame_packer.pack_forget()
+        if len(self.array_dict) == 1:
+
+            self.save_button.configure(state="enabled")
+
+        value_frame = ctk.CTkFrame(master=self.array_frame, fg_color="transparent")
+
+        label = ctk.CTkLabel(master=value_frame, text=value, font=ctk.CTkFont(size=20),)
+        label.pack(side="left")
+
+        remove_button = CycleDPIRemoveButton(master=value_frame, text="", image=svg_to_image(path="images/delete_from_array_button.svg", output_height=22, output_width=22), command=lambda: self.delete_from_array(value), height=12,width=12, fg_color="transparent", hover=False)
+        remove_button.pack()
+
+        self.array_dict[value] = value_frame
+        self.array_dict = dict(sorted(self.array_dict.items()))
+        for i in self.array_dict.keys():
+            if i >= value:
+                self.array_dict[i].pack_forget()
+                self.array_dict[i].pack(side="left")
+
+
+    def delete_from_array(self, value):
+        if len(self.array_dict) == 2:
+            self.save_button.configure(state="disabled")
+        self.array_dict[value].destroy()
+        del self.array_dict[value]
+
+    def add_value_to_array(self):
+        value_to_add = self.spinbox.get()
+        if value_to_add > self.settings_object.config_object.max_dpi:
+            self.spinbox.set(self.settings_object.config_object.max_dpi)
+            value_to_add = self.settings_object.config_object.max_dpi
+        elif value_to_add < self.settings_object.config_object.min_dpi:
+            self.spinbox.set(self.settings_object.config_object.min_dpi)
+            value_to_add = self.settings_object.config_object.min_dpi
+        if value_to_add not in self.array_dict.keys():
+            self.add_to_array_frame(value=value_to_add)
+
+
 
 
 class AddCycleDPI(ctk.CTkFrame):
@@ -1499,6 +1233,8 @@ class AddCycleDPI(ctk.CTkFrame):
         label=ctk.CTkLabel(master=self, text="CycleDPI")
         label.pack()
 
+
+
         self.spinbox = IntSpinbox(master=self,
                                 value=1000,
                                 width=200,
@@ -1508,49 +1244,61 @@ class AddCycleDPI(ctk.CTkFrame):
                                 )
         self.spinbox.pack()            
 
-        self.add_to_array_button = ctk.CTkButton(master=self, text="Add value to array", command=self.add_value_to_array, text_color="white", text_color_disabled=("#9FA5AB"), fg_color="#198754", font=ctk.CTkFont( size=14, family="Veranda"))
+        self.add_to_array_button = ctk.CTkButton(master=self, text="Add value to array", command=self.add_value_to_array, text_color="white", text_color_disabled=("#9FA5AB"), fg_color=gui_variables.standard_green1, font=ctk.CTkFont( size=14, family="Veranda"))
         self.add_to_array_button.pack(padx=100, pady=100)
 
-        self.save_button = ctk.CTkButton(master=self, text="Save New Action", state="disabled", command=self.add_new_cycledpi, text_color="white", text_color_disabled=("#9FA5AB"), fg_color="#198754", font=ctk.CTkFont( size=14, family="Veranda"))
+        self.save_button = ctk.CTkButton(master=self, text="Save New Action", state="disabled", command=self.add_new_cycledpi, text_color="white", text_color_disabled=("#9FA5AB"), fg_color=gui_variables.standard_green1, font=ctk.CTkFont( size=14, family="Veranda"))
         self.save_button.pack()
 
-        self.array = []
-        # self.array_dict = {}
 
+        
 
-        self.array_frame = ctk.CTkFrame(master=self)
-        self.array_frame.pack()
+        self.array_frame_container = ctk.CTkFrame(master=self, fg_color="transparent")
+        self.array_frame_container.pack(fill="both", expand="true")
+
+        array_left_bracket = ctk.CTkLabel(master=self.array_frame_container,text="dpis = [", font=ctk.CTkFont(size=50), text_color="gray50")
+        array_right_bracket = ctk.CTkLabel(master=self.array_frame_container, text="]",font=ctk.CTkFont(size=50), text_color="gray50")
+
+        array_left_bracket.pack(side="left", anchor="w", padx=(0, 10))
+        array_right_bracket.pack(side="right", anchor="e")
+
+        self.array_frame = ctk.CTkFrame(master=self.array_frame_container, fg_color="transparent")
+        self.array_frame.pack(pady=30)
+        self.array_frame_packer = ctk.CTkFrame(master=self.array_frame, fg_color="transparent")
+        self.array_frame_packer.pack(side="left")
+        packer_label = ctk.CTkLabel(master=self.array_frame_packer, text=" ", font=ctk.CTkFont(size=30))
+        packer_label.pack(side="left")
+
+        self.array_dict = {}
 
     def add_to_array_frame(self, value):
+        if len(self.array_dict) == 0:
+            self.array_frame_packer.pack_forget()
+        if len(self.array_dict) == 1:
 
-        value_frame = ctk.CTkFrame(master=self.array_frame)
-        value_frame.grid(row=0, column=value, padx=10)
-
-        label = ctk.CTkLabel(master=value_frame, text=value, font=ctk.CTkFont(size=30))
-        label.grid(row=0, column=0,)
-
-
-        remove_button = CycleDPIRemoveButton(master=value_frame, text="", image=svg_to_image(path="images/delete_from_array_button.svg", output_height=34, output_width=34), command=lambda: self.delete_from_array(value, value_frame), height=12,width=12, fg_color="transparent", hover=False)
-        remove_button.grid(row=0, column=1)
-
-
-
-        if len(self.array) > 1:
             self.save_button.configure(state="enabled")
 
+        value_frame = ctk.CTkFrame(master=self.array_frame, fg_color="transparent")
+
+        label = ctk.CTkLabel(master=value_frame, text=value, font=ctk.CTkFont(size=30),)
+        label.pack(side="left")
+
+        remove_button = CycleDPIRemoveButton(master=value_frame, text="", image=svg_to_image(path="images/delete_from_array_button.svg", output_height=34, output_width=34), command=lambda: self.delete_from_array(value), height=12,width=12, fg_color="transparent", hover=False)
+        remove_button.pack()
+
+        self.array_dict[value] = value_frame
+        self.array_dict = dict(sorted(self.array_dict.items()))
+        for i in self.array_dict.keys():
+            if i >= value:
+                self.array_dict[i].pack_forget()
+                self.array_dict[i].pack(side="left")
 
 
-
-
-
-
-
-    def delete_from_array(self, value, value_frame):
-        self.array.remove(value)
-        value_frame.destroy()
-        if len(self.array) < 2:
+    def delete_from_array(self, value):
+        if len(self.array_dict) == 2:
             self.save_button.configure(state="disabled")
-
+        self.array_dict[value].destroy()
+        del self.array_dict[value]
 
     def add_value_to_array(self):
         value_to_add = self.spinbox.get()
@@ -1560,13 +1308,11 @@ class AddCycleDPI(ctk.CTkFrame):
         elif value_to_add < self.min_dpi:
             self.spinbox.set(self.min_dpi)
             value_to_add = self.min_dpi
-        if value_to_add not in self.array:
-            self.array.append(value_to_add)
-            self.array = sorted(self.array)
+        if value_to_add not in self.array_dict.keys():
             self.add_to_array_frame(value=value_to_add)
 
     def add_new_cycledpi(self):
-        new_primary_key = self.settings_object.add_new_cycledpi(str(self.array))
+        new_primary_key = self.settings_object.add_new_cycledpi(str([i for i in self.array_dict.keys()]))
 
         if isinstance(self.added_from, GestureRadioFrame):
             self.added_from.create_cycledpi_radio_button_row(gesture_id=new_primary_key)
@@ -1582,6 +1328,8 @@ class AddCycleDPI(ctk.CTkFrame):
 class AddChangeDPI(ctk.CTkFrame):
     def __init__(self, master, app_root, settings_object, go_back_function, origin_frame, added_from, **kwargs):
         super().__init__(master, **kwargs)
+
+        self.configure(fg_color="transparent")
 
         self.app_root = app_root
         self.origin_frame = origin_frame
@@ -1601,7 +1349,7 @@ class AddChangeDPI(ctk.CTkFrame):
                                 )
         self.spinbox.pack()            
 
-        self.save_button = ctk.CTkButton(master=self, text="Save New Action", command=self.add_new_changedpi, text_color="white", text_color_disabled=("#9FA5AB"), fg_color="#198754", font=ctk.CTkFont( size=14, family="Veranda"))
+        self.save_button = ctk.CTkButton(master=self, text="Save New Action", command=self.add_new_changedpi, text_color="white", text_color_disabled=("#9FA5AB"), fg_color=gui_variables.standard_green1, font=ctk.CTkFont( size=14, family="Veranda"))
         self.save_button.pack()
 
 
@@ -1621,6 +1369,9 @@ class AddChangeDPI(ctk.CTkFrame):
 class AddChangeHost(ctk.CTkFrame):
     def __init__(self, master, app_root, settings_object, go_back_function, origin_frame, added_from, **kwargs):
         super().__init__(master, **kwargs)
+
+        self.configure(fg_color="transparent")
+
         self.app_root = app_root
         self.origin_frame = origin_frame
         self.settings_object = settings_object
@@ -1628,10 +1379,10 @@ class AddChangeHost(ctk.CTkFrame):
         self.added_from = added_from
 
         label=ctk.CTkLabel(master=self, text="Host to Toggle")
-        label.pack()
+        label.pack(padx=(300), pady=(30, 15))
 
         def enable_save_button(x):
-            self.save_button.configure(state="normal", fg_color="#198754")
+            self.save_button.configure(state="normal", fg_color=gui_variables.standard_green1)
             self.save_button.configure(command=self.add_new_changehost)
 
         self.menu_var = ctk.StringVar(value="Select Host")
@@ -1645,8 +1396,8 @@ class AddChangeHost(ctk.CTkFrame):
                                  )
         self.menu.pack()
 
-        self.save_button = ctk.CTkButton(master=self, text="Save New Action", command=self.add_new_changehost, state="disabled", text_color="white", text_color_disabled=("#9FA5AB"), fg_color=gui_variables.secondary_colour, hover_color=("#28A745"), font=ctk.CTkFont( size=14, family="Veranda"))
-        self.save_button.pack()
+        self.save_button = ctk.CTkButton(master=self, text="Save New Action", command=self.add_new_changehost, state="disabled", text_color="white", text_color_disabled=("#9FA5AB"), fg_color=gui_variables.secondary_colour, hover_color=gui_variables.standard_green3, font=ctk.CTkFont( size=14, family="Veranda"))
+        self.save_button.pack(side="bottom", padx=(600, 0))
 
     def add_new_changehost(self):
         new_primary_key = self.settings_object.add_new_changehost(host=self.menu_var.get())
@@ -1672,8 +1423,259 @@ class AddChangeHost(ctk.CTkFrame):
 
         # self.go_back_function()
 
+class ScrollFrame(ctk.CTkFrame):
+    def __init__(self, master, root, scroll_settings):
+        super().__init__(master, fg_color="black")
+
+        self.selected_action_id = scroll_settings.actions.selected_action_id
+        
+        title = ctk.CTkLabel(master=self, text=f"Scroll {scroll_settings.scroll_direction}")
+        title.pack()
+
+        selected_mode_var = ctk.StringVar(value=scroll_settings.mode)
+        scroll_mode_dropdown = ctk.CTkOptionMenu(master=self, variable=ctk.StringVar(value=scroll_settings.mode), values=["OnInterval", "OnThreshold"], state="normal", width=200, height=36, command=lambda new_mode = selected_mode_var: scroll_settings.save_new_mode(new_mode))
+        scroll_mode_dropdown.pack()
+
+        scrollwheel_threshold_spinbox = IntSpinbox(master=self, width=200, step_size=5, min_value=1, max_value=9999, db_query=scroll_settings.update_threshold)
+        scrollwheel_threshold_spinbox.set(scroll_settings.threshold)
+        scrollwheel_threshold_spinbox.pack()
+
+        action_selection_frame = ActionSelectionFrame(master=self, root=root, actions=scroll_settings.actions, pack_order=scroll_settings.actions.get_added_order())
+        new_action_frame_button = ctk.CTkButton(master=self, text="Add New Action", command=lambda: (self.pack_forget(), NewActionFrame(master=master, root=root, action_selection_frame=action_selection_frame, origin_frame=self, settings_object=scroll_settings.actions)))
+        new_action_frame_button.pack()
+
+        action_selection_frame.pack(fill="both", expand=True)
 
 
+class AddAxisFrame1(ctk.CTkFrame):
+    def __init__(self, master, settings_object, action_selection_frame, go_back):
+        super().__init__(master, fg_color="transparent")
+        self.action_selection_frame = action_selection_frame
+        self.go_back = go_back
+        self.settings_object = settings_object
+
+        # Create and pack the label
+        label = ctk.CTkLabel(master=self, text="Axis")
+        label.pack()
+
+        # List of available axes
+        rel_list = [
+            "REL_WHEEL (Scroll Up/Down)", "REL_WHEEL_HI_RES (Hi-res Scroll Up/Down)",
+            "REL_HWHEEL (Scroll Left/Right)", "REL_HWHEEL_HI_RES (Hi-res Scroll Left/Right)",
+            "REL_X (x-axis Movement)", "REL_Y (y-axis Movement)", "REL_Z (z-axis Movement)",
+            "REL_RX (Rotational x-axis Movement)", "REL_RY (Rotational y-axis Movement)",
+            "REL_RZ (Rotational z-axis Movement)", "REL_DIAL (Dial Movement)",
+            "REL_MISC (Miscellaneous Relative Movement)", "REL_RESERVED (Typically Unused)",
+            "REL_MAX (Maximum Relative Axis Value.)", "REL_CNT (Total Relative Axes Count)"
+        ]
+
+        # Dropdown variable and axis dropdown menu
+        axis_dropdown_variable = ctk.StringVar(value="Select Axis")
+        axis_dropdown = ctk.CTkOptionMenu(
+            master=self,
+            variable=axis_dropdown_variable,
+            values=rel_list,
+            state="normal",
+            width=200,
+            height=36,
+            command=self.enable_save_button
+        )
+        axis_dropdown.pack()
+
+        # Multiplier spinbox
+        multiplier_floatspinbox = FloatSpinbox(
+            master=self,
+            value=1,
+            width=200,
+            step_size=0.1,
+            min_value=-9999,
+            max_value=9999
+        )
+        multiplier_floatspinbox.pack()
+
+        # Save button (initially disabled)
+        self.save_button = ctk.CTkButton(
+            master=self,
+            text="Save New Action",
+            command=lambda: self.save_button_clicked(
+                axis_dropdown_variable.get().split(" (")[0],
+                multiplier_floatspinbox.get()
+            ), 
+            text_color="white",
+            text_color_disabled="#9FA5AB",
+            fg_color=gui_variables.standard_green1,
+            font=ctk.CTkFont(size=14, family="Veranda"),
+            state="disabled"
+        )
+        self.save_button.pack()
+
+    def enable_save_button(self, selected_menu):
+        # Enable the save button when an axis is selected
+        self.save_button.configure(state="normal", fg_color=gui_variables.standard_green1)
+
+    def save_button_clicked(self, axis_button, axis_multiplier):
+        new_axis_object = self.settings_object.add_new_axis_action(axis_button,axis_multiplier)
+        new_button = self.action_selection_frame.create_axis_button(new_axis_object)
+        new_button.pack(side="bottom")
+        new_button.radio_button_clicked()
+        
+        self.go_back()
+
+
+
+
+
+
+
+
+
+
+
+
+class AddChangeHost1(ctk.CTkFrame):
+    def __init__(self, master, settings_object, action_selection_frame, go_back):
+        super().__init__(master, fg_color="transparent")
+        self.settings_object=settings_object
+        self.action_selection_frame=action_selection_frame
+        self.go_back=go_back
+
+        label=ctk.CTkLabel(master=self, text="Host to Toggle")
+        label.pack(padx=(300), pady=(30, 15))
+
+        def enable_save_button(x):
+            self.save_button.configure(state="normal", fg_color=gui_variables.standard_green1)
+            
+
+        self.menu_var = ctk.StringVar(value="Select Host")
+        self.menu = ctk.CTkOptionMenu(master=self,
+                                 variable=self.menu_var,
+                                 values=["1", "2", "3", "Previous", "Next"],
+                                 state="normal",
+                                 width=200,
+                                 height=36,
+                                 command=enable_save_button
+                                 )
+        self.menu.pack()
+
+        self.save_button = ctk.CTkButton(master=self, text="Save New Action", state="disabled", text_color="white", command=lambda: self.save_button_clicked(), text_color_disabled=("#9FA5AB"), fg_color=gui_variables.secondary_colour, hover_color=gui_variables.standard_green3, font=ctk.CTkFont( size=14, family="Veranda"))
+        self.save_button.pack(side="bottom", padx=(600, 0))
+
+    def save_button_clicked(self):
+        chosen_option = self.menu_var.get()
+        host_change = "prev" if chosen_option == "Previous" else "next" if chosen_option=="Next" else chosen_option
+        new_changehost_object = self.settings_object.add_new_changehost_action(host_change=host_change)
+
+        new_button = self.action_selection_frame.create_changehost_button(new_changehost_object)
+        new_button.pack(side="bottom")
+        new_button.radio_button_clicked()
+
+        self.go_back()
+
+
+
+class AddChangeDPI1(ctk.CTkFrame):
+    def __init__(self, master, settings_object, action_selection_frame, go_back):
+        super().__init__(master, fg_color="transparent")
+        self.settings_object = settings_object
+        self.action_selection_frame = action_selection_frame
+        self.go_back = go_back
+
+        label=ctk.CTkLabel(master=self, text="ChangeDPI")
+        label.pack()
+
+        spinbox = IntSpinbox(master=self,
+                                value=1000,
+                                width=200,
+                                step_size=100,
+                                min_value=-settings_object.config_object.max_dpi,
+                                max_value=settings_object.config_object.max_dpi
+                                )
+        spinbox.pack()            
+
+        
+
+        save_button = ctk.CTkButton(master=self, text="Save New Action", command=lambda: self.save_button_clicked(spinbox.get()), text_color="white", text_color_disabled=("#9FA5AB"), fg_color=gui_variables.standard_green1, font=ctk.CTkFont( size=14, family="Veranda"))
+        save_button.pack()
+
+    def save_button_clicked(self, dpi_change):      
+        new_changedpi_object = self.settings_object.add_new_changedpi_action(dpi_change)
+        
+        new_button = self.action_selection_frame.create_changedpi_button(new_changedpi_object)
+        new_button.pack(side="bottom")
+        new_button.radio_button_clicked()
+
+        self.go_back()
+
+
+
+
+
+
+        # new_primary_key = self.settings_object.add_new_changedpi(self.spinbox.get())
+
+        # if not isinstance(self.added_from, GestureRadioFrame):
+        #     self.origin_frame.create_changedpi_radio_button_row(button_config_id=new_primary_key)
+        #     self.origin_frame.changedpi_radio_buttons_frame.grid(row=5, column=0)
+        # else:
+        #     self.added_from.create_changedpi_radio_button_row(gesture_id=new_primary_key)
+        #     self.added_from.changedpi_radio_buttons_frame.grid(row=5, column=0)
+        
+        # self.go_back_function()
+
+
+
+
+class NewActionFrame(ctk.CTkFrame):
+    def __init__(self, master, root, origin_frame, action_selection_frame, settings_object):
+        super().__init__(master, corner_radius=0, fg_color='transparent')
+        self.origin_frame=origin_frame        
+
+
+        title=ctk.CTkLabel(master=self, text="Create New Action", font=ctk.CTkFont(size=40))
+        title.pack()
+
+
+
+        dark_colour = "#181818"
+        segment_button_colour = gui_variables.blue_standard1
+
+        options_frame = ctk.CTkFrame(master=self, fg_color=dark_colour)
+
+        options = {}
+        options["Keypress"] = AddKeypressFrame(master=options_frame, settings_object=settings_object, action_selection_frame=action_selection_frame, go_back=self.go_back, root=root)
+        options["Axis"] = AddAxisFrame1(master=options_frame, settings_object=settings_object, action_selection_frame=action_selection_frame, go_back=self.go_back)
+        options["CycleDPI"] = AddCycleDPI1(master=options_frame, settings_object=settings_object, action_selection_frame=action_selection_frame, go_back=self.go_back)
+        options["ChangeHost"] = AddChangeHost1(master=options_frame, settings_object=settings_object, action_selection_frame=action_selection_frame, go_back=self.go_back)
+        options["ChangeDPI"] = AddChangeDPI1(master=options_frame, settings_object=settings_object, action_selection_frame=action_selection_frame, go_back=self.go_back)
+        
+        self.selected_option = "ChangeDPI"
+        button_dict = {}
+        segmented_frame = ctk.CTkFrame(master=self, fg_color=dark_colour)
+        segmented_frame.pack()
+
+        def button_callback(new_selected_button):
+            if new_selected_button != self.selected_option:
+                options[self.selected_option].pack_forget()
+                options[new_selected_button].pack(fill="both", expand=True)
+                button_dict[self.selected_option].configure(fg_color="transparent", hover=True, text_color=segment_button_colour)
+                button_dict[new_selected_button].configure(fg_color=segment_button_colour, hover=False, text_color="black")
+                self.selected_option = new_selected_button
+
+        for i in ["Keypress", "Axis", "CycleDPI", "ChangeHost", "ChangeDPI"]:
+            button_dict[i] = ctk.CTkButton(master=segmented_frame, text=i, command= lambda i=i: button_callback(i), text_color=segment_button_colour, width=180, height=40, fg_color='transparent', border_width=1, border_color=segment_button_colour, corner_radius=0)
+            button_dict[i].pack(side="left")
+        button_callback("Keypress")
+
+        options_frame.pack(fill="both", expand=True)
+
+        go_back_button = ctk.CTkButton(master=self, text="Cancel", command=lambda: self.go_back())
+        go_back_button.pack(anchor="se")
+
+        self.pack(fill="both", expand=True)
+
+    def go_back(self):
+        self.destroy()
+        self.origin_frame.pack(fill="both", expand=True)
 
 
 class AddActionFrame(ctk.CTkFrame):
@@ -1695,7 +1697,7 @@ class AddActionFrame(ctk.CTkFrame):
 
         options = {}
 
-        options_frame = ctk.CTkFrame(master=self.container_frame)
+        options_frame = ctk.CTkFrame(master=self.container_frame, fg_color="transparent")
         options_frame.grid(row=3, column=0)
         
         
@@ -1739,7 +1741,9 @@ class AddActionFrame(ctk.CTkFrame):
 
 class GestureRadioFrame(ctk.CTkFrame):
     def __init__(self, config_object, container_outer_frame, master_frame, edit_config_frame_instance, configuration, edit_config_frame_master, *args, **kwargs): 
-        super().__init__(*args, **kwargs) 
+        super().__init__(fg_color="transparent", *args, **kwargs) 
+    
+
     
         self.config_object = config_object
         radio_buttons_to_create = []
@@ -1809,13 +1813,13 @@ class GestureRadioFrame(ctk.CTkFrame):
 
 
 
-        radio_buttons_frame = ctk.CTkFrame(master=self)
+        radio_buttons_frame = ctk.CTkFrame(master=self, fg_color="transparent")
         radio_buttons_frame.grid(row=1, column=0)
 
 
 
         for i,v in enumerate(radio_buttons_to_create):
-            radio_button_row = ctk.CTkFrame(master=radio_buttons_frame)
+            radio_button_row = ctk.CTkFrame(master=radio_buttons_frame, fg_color="transparent")
             radio_button_row.grid(row=i, column=0)
 
             radio_button = MatthewsRadioButton(master=radio_button_row, width=600, text=v[0], command=lambda c=v[1]: self.select_configuration(c))
@@ -1838,7 +1842,7 @@ class GestureRadioFrame(ctk.CTkFrame):
 
 
 
-        self.keypress_radio_buttons_frame = ctk.CTkFrame(master=radio_buttons_frame)
+        self.keypress_radio_buttons_frame = ctk.CTkFrame(master=radio_buttons_frame, fg_color="transparent")
         self.keypress_radio_buttons_frame.grid(row=2, column=0)
 
 
@@ -1850,7 +1854,7 @@ class GestureRadioFrame(ctk.CTkFrame):
 
 
 
-        self.changehost_radio_buttons_frame = ctk.CTkFrame(master=radio_buttons_frame)
+        self.changehost_radio_buttons_frame = ctk.CTkFrame(master=radio_buttons_frame, fg_color="transparent")
         self.changehost_radio_buttons_frame.grid(row=4, column=0)
 
         if len(self.config_object.gesture_changehost) > 0:
@@ -1860,7 +1864,7 @@ class GestureRadioFrame(ctk.CTkFrame):
             self.changehost_radio_buttons_frame.grid_forget()
 
 
-        self.axis_radio_buttons_frame = ctk.CTkFrame(master=radio_buttons_frame)
+        self.axis_radio_buttons_frame = ctk.CTkFrame(master=radio_buttons_frame, fg_color="transparent")
         self.axis_radio_buttons_frame.grid(row=7, column=0)
 
         if len(self.config_object.gesture_axes) > 0:
@@ -1871,7 +1875,7 @@ class GestureRadioFrame(ctk.CTkFrame):
 
 
 
-        self.changedpi_radio_buttons_frame = ctk.CTkFrame(master=radio_buttons_frame)
+        self.changedpi_radio_buttons_frame = ctk.CTkFrame(master=radio_buttons_frame, fg_color="transparent")
         self.changedpi_radio_buttons_frame.grid(row=5, column=0)
 
         if len(self.config_object.gesture_changedpi) > 0:
@@ -1882,7 +1886,7 @@ class GestureRadioFrame(ctk.CTkFrame):
 
 
 
-        self.cycledpi_radio_buttons_frame = ctk.CTkFrame(master=radio_buttons_frame)
+        self.cycledpi_radio_buttons_frame = ctk.CTkFrame(master=radio_buttons_frame, fg_color="transparent")
         self.cycledpi_radio_buttons_frame.grid(row=6, column=0)
 
         if len(self.config_object.gesture_cycledpi) > 0:
@@ -1896,7 +1900,7 @@ class GestureRadioFrame(ctk.CTkFrame):
 
 
     def create_cycledpi_radio_button_row(self, gesture_id):
-        cycledpi_button_row = ctk.CTkFrame(master=self.cycledpi_radio_buttons_frame)
+        cycledpi_button_row = ctk.CTkFrame(master=self.cycledpi_radio_buttons_frame, fg_color="transparent")
         cycledpi_button_row.pack()
 
         radio_button = MatthewsRadioButton(master=cycledpi_button_row, width=600, text=f"cycledpi {self.config_object.gesture_cycledpi[gesture_id].dpi_array}", command=lambda c=gesture_id: self.select_configuration(c))
@@ -1929,7 +1933,7 @@ class GestureRadioFrame(ctk.CTkFrame):
 
 
     def create_changedpi_radio_button_row(self, gesture_id):
-        changedpi_button_row = ctk.CTkFrame(master=self.changedpi_radio_buttons_frame)
+        changedpi_button_row = ctk.CTkFrame(master=self.changedpi_radio_buttons_frame, fg_color="transparent")
         changedpi_button_row.pack()
 
         radio_button = MatthewsRadioButton(master=changedpi_button_row, width=600, 
@@ -1974,7 +1978,7 @@ class GestureRadioFrame(ctk.CTkFrame):
 
 
     def create_keypress_radio_button_row(self, i):     
-        keypress_button_row = ctk.CTkFrame(master=self.keypress_radio_buttons_frame)                
+        keypress_button_row = ctk.CTkFrame(master=self.keypress_radio_buttons_frame, fg_color="transparent")                
         keypress_button_row.pack()
 
         radio_button = MatthewsRadioButton(master=keypress_button_row, width=300, 
@@ -2067,7 +2071,7 @@ class GestureRadioFrame(ctk.CTkFrame):
 
 
     def create_changehost_radio_button_row(self, gesture_id):
-        changehost_button_row = ctk.CTkFrame(master=self.changehost_radio_buttons_frame)
+        changehost_button_row = ctk.CTkFrame(master=self.changehost_radio_buttons_frame, fg_color="transparent")
         changehost_button_row.pack()
 
         radio_button = MatthewsRadioButton(master=changehost_button_row, width=600, text=f"Changehost {self.config_object.gesture_changehost[gesture_id].host_change}", command=lambda c=gesture_id: self.select_configuration(c))
@@ -2100,7 +2104,7 @@ class GestureRadioFrame(ctk.CTkFrame):
 
 
     def create_axes_radio_button_row(self, gesture_id):
-        axis_button_row = ctk.CTkFrame(master=self.axis_radio_buttons_frame)
+        axis_button_row = ctk.CTkFrame(master=self.axis_radio_buttons_frame, fg_color="transparent")
         axis_button_row.pack()
 
         radio_button = MatthewsRadioButton(master=axis_button_row, width=600,
@@ -2140,16 +2144,21 @@ class GestureFrame(ctk.CTkFrame):
         if button.gesture_support == False:
             pass
 
-        self.container_frame = ctk.CTkFrame(master=self, fg_color="blue")
+        self.container_frame = ctk.CTkFrame(master=self, fg_color="transparent")
         self.container_frame.pack(fill="both", expand="true")
 
         self.gesture_dict = button.gesture_dict
 
-        button_label2 = ctk.CTkLabel(master=self.container_frame, text = f"{f"GESTURES HERE"} ({button.button_cid})")
+        button_label2 = ctk.CTkLabel(master=self.container_frame, text = f"GESTURES HERE ({button.button_cid})")
         button_label2.grid(row=0, column=0)
+
+        def create_gesture_radio_frame(i):
+            self.gesture_radio_frames[i] = GestureRadioFrame(master=self.container_frame, config_object=self.gesture_dict[i], container_outer_frame=container_outer_frame, master_frame=master_frame, edit_config_frame_instance=edit_config_frame_instance, configuration=configuration, edit_config_frame_master=edit_config_frame_master)
 
         self.currently_selected_menu = "Up"
         def segmented_button_callback(value):
+            if value not in self.gesture_radio_frames.keys():
+                create_gesture_radio_frame(value)
             self.gesture_radio_frames[self.currently_selected_menu].grid_forget()
             self.gesture_radio_frames[value].grid(row=2, column=0)
             self.currently_selected_menu = value
@@ -2163,8 +2172,7 @@ class GestureFrame(ctk.CTkFrame):
 
         self.gesture_radio_frames = {}
 
-        for i in self.gesture_dict:
-            self.gesture_radio_frames[i] = GestureRadioFrame(master=self.container_frame, config_object=self.gesture_dict[i], container_outer_frame=container_outer_frame, master_frame=master_frame, edit_config_frame_instance=edit_config_frame_instance, configuration=configuration, edit_config_frame_master=edit_config_frame_master)
+        create_gesture_radio_frame("Up")
 
         self.gesture_radio_frames["Up"].grid(row=2, column=0)
 
@@ -2186,7 +2194,7 @@ class ButtonConfigFrame():
 
 
 
-        self.container_outer_frame = ctk.CTkFrame(master=master_frame, corner_radius=0, fg_color="pink")
+        self.container_outer_frame = ctk.CTkFrame(master=master_frame, corner_radius=0, fg_color="transparent")
         self.container_outer_frame.pack_forget()
 
 
@@ -2221,10 +2229,7 @@ class ButtonConfigFrame():
         add_new_action_button = ctk.CTkButton(master=self.container_frame, command= lambda: show_new_action_frame(), text="Add New Action")
         add_new_action_button.grid(row=99, column=0)
 
-        self.container_frame2 = GestureFrame(master=self.container_outer_frame, button=self.button, container_outer_frame=self.container_outer_frame, master_frame=self.master_frame, edit_config_frame_instance=self.edit_config_frame_instance, 
-                                             configuration=self.configuration, edit_config_frame_master=self.edit_config_frame_master, corner_radius=0, fg_color="transparent")
-        # self.container_frame2.grid(row=0, column=1)
-        self.container_frame2.pack(side="right", anchor="n")
+        self.container_frame2 = None
 
 
         radio_buttons_to_create = []
@@ -2238,16 +2243,14 @@ class ButtonConfigFrame():
             radio_buttons_to_create.append(["Toggle Smart Shift", button.button_togglesmartshift])
         if button.button_togglehiresscroll is not None:
             radio_buttons_to_create.append(["Toggle Hi Res Scroll", button.button_togglehiresscroll])
-        if button.button_gestures is not None:
-            radio_buttons_to_create.append(["Gestures", button.button_gestures])
 
-        radio_buttons_frame = ctk.CTkFrame(master=self.container_frame)
+        radio_buttons_frame = ctk.CTkFrame(master=self.container_frame, fg_color="transparent")
         radio_buttons_frame.grid(row=1, column=0, sticky="w")
 
 
 
         for i,v in enumerate(radio_buttons_to_create):
-            radio_button_row = ctk.CTkFrame(master=radio_buttons_frame)
+            radio_button_row = ctk.CTkFrame(master=radio_buttons_frame, fg_color="transparent")
             radio_button_row.grid(row=i, column=0, sticky="w", padx=0, pady=0)
             # radio_button_row.pack(side="left")
 
@@ -2261,9 +2264,19 @@ class ButtonConfigFrame():
 
             self.radio_buttons_dictionary[v[1]] = radio_button
 
+        if button.button_gestures is not None:
+            self.gesture_frame = ctk.CTkFrame(master=self.container_frame, fg_color="transparent")
+            self.gesture_frame.grid(row=2, column=0, sticky="w", padx=0, pady=0)
+            radio_button = MatthewsRadioButton(master=self.gesture_frame, width=600, text="Gestures", command=lambda c=button.button_gestures: self.select_configuration(c))
+            radio_button.pack()
+            if button.selected_button_config_id == button.button_gestures:
+                radio_button.radio_button_clicked()
+            self.radio_buttons_dictionary[button.button_gestures] = radio_button
 
-        self.keypress_radio_buttons_frame = ctk.CTkFrame(master=self.container_frame)
-        self.keypress_radio_buttons_frame.grid(row=2, column=0, sticky="w")
+            # radio_buttons_to_create.append(["Gestures", button.button_gestures])
+
+        self.keypress_radio_buttons_frame = ctk.CTkFrame(master=self.container_frame, fg_color="transparent")
+        self.keypress_radio_buttons_frame.grid(row=3, column=0, sticky="w")
 
 
         if len(button.button_keypresses) > 0:
@@ -2272,7 +2285,7 @@ class ButtonConfigFrame():
         else:
             self.keypress_radio_buttons_frame.grid_forget()
 
-        self.changehost_radio_buttons_frame = ctk.CTkFrame(master=self.container_frame)
+        self.changehost_radio_buttons_frame = ctk.CTkFrame(master=self.container_frame, fg_color="transparent")
         self.changehost_radio_buttons_frame.grid(row=4, column=0, sticky="w")
 
         if len(button.button_changehost) > 0:
@@ -2282,7 +2295,7 @@ class ButtonConfigFrame():
             self.changehost_radio_buttons_frame.grid_forget()
 
 
-        self.changedpi_radio_buttons_frame = ctk.CTkFrame(master=self.container_frame)
+        self.changedpi_radio_buttons_frame = ctk.CTkFrame(master=self.container_frame, fg_color="transparent")
         self.changedpi_radio_buttons_frame.grid(row=5, column=0, sticky="w")
 
         if len(button.button_changedpi) > 0:
@@ -2293,7 +2306,7 @@ class ButtonConfigFrame():
 
 
 
-        self.cycledpi_radio_buttons_frame = ctk.CTkFrame(master=self.container_frame)
+        self.cycledpi_radio_buttons_frame = ctk.CTkFrame(master=self.container_frame, fg_color="transparent")
         self.cycledpi_radio_buttons_frame.grid(row=6, column=0, sticky="w")
 
         if len(button.button_cycledpi) > 0:
@@ -2303,8 +2316,9 @@ class ButtonConfigFrame():
             self.cycledpi_radio_buttons_frame.grid_forget()
 
 
-        self.axis_radio_buttons_frame = ctk.CTkFrame(master=self.container_frame)
+        self.axis_radio_buttons_frame = ctk.CTkFrame(master=self.container_frame, fg_color="transparent")
         self.axis_radio_buttons_frame.grid(row=7, column=0, sticky="w")
+
 
         if len(button.button_axes) > 0:
             for i in button.button_axes.keys():
@@ -2314,7 +2328,7 @@ class ButtonConfigFrame():
 
 
     def create_cycledpi_radio_button_row(self, button_config_id):
-        cycledpi_button_row = ctk.CTkFrame(master=self.cycledpi_radio_buttons_frame, width=600, height=50)
+        cycledpi_button_row = ctk.CTkFrame(master=self.cycledpi_radio_buttons_frame, width=600, height=50, fg_color="transparent")
         cycledpi_button_row.pack()
         cycledpi_button_row.pack_propagate(False)
         
@@ -2353,7 +2367,7 @@ class ButtonConfigFrame():
 
 
     def create_changedpi_radio_button_row(self, button_config_id):
-        changedpi_button_row = ctk.CTkFrame(master=self.changedpi_radio_buttons_frame, width=600, height=50)
+        changedpi_button_row = ctk.CTkFrame(master=self.changedpi_radio_buttons_frame, width=600, height=50, fg_color="transparent")
         changedpi_button_row.pack()
         changedpi_button_row.pack_propagate(False)
 
@@ -2396,7 +2410,7 @@ class ButtonConfigFrame():
 
 
     def create_changehost_radio_button_row(self, button_config_id):
-        changehost_button_row = ctk.CTkFrame(master=self.changehost_radio_buttons_frame, width=600, height=50)
+        changehost_button_row = ctk.CTkFrame(master=self.changehost_radio_buttons_frame, width=600, height=50, fg_color="transparent")
         changehost_button_row.pack()
         changehost_button_row.pack_propagate(False)
         hidden_frame = ctk.CTkFrame(master=changehost_button_row, fg_color="transparent")
@@ -2435,7 +2449,7 @@ class ButtonConfigFrame():
 
 
     def create_axes_radio_button_row(self, button_config_id):
-        axis_button_row = ctk.CTkFrame(master=self.axis_radio_buttons_frame, width=600, height=50)
+        axis_button_row = ctk.CTkFrame(master=self.axis_radio_buttons_frame, width=600, height=50, fg_color="transparent")
         axis_button_row.pack()
         axis_button_row.pack_propagate(False)
         hidden_frame = ctk.CTkFrame(master=axis_button_row, fg_color="transparent")
@@ -2512,7 +2526,7 @@ class ButtonConfigFrame():
 
 
     def create_keypress_radio_button_row(self, i):     
-        keypress_button_row = ctk.CTkFrame(master=self.keypress_radio_buttons_frame, width=600, height=50)                
+        keypress_button_row = ctk.CTkFrame(master=self.keypress_radio_buttons_frame, width=600, height=50, fg_color="transparent")                
         keypress_button_row.pack(anchor="w", fill="both", expand="true")
         keypress_button_row.pack_propagate(False)  # Prevent the frame from resizing to fit its children
 
@@ -2670,10 +2684,29 @@ class ButtonConfigFrame():
 
 
     def select_configuration(self, button_configuration_id):
-        if button_configuration_id == self.button.button_gestures:
-            self.container_frame2.container_frame.pack()
-        else:
-            self.container_frame2.container_frame.pack_forget()
+        if self.button.gesture_support == True:
+            
+            # if not hasattr(self, "gesture_buttons"):
+            #     gesture_buttons = {}
+
+            #     for i in ["Up", "Down", "Left", "Right", "None"]:
+            #         gesture_button = ctk.CTkButton(master=)
+            #         # device_button = ctk.CTkButton(master=self.left_buttons_frame, corner_radius=0, height=40, border_spacing=10, text=i.device_name, font=ctk.CTkFont(family="Noto Sans",size=18 ), command=lambda d=i.device_id: self.button_clicked(d), fg_color="transparent", text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), anchor="w")
+            #         # device_button.pack(fill="x", expand=True)
+            #         # self.button_objects_dict[i.device_id] = device_button
+                
+
+
+            if button_configuration_id == self.button.button_gestures:
+                if self.container_frame2 == None:
+                    self.container_frame2 = GestureFrame(master=self.container_outer_frame, button=self.button, container_outer_frame=self.container_outer_frame, master_frame=self.master_frame, edit_config_frame_instance=self.edit_config_frame_instance, 
+                                                        configuration=self.configuration, edit_config_frame_master=self.edit_config_frame_master, corner_radius=0, fg_color="transparent")
+                    # self.container_frame2.grid(row=0, column=1)
+                    self.container_frame2.pack(side="right", anchor="n")
+                else:
+                    self.container_frame2.container_frame.pack()
+            elif self.container_frame2 != None:
+                    self.container_frame2.container_frame.pack_forget()
         try:
             Classes.update_selected_button_config_id(button_configuration_id)
             self.radio_buttons_dictionary[self.button.selected_button_config_id].another_button_clicked()
@@ -2699,18 +2732,6 @@ class ButtonConfigFrame():
 
 
 
-# class MiddleButtons():
-#     def __init__(self, master_frame, button_dictionary, display_frame_callback, currently_selected_menu=None):
-#         self.master_frame = master_frame
-#         self.button_dictionary = button_dictionary
-#         self.display_frame_callback = display_frame_callback
-#         self.currently_selected_menu = currently_selected_menu
-
-#         self.setup_middle_buttons()
-
-#     def setup_middle_buttons(self):
-#         for i in self.button_dictionary.keys():
-#             pass
 
 
 class ThumbwheelFrame():
@@ -2871,10 +2892,6 @@ class ThumbwheelFrame():
         configuration.thumbwheel_invert = not(configuration.thumbwheel_invert)
 
     def pack(self, *args, **kwargs):
-        """
-        Allows DeviceFrame to be packed like a regular widget.
-        Passes all arguments to its container_frame's pack method.
-        """
         self.container_frame.pack(*args, **kwargs)
 
     def pack_forget(self, *args, **kwargs): # Same as pack method above, but for pack_forget
@@ -2883,103 +2900,357 @@ class ThumbwheelFrame():
     def destroy(self, *args, **kwargs): # As above
         self.container_frame.destroy(*args, **kwargs)
 
-# class CentreButtonFrame():
-#     def __init__(self, master_frame, configuration, **kwargs):
-#         super().__init__(**kwargs)
+
+
+
+class Checkbox(ctk.CTkCheckBox):
+    def __init__(self, *args, **kwargs):
+        super().__init__(font=("Roboto", 14), corner_radius=0, onvalue=True, offvalue=False, checkbox_width=26, checkbox_height=26,
+                         text_color=gui_variables.text_grey1,
+                        #  fg_color=gui_variables.blue_standard1,
+                        hover_color=gui_variables.grey_standard1,
+                         border_width=3,
+                          *args, **kwargs)
+
+
+class CycleDPIRadioButton(ctk.CTkFrame):
+    def __init__(self, master, cycledpi_object, delete_command, passthrough_command, *args, **kwargs):
+        super().__init__(master, fg_color="transparent", width=600, height=50, *args, **kwargs)
+        self.another_button_clicked = lambda: radio_button.another_button_clicked()
+        self.set_clicked = lambda: radio_button.set_clicked()
+        self.radio_button_clicked = lambda: radio_button.radio_button_clicked()
+
+        self.pack_propagate(False)
+        cycledpi_dpi_array = ctk.CTkLabel(master=self, text=cycledpi_object.dpi_array, text_color=gui_variables.primary_colour)
+
+        radio_button = MatthewsRadioButton(master=self, width=100, text="CycleDPI", command=lambda: passthrough_command(), hover_elements=(cycledpi_dpi_array))
+        radio_button.pack(side="left", anchor="w")
         
-#         self.master_frame = master_frame
-#         self.configuration = configuration 
-#         self.currently_selected_button = None
-#         self.button_dictionary = {}
-#         self.container_frame = ctk.CTkFrame(master=master_frame)
-#         self.container_frame.grid(row=0, column=0)
-#         self.test_label = ctk.CTkLabel(master=master_frame, text = "Test Label")
-#         # thumbwheel_frame_label = ctk.CTkLabel(master=self.container_frame,)
-#         self.test_label.grid(row=0, column=0, columnspan=2)
-
-#     def init_buttons(self):
-#         pass
+        self.another_button_clicked = lambda: radio_button.another_button_clicked()
+        self.set_clicked = lambda: radio_button.set_clicked()
 
 
-#     def pack(self, *args, **kwargs):
-#         self.master_frame.pack(*args, **kwargs)
+        delete_cycledpi_button = ctk.CTkButton( master=self, height=20, width=80, text="Delete", fg_color="transparent", font=ctk.CTkFont(family="Noto Sans"), text_color="#6C757D", border_color="#6C757D", hover_color="#450C0F", border_width=1, corner_radius=2, 
+                                                command=lambda: (self.destroy(), delete_command()))
+        cycledpi_dpi_array.configure(anchor="w", 
+                                  justify="left")
+        cycledpi_dpi_array.pack(anchor="w", pady=0, side="left", fill="x", expand=True)
+        delete_cycledpi_button.pack(side="right", anchor="e")
 
-#     def pack_forget(self, *args, **kwargs): # Same as pack method above, but for pack_forget
-#         self.master_frame.pack_forget(*args, **kwargs)
 
-#     def grid(self, *args, **kwargs):
-#         self.master_frame.grid(*args, **kwargs)
 
-#     def grid_forget(self, *args, **kwargs): # Same as pack method above, but for pack_forget
-#         self.master_frame.grid_forget(*args, **kwargs)
+class KeypressRadioButton(ctk.CTkFrame):
+    def __init__(self, master, keypress_object, delete_command, passthrough_command):
+        super().__init__(master, fg_color="transparent", width=600, height=50)
+        self.another_button_clicked = lambda: radio_button.another_button_clicked()
+        self.set_clicked = lambda: radio_button.set_clicked()
+        self.radio_button_clicked = lambda: radio_button.radio_button_clicked()
+        self.pack_propagate(False)
+        
+        try:
+            list_representation = ast.literal_eval(keypress_object.keypresses)
+            keypress_text = ""
+            for key in list_representation:
+                key = keymates.get_keymates(key.replace("KEY_", ""))[1]
+                keypress_text = keypress_text + key + " "
+        except ValueError:
+            keypress_text = keypress_object.keypresses
 
-#     def destroy(self, *args, **kwargs): # As above
-#         self.container_frame.destroy(*args, **kwargs)
+        keypress_keys = ctk.CTkLabel(master=self, text=keypress_text if len(keypress_text)<30 else f"{keypress_text[0:30]}...",
+                                     text_color="#6C757D")
+
+        radio_button = MatthewsRadioButton(master=self, width=100, text="Keypresses", command=lambda: passthrough_command(), hover_elements=(keypress_keys))
+        radio_button.pack(side="left", anchor="w")
+        keypress_keys.configure(anchor="w", 
+                                  justify="left")
+        keypress_keys.pack(
+            anchor="w",
+            pady=3,
+            side="left",
+            fill="x",
+            expand=True
+        )
+
+
+
+        delete_keypress_button = ctk.CTkButton(master=self, height=20, width=80, text="Delete", fg_color="transparent", font=ctk.CTkFont(family="Noto Sans"), text_color="#6C757D", border_color="#6C757D", hover_color="#450C0F", border_width=1, corner_radius=2, 
+                                               command=lambda: (self.destroy(), delete_command())
+                                               )
+        delete_keypress_button.pack(side="right", anchor="e")
+        
+
+
+class ChangeDPIRadioButton(ctk.CTkFrame):
+    def __init__(self, master, changedpi_object, delete_command, passthrough_command, *args, **kwargs):
+        super().__init__(master, fg_color="transparent", width=600, height=50, *args, **kwargs)
+        self.radio_button_clicked = lambda: radio_button.radio_button_clicked()
+        self.another_button_clicked = lambda: radio_button.another_button_clicked()
+        self.set_clicked = lambda: radio_button.set_clicked()
+        self.pack_propagate(False)
+        
+        changedpi_increment = ctk.CTkLabel(master=self, text=changedpi_object.increment, text_color=gui_variables.primary_colour)
+
+        radio_button = MatthewsRadioButton(master=self, width=100, text=f"ChangeDPI",  command=lambda: passthrough_command(),  hover_elements=(changedpi_increment)  )
+        radio_button.pack(side="left", anchor="w")        
+        
+        delete_changedpi_button = ctk.CTkButton(master=self,height=20,width=80,text="Delete",fg_color="transparent",font=ctk.CTkFont(family="Noto Sans"),text_color="#6C757D",border_color="#6C757D",hover_color="#450C0F",border_width=1,corner_radius=2,
+                                                command=lambda: (self.destroy(), delete_command())
+        )
+        changedpi_increment.configure(anchor="w", 
+                                  justify="left")
+        changedpi_increment.pack(anchor="w",pady=0,side="left",fill="x", expand=True)
+        delete_changedpi_button.pack(side="right", anchor="e")
+
+
+class AxisRadioButton(ctk.CTkFrame):
+    def __init__(self, master, axis_object, delete_command, passthrough_command):
+        super().__init__(master, fg_color="transparent", width=600, height=50)
+        self.another_button_clicked = lambda: radio_button.another_button_clicked()
+        self.set_clicked = lambda: radio_button.set_clicked()
+        self.radio_button_clicked = lambda: radio_button.radio_button_clicked()
+        self.pack_propagate(False)
+
+
+        hidden_frame = ctk.CTkFrame(master=self, fg_color="transparent")
+
+        axis_info1 = ctk.CTkLabel(master=self, text=f"{axis_object.axis_button}: ",
+                                     text_color="#6C757D")
+
+        axis_info2 = ctk.CTkLabel(master=self, text=axis_object.axis_multiplier, text_color=gui_variables.primary_colour)
+
+        radio_button = MatthewsRadioButton(master=self, width=100,
+                                            text=f"Axis:",
+                                             command=lambda: passthrough_command(),
+                                             hover_elements=(hidden_frame, axis_info1, axis_info2))
+        radio_button.pack(side="left", anchor="w")
+
+
+        delete_axis_button = ctk.CTkButton(master=self,
+                height=20,
+                width=80,
+                text="Delete",
+                fg_color="transparent",
+                # border_color="red",
+                font=ctk.CTkFont(family="Noto Sans"),
+                text_color="#6C757D",
+                border_color="#6C757D",
+                hover_color="#450C0F",
+                border_width=1,
+                corner_radius=2,
+                command=lambda: (self.destroy(), delete_command())
+                                           )
+
+
+        axis_info1.pack(
+            anchor="w",
+            pady=0,
+            side="left",
+            fill="x",
+        )
+
+        axis_info2.pack(
+            anchor="w",
+            pady=0,
+            side="left",
+            fill="x",
+        )
+        hidden_frame.pack(anchor="w", side="left", fill="x", expand=True)
+
+
+        delete_axis_button.pack(side="right", anchor="e")
+
+
+class TouchTapProxyFrame(ctk.CTkFrame):
+    def __init__(self, master, root, ttt_object):
+        super().__init__(master)
+        # self.master=master
+        self.label = ctk.CTkLabel(master=self, text=f"Thumbwheel {ttt_object.ttt}")
+        self.label.pack()
+
+        action_selection_frame = ActionSelectionFrame(master=self, root=root, actions=ttt_object)
+        new_action_frame_button = ctk.CTkButton(master=self, text="Add New Action", command=lambda: (self.pack_forget(), NewActionFrame(master=master, root=root, 
+                                                                                                                                        origin_frame=self,
+                                                                                                                                         action_selection_frame=action_selection_frame,
+                                                                                                                                          settings_object=ttt_object)))
+        new_action_frame_button.pack()
+
+        action_selection_frame.pack()
+
+
+
+# class ActionSelectionFrame(ctk.CTkFrame):
+#     def __init__(self, master, actions):
+class ChangeHostRadioButton(ctk.CTkFrame):
+    def __init__(self, master, changehost_object, delete_command, passthrough_command):
+        super().__init__(master, fg_color="transparent", width=600, height=50)
+        self.radio_button_clicked = lambda: radio_button.radio_button_clicked()
+        self.another_button_clicked = lambda: radio_button.another_button_clicked()
+        self.set_clicked = lambda: radio_button.set_clicked()
+        self.pack_propagate(False)
+        
+        hidden_frame = ctk.CTkFrame(master=self, fg_color="transparent")
+        changehost_text = ctk.CTkLabel(master=self, text="Previous" if changehost_object.host_change == "prev" else changehost_object.host_change.title(), text_color=gui_variables.primary_colour)
+
+        radio_button = MatthewsRadioButton(master=self, width=100, text=f"ChangeHost", command=lambda: passthrough_command(), hover_elements=(hidden_frame, changehost_text))
+        radio_button.pack(side="left", anchor="w")        
+
+        changehost_text.pack(anchor="w",pady=0,side="left",fill="x",)
+
+        delete_changehost_button = ctk.CTkButton(master=self, height=20, width=80, text="Delete", fg_color="transparent", font=ctk.CTkFont(family="Noto Sans"), text_color="#6C757D", border_color="#6C757D", hover_color="#450C0F", border_width=1, corner_radius=2,
+                    command=lambda: (self.destroy(), delete_command())
+        )
+
+        delete_changehost_button.pack(side="right", anchor="e")
+        hidden_frame.pack(anchor="w", side="left", fill="x", expand=True)
+
+
+
+        # if hasattr(self.actions, "gestures"):
+            # print("TODO gestures here")
+# 
+
+class ActionSelectionFrame(ctk.CTkFrame):
+    def __init__(self, master, root, actions, pack_order=None):
+        super().__init__(master, fg_color="transparent")
+        self.actions = actions
+
+        self.radio_buttons_dictionary = {}
+
+        def create_simple_button(id, name):
+            radio_button_row = ctk.CTkFrame(master=self, fg_color="transparent")
+            radio_button_row.pack()
+            radio_button = MatthewsRadioButton(master=radio_button_row, width=600, text=name, command=lambda c=id: self.select_configuration(c))
+            radio_button.grid(row=0, column=0)            
+            self.radio_buttons_dictionary[id] = radio_button
+
+
+        for i in [(actions.default, "Default"), (actions.nopress, "NoPress"), (actions.togglesmartshift, "Toggle SmartShift"), (actions.togglehiresscroll, "Toggle Hi-res Scroll")]:
+            if i[0] is not None:
+                create_simple_button(id=i[0], name=i[1])
+
+        if len(self.actions.cycledpi) > 0:
+            for i in self.actions.cycledpi.values():
+                self.create_cycledpi_button(i)
+
+        if len(self.actions.changedpi) > 0:
+            for i in self.actions.changedpi.values():
+                self.create_changedpi_button(i)
+                
+        if len(self.actions.axes) > 0:
+            for i in self.actions.axes.values():
+                self.create_axis_button(i)
+
+        if len(self.actions.keypresses) > 0:
+            for i in self.actions.keypresses.values():
+                self.create_keypress_button(i)
+
+        if len(self.actions.changehost) > 0:
+            for i in self.actions.changehost.values():
+                self.create_changehost_button(i)
+
+        if pack_order is not None:
+            for i in pack_order:
+                try:
+                    self.radio_buttons_dictionary[i].pack(side="bottom")    
+                except KeyError:
+                    pass
+        else:
+            for i in self.radio_buttons_dictionary.values():
+                i.pack(side="bottom")
+
+        self.radio_buttons_dictionary[actions.selected_action_id].set_clicked()
+
+    def create_changedpi_button(self, changedpi_object):
+        radio_button = ChangeDPIRadioButton(master=self, changedpi_object=changedpi_object, delete_command=lambda n=changedpi_object.reference_id: (self.update_deleted_configuration(n), self.actions.delete_changedpi_action(n)), passthrough_command=lambda n=changedpi_object.reference_id: self.select_configuration(n))
+        self.radio_buttons_dictionary[changedpi_object.reference_id] = radio_button
+        return radio_button
+    def create_cycledpi_button(self, cycledpi_object):
+        radio_button = CycleDPIRadioButton(master=self, cycledpi_object=cycledpi_object, delete_command=lambda n=cycledpi_object.reference_id: (self.update_deleted_configuration(n), self.actions.delete_cycledpi_action(n)), passthrough_command=lambda n=cycledpi_object.reference_id: self.select_configuration(n))
+        self.radio_buttons_dictionary[cycledpi_object.reference_id] = radio_button
+        return radio_button
+    def create_axis_button(self, axis_object):
+        radio_button = AxisRadioButton(master=self, axis_object=axis_object, delete_command=lambda n=axis_object.reference_id: (self.update_deleted_configuration(n), self.actions.delete_axis_action(n)), passthrough_command=lambda n=axis_object.reference_id: self.select_configuration(n))
+        self.radio_buttons_dictionary[axis_object.reference_id] = radio_button
+        return radio_button
+    def create_keypress_button(self, keypress_object):
+        radio_button = KeypressRadioButton(master=self, keypress_object=keypress_object, delete_command=lambda n=keypress_object.reference_id: (self.update_deleted_configuration(n), self.actions.delete_keypress_action(n)), passthrough_command=lambda n=keypress_object.reference_id: self.select_configuration(n))
+        self.radio_buttons_dictionary[keypress_object.reference_id] = radio_button
+        return radio_button
+    def create_changehost_button(self, changehost_object):
+        radio_button = ChangeHostRadioButton(master=self, changehost_object=changehost_object, delete_command=lambda n=changehost_object.reference_id: (self.update_deleted_configuration(n), self.actions.delete_changehost_action(n)), passthrough_command=lambda n=changehost_object.reference_id: self.select_configuration(n))
+        self.radio_buttons_dictionary[changehost_object.reference_id] = radio_button
+        return radio_button
+    def select_configuration(self, new_selected_id):
+        self.radio_buttons_dictionary[self.actions.selected_action_id].another_button_clicked()
+        self.actions.update_selected(new_selected_id=new_selected_id)
+
+    def update_deleted_configuration(self, deleted_id):
+        if deleted_id == self.actions.selected_action_id:
+            if self.actions.default is not None:
+                self.radio_buttons_dictionary[self.actions.default].set_clicked()
+                self.actions.selected_action_id = self.actions.default
+            else:
+                # TODO double check expected behaviour
+                self.radio_buttons_dictionary[self.actions.nopress].set_clicked()
+                self.actions.selected_action_id = self.actions.nopress
+
+
+
+
+
 
 class VerticalScrollwheelFrame():
-    def __init__(self, master_frame, scroll_properties, configuration): 
-        self.master_frame = master_frame
+    def __init__(self, master, root, configuration): 
+
         self.configuration = configuration
-        self.scroll_properties = scroll_properties
-
-
-        self.container_frame = ctk.CTkFrame(master=master_frame, corner_radius=0, fg_color="transparent")
+        
+        self.container_frame = ctk.CTkFrame(master=master, corner_radius=0,
+                                             fg_color="transparent"
+                                            # fg_color="brown"
+                                             )
         self.container_frame.pack_forget()
 
+        self.top_frame = ctk.CTkFrame(master=self.container_frame, fg_color="red")
+        self.top_frame.grid(row=0, column=0, columnspan=2, sticky="nsew")
+        scrollwheel_title = ctk.CTkLabel(master=self.top_frame, text="Scrollwheel")
+        scrollwheel_title.pack()
 
-        self.test_label2 = ctk.CTkLabel(master=master_frame, text = "Test Label2")
+        self.middle_frame = ctk.CTkFrame(master=self.container_frame,
+                                        #   fg_color="green"
+                                        fg_color="transparent"
+                                          )
+        self.middle_frame.grid(row=1, column=0, sticky="nsew")
 
-
-        # # self.center_frame = ctk.CTkFrame(master=master_frame, corner_radius=0, fg_color="transparent")
-        # # self.center_frame.grid(row=0, column=0)
-
-        # centre_frame = CentreButtonFrame(
-        #     master_frame=self.container_frame,
-        #     # master_frame=self.container_frame,
-
-        #       configuration=configuration)
-        # centre_frame.grid(row=10, column=10)
-        # # centre_frame.grid_forget()
-
-
+        self.right_frame = ctk.CTkFrame(master=self.container_frame,
+                                        #  fg_color="blue"
+                                        fg_color="transparent"
+                                         )
+        self.right_frame.grid(row=1, column=1, sticky="nsew")
+        self.container_frame.grid_columnconfigure(0, weight=0)  # Do not expand left_frame column
+        self.container_frame.grid_columnconfigure(1, weight=1)  # Allow right_frame column to expand
+        self.container_frame.grid_rowconfigure(1, weight=1)
 
 
         if configuration.smartshift_support == True:
+            smartshift_options_label = ctk.CTkLabel(master=self.middle_frame, text=("SmartShift Options"), font=ctk.CTkFont( family="Roboto", size=18, ), )
+            # smartshift_options_label.grid(row=3, column=0, padx=(10,0), pady=(30,0), sticky="w")
+            smartshift_options_label.pack()
 
-            smartshift_options_label = ctk.CTkLabel(master=self.container_frame, text=("SmartShift Options"), font=ctk.CTkFont( family="Roboto", size=18, ), )
-            smartshift_options_label.grid(row=3, column=0, padx=(10,0), pady=(30,0), sticky="w")
-            smartshift_frame = ctk.CTkFrame(master=self.container_frame)
-            smartshift_frame.grid(row=4, column=0, sticky="ew")
+            smartshift_frame = ctk.CTkFrame(master=self.middle_frame, fg_color="transparent")
+            # smartshift_frame.grid(row=4, column=0, sticky="ew")
+            smartshift_frame.pack()
             check_var = ctk.BooleanVar(value=configuration.smartshift_on)
-            checkbox = ctk.CTkCheckBox(master=smartshift_frame, text="SmartShift On", command=lambda: setattr(configuration, 'smartshift_on', check_var.get()), variable=check_var, onvalue=True, offvalue=False)
-            checkbox.grid(row=0, column=0, padx=10, pady=(10,0), sticky="w", rowspan=2)
+            checkbox = Checkbox(master=smartshift_frame, text="SmartShift On", command=lambda: setattr(configuration, 'smartshift_on', check_var.get()), variable=check_var,)
+            checkbox.grid(row=0, column=0, padx=10, pady=(10,0), sticky="w", 
+                        #   rowspan=2
+                          )
             
             
-            smartshift_threshold_label = ctk.CTkLabel(
-                                    master=smartshift_frame,
-                                                                        text=("Threshold"),
-                                                    font=ctk.CTkFont(
-                                                            family="Roboto",
-                                                                # weight="bold",
-                                                            size=12,
-                                                            ),
-                                                            # text_color="#1F538D",
-                                            # pady=30,
-                                            # anchor='s'
-            )
-            smartshift_threshold_label.grid(row=0, column=1)
+            smartshift_threshold_label = ctk.CTkLabel(master=smartshift_frame, text=("Threshold"), font=ctk.CTkFont(family="Roboto", size=12, ),)
+            smartshift_threshold_label.grid(row=1, column=0)
 
-            smartshift_threshold_spinbox = IntSpinbox(master=smartshift_frame,
-                                    db_query=configuration.update_smartshift_threshold,
-                                    width=140,
-                                    step_size=5,
-                                    min_value=1,
-                                    max_value=255,
-                                    value=configuration.smartshift_threshold
-                                    )
-            
-            smartshift_threshold_spinbox.grid(row=1, column=1, sticky="w", padx=(0,10))
-
+            smartshift_threshold_spinbox = IntSpinbox(master=smartshift_frame, db_query=configuration.update_smartshift_threshold, width=140, step_size=5, min_value=1, max_value=255, value=configuration.smartshift_threshold)            
+            smartshift_threshold_spinbox.grid(row=2, column=0, sticky="w", padx=(0,10))
 
             smartshift_torque_label = ctk.CTkLabel(
                                     master=smartshift_frame,
@@ -2993,7 +3264,7 @@ class VerticalScrollwheelFrame():
                                             # pady=30,
                                             # anchor='s'
             )
-            smartshift_torque_label.grid(row=0, column=2)
+            smartshift_torque_label.grid(row=1, column=1)
 
             smartshift_torque_spinbox = IntSpinbox(master=smartshift_frame,
                                                    db_query=configuration.update_smartshift_torque,
@@ -3005,11 +3276,120 @@ class VerticalScrollwheelFrame():
                                     )
             
             smartshift_torque_spinbox.set(configuration.smartshift_torque) #TODO: Update
-            smartshift_torque_spinbox.grid(row=1, column=2)
+            smartshift_torque_spinbox.grid(row=2, column=1)
             
 
 
 
+
+
+        if configuration.hires_scroll_support == True:
+
+            hiresscroll_options_label = ctk.CTkLabel(master=self.middle_frame, text=("HiRes Scroll Options"), font=ctk.CTkFont( family="Roboto", weight="bold", size=18,))
+            hiresscroll_options_label.pack()
+
+            def hiresscroll_hires_toggle():
+                configuration.hiresscroll_hires = not(configuration.hiresscroll_hires)
+            hiresscroll_hires_var = ctk.BooleanVar(value=configuration.hiresscroll_hires)
+            hirescroll_hires_checkbox = Checkbox(master=self.middle_frame, text=" HiRes Scroll On", command=hiresscroll_hires_toggle, variable=hiresscroll_hires_var)
+            hirescroll_hires_checkbox.pack(anchor="w", padx=30, pady=(7, 7))
+
+            def hiresscroll_invert_toggle():
+                configuration.hiresscroll_invert = not(configuration.hiresscroll_invert)
+            hiresscroll_invert_var = ctk.BooleanVar(value=configuration.hiresscroll_invert)
+            hirescroll_invert_checkbox = Checkbox(master=self.middle_frame, text=" Scroll Invert", command=hiresscroll_invert_toggle, variable=hiresscroll_invert_var)
+            hirescroll_invert_checkbox.pack(anchor="w", padx=30, pady=(7, 7))
+
+
+            def hiresscroll_target_toggle():
+                configuration.hiresscroll_target = not(configuration.hiresscroll_target)
+            hiresscroll_target_var = ctk.BooleanVar(value=configuration.hiresscroll_target)
+            hirescroll_target_checkbox = Checkbox(master=self.middle_frame, text=" Scroll target", command=hiresscroll_target_toggle, variable=hiresscroll_target_var)
+            hirescroll_target_checkbox.pack(anchor="w", padx=30, pady=(7, 7))
+
+
+
+        self.middle_buttons_frame = ctk.CTkFrame(master=self.middle_frame, 
+                                               fg_color="transparent") #TODO UPDATE
+        self.middle_buttons_frame.pack(side="left", fill="x", expand=True)
+        self.frames = {}
+        self.currently_selected_menu = None
+        self.buttons_dict = {}
+
+
+        def create_left_buttons(direction, text):
+            self.buttons_dict[direction] = ctk.CTkButton(master=self.middle_buttons_frame, corner_radius=0, height=40, border_spacing=10, text=text, font=ctk.CTkFont(family="Noto Sans",size=18 ), 
+                                command=lambda b=direction: self.on_button_click(b),
+                                #    command=lambda d=device.device_id: self.on_button_click(d),
+                                     fg_color="transparent", text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), anchor="w")
+            self.buttons_dict[direction].pack(fill="x", expand=True)
+
+        for direction in self.configuration.scroll_directions.keys():
+            create_left_buttons(direction=direction, text=f"Scroll {direction} Actions")
+            self.frames[direction] = ScrollFrame(master=self.right_frame, root=root, scroll_settings=self.configuration.scroll_directions[direction])
+
+        if self.configuration.touch is not None:
+            create_left_buttons(direction="Touch",text=f"Thumbwheel Touch")
+            self.frames["Touch"] = TouchTapProxyFrame(master=self.right_frame, root=root, ttt_object=self.configuration.touch)
+        if self.configuration.tap is not None:
+            create_left_buttons(direction="Tap",text=f"Thumbwheel Tap")
+            self.frames["Tap"] = TouchTapProxyFrame(master=self.right_frame, root=root, ttt_object=self.configuration.tap)
+        if self.configuration.proxy is not None:
+            create_left_buttons(direction="Proxy",text=f"Thumbwheel Proxy")
+            self.frames["Proxy"] = TouchTapProxyFrame(master=self.right_frame, root=root, ttt_object=self.configuration.proxy)
+
+
+
+    def on_button_click(self, direction):
+        if direction != self.currently_selected_menu:
+            if self.currently_selected_menu is not None:
+                self.buttons_dict[self.currently_selected_menu].configure(fg_color="transparent")
+                self.frames[self.currently_selected_menu].pack_forget()
+            self.frames[direction].pack(fill="both", expand=True)
+            self.buttons_dict[direction].configure(fg_color="gray25")
+            self.currently_selected_menu = direction
+
+
+
+
+
+
+
+
+
+
+
+    #     def create_left_buttons(direction, text):
+    #         self.buttons_dict[direction] = ctk.CTkButton(master=self.middle_buttons_frame, corner_radius=0, height=40, border_spacing=10, text=text, font=ctk.CTkFont(family="Noto Sans",size=18 ), 
+    #                             command=lambda b=direction: self.on_button_click(b),
+    #                             #    command=lambda d=device.device_id: self.on_button_click(d),
+    #                                  fg_color="transparent", text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), anchor="w")
+    #         self.buttons_dict[direction].pack(fill="x", expand=True)
+    #     def create_right_frames():
+    #         self.frames["Up"] = ctk.CTkFrame(master=self.right_frame, fg_color="transparent")
+    #         self.frames["Down"] = ctk.CTkFrame(master=self.right_frame, fg_color="transparent")
+
+
+
+
+
+    #     create_right_frames()
+
+    #     for direction in self.configuration.scroll_directions.keys():
+
+    #         create_left_buttons(direction=direction, text=f"Scroll {direction} Actions")
+    #         self.frames[direction] = ScrollFrame(master=self.right_frame, scroll_settings=self.configuration.scroll_directions[direction])
+
+
+    # def on_button_click(self, direction):
+
+
+    #     if self.currently_selected_menu is not None:
+    #         self.buttons_dict[self.currently_selected_menu].configure(fg_color="transparent")
+    #         self.frames[self.currently_selected_menu].pack_forget()
+    #     self.frames[direction].pack(fill="both", expand=True)
+    #     self.buttons_dict[direction].configure(fg_color="gray25")
+    #     self.currently_selected_menu = direction
 
 
 
@@ -3026,10 +3406,14 @@ class VerticalScrollwheelFrame():
         # self.scrollwheel_down_spinbox.set(scroll_properties.scroll_down_threshold)
         # self.scrollwheel_down_spinbox.grid(row=1, column=2)
 
+
         # scrollwheel_up_mode_label = ctk.CTkLabel(master=self.container_frame, text = "Scrollwheel Up Mode")
         # scrollwheel_up_mode_label.grid(row=0,column=1)
         # scroll_up_mode_dropdown = ctk.CTkOptionMenu(master=self.container_frame, variable=ctk.StringVar(value=scroll_properties.scroll_up_mode), values=["OnInterval", "OnThreshold"], state="normal", width=200, height=36, command=lambda new_mode: setattr(scroll_properties, 'scroll_up_mode', new_mode))
         # scroll_up_mode_dropdown.grid(row=1, column=1)
+
+
+
 
         # scrollwheel_down_mode_label = ctk.CTkLabel(master=self.container_frame, text = "Scrollwheel Down Mode")
         # scrollwheel_down_mode_label.grid(row=0,column=3)
@@ -3104,16 +3488,12 @@ class VerticalScrollwheelFrame():
 
 
     def pack(self, *args, **kwargs):
-        """
-        Allows DeviceFrame to be packed like a regular widget.
-        Passes all arguments to its container_frame's pack method.
-        """
-        self.container_frame.pack(*args, **kwargs)
+        self.container_frame.pack(fill="both", expand=True, *args, **kwargs)
 
-    def pack_forget(self, *args, **kwargs): # Same as pack method above, but for pack_forget
+    def pack_forget(self, *args, **kwargs): 
         self.container_frame.pack_forget(*args, **kwargs)
 
-    def destroy(self, *args, **kwargs): # As above
+    def destroy(self, *args, **kwargs):
         self.container_frame.destroy(*args, **kwargs)
 
 
@@ -3129,67 +3509,6 @@ class VerticalScrollwheelFrame():
 
 
 
-
-
-
-class SplashScreen(ctk.CTkFrame):
-    def __init__(self, root):
-        super().__init__(root)
-        
-
-        self.label = ctk.CTkLabel(self, text="LogiOpsGUI", font=ctk.CTkFont(family="Noto Sans", size=60), text_color=gui_variables.primary_colour)
-
-        self.label.pack(pady=(300, 50))  
-
-        self.after(10, self.move_label_upwards)
-
-        # Run the loading logic after the SplashScreen has been initialized
-        self.after(10, self.start_loading)
-
-    def start_loading(self):
-        # Setup main_page in a separate thread
-        self.loading_thread = threading.Thread(target=self.prepare_main_page)
-        self.loading_thread.start()
-        
-        # After 2 seconds, check if main_page is ready
-        self.after(50, self.check_main_page_ready)
-
-    def prepare_main_page(self):
-        # self.main_page = MainPage(self.master)
-        # self.main_page.pack_forget()
-        self.main_page = FrontPage(self.master)
-        self.main_page.pack_forget()
-
-    def check_main_page_ready(self):
-        if not self.loading_thread.is_alive():
-            self.destroy()
-            self.main_page.pack(fill="both", expand=True)
-        else:
-            # Check again after a short delay if the loading_thread is done
-            self.after(100, self.check_main_page_ready)
-
-    def move_label_upwards(self, steps=10):
-        initial_padding = 300
-        final_padding = 50
-        step_value = (initial_padding - final_padding) / steps
-        current_step = 0
-
-        def update_position():
-            nonlocal current_step
-            current_step += 1
-
-            # Calculate new padding based on current step
-            new_padding = initial_padding - (current_step * step_value)
-
-            # Update label padding
-            self.label.pack_configure(pady=(new_padding, 10))
-
-            # If we haven't reached the desired position, schedule the next update
-            if current_step < steps:
-                self.after(10, update_position)
-
-        # Start the updating process
-        update_position()
 
 
 def get_geometry_and_window_and_widget_scaling():
@@ -3209,57 +3528,140 @@ def get_geometry_and_window_and_widget_scaling():
 #         cursor.execute("""UPDATE UserSettings SET value = ? WHERE key = 'geometry' """, (f"{new_geometry.width}x{new_geometry.height}",))
 #         execute_db_queries.commit_changes_and_close(conn)
 #     except:
-#         print(f"tried to set to {new_geometry} but it didn't work")
 
-def setup_gui(root):
+
+
+
+import argparse
+import sys
+import psutil
+import os
+
+class SystemMemory:
+    @staticmethod
+    def get_total_ram_mb():
+        return f"{SystemMemory.get_total_ram() / 1024 ** 2:.2f} MB"
+
+    @staticmethod
+    def get_total_ram():
+        mem = psutil.virtual_memory()
+        return mem.total  # in bytes
+
+    @staticmethod
+    def get_memory_usage():
+        process = psutil.Process(os.getpid())
+        mem_info = process.memory_info()
+        return mem_info.rss  # in bytes
+
+    @staticmethod
+    def get_memory_usage_mb():
+        return f"{SystemMemory.get_memory_usage() / 1024 ** 2:.2f} MB"
+
+    @staticmethod
+    def get_ram_in_use_mb():
+        return f"{SystemMemory.get_ram_in_use() / 1024 ** 2:.2f} MB"
+
+    @staticmethod
+    def get_ram_in_use():
+        mem = psutil.virtual_memory()
+        return mem.used  # in bytes
+
+
+
+
+def setup_gui(root, start_in_background=None, arg2=None):
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("dark-blue")
     
+    ctk.DrawEngine.preferred_drawing_method = "font_shapes"
+
+
+    # def make_a_splash(self, text="LogiOpsGUI"):
+    splash = NewDeviceSplash(root, text="LogiOpsGUI")
+    splash.pack(fill="both", expand=True)
+
+
+    front_page = FrontPage(root)
+
+    front_page.show()
+
+    return splash
+
+
+
+def main(start_in_background=None, arg2=None):
+    create_app_data.configure_logging() 
+    create_app_data.initialise_database() 
+
+    root = ctk.CTk()
+    import tkinter as tk
+    icon = tk.PhotoImage(file="/home/matthew/LogiOpsGui/images/icon.png")  # Convert .ico to .png if necessary
+    root.iconphoto(True, icon)
+
+    
+
     window_scaling, widget_scaling, geometry = get_geometry_and_window_and_widget_scaling()
 
     ctk.set_window_scaling(window_scaling)
     ctk.set_widget_scaling(widget_scaling)
-
-
-
-
-    root.geometry(geometry)
+    root.attributes('-alpha', 0.1)
+    # root.geometry(geometry)
     root.resizable(True, True)
     root.title("LogiOpsGUI")
 
+    def center_window():
 
-    # ctk.DrawEngine.preferred_drawing_method = "circle_shapes"
-    ctk.DrawEngine.preferred_drawing_method = "font_shapes"
-    # ctk.DrawEngine.preferred_drawing_method = "polygon_shapes"
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
 
+        window_width = root.winfo_reqwidth()
+        window_height = root.winfo_reqheight()
 
+        x = (screen_width // 2) - window_width*2
+        y = (screen_height // 2) - window_height - 100
 
-    front_page = FrontPage(root)
-    front_page.pack(fill="both", expand=True)
-
-
-    # splash = SplashScreen(root)
-    # splash.pack(fill="both", expand=True)
-
+        root.geometry(f"{window_width}x{window_height}+{x}+{y}")
 
 
+    root.overrideredirect(True)
+    center_window()  # Center the window initially
+    splash = setup_gui(root, start_in_background=start_in_background, arg2=arg2)  
 
-def main():
-    root = ctk.CTk()
+    root.withdraw() 
+
+
+    root.attributes('-alpha', 1.0)    
+    root.after(600, root.deiconify)
+
+    splash.destroy()
+    root.overrideredirect(False)
+
+
+
+    def center_window2():
+
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+
+        window_width = root.winfo_reqwidth()
+        window_height = root.winfo_reqheight()
+
+        x = (screen_width // 2) - window_width*2
+        y = (screen_height // 2) - window_height*5
+        
+        root.geometry(f"{window_width}x{window_height}+{x}+{y}")
     
-    create_app_data.configure_logging()  # Configure logging for the application
-    create_app_data.initialise_database()  # Create DB, build required tables and triggers, add devices from DeviceData.py
-
-    setup_gui(root)  # Configure GUI settings and pack main page into window.
+    center_window2()  # Re-center the window after restoring the title bar
+    
+    root.geometry(geometry)
 
     root.mainloop()
 
+
 if __name__ == "__main__":
-    main()
 
-
-
-
-
-
-
+    parser = argparse.ArgumentParser(description="LogiOpsGUI with command line arguments.")
+    parser.add_argument("--start_in_background", type=str, help="TODO UPDATE")
+    parser.add_argument("--arg2", type=str, help="TODO UPDATE")
+    args = parser.parse_args()
+    main(args.start_in_background, args.arg2)

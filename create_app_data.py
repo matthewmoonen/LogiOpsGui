@@ -141,7 +141,9 @@ def add_devices(cursor):
 
 
 def main():
-    pass
+    conn, cursor = execute_db_queries.create_db_connection()
+    add_devices(cursor)
+    execute_db_queries.commit_changes_and_close(conn)
 
 if __name__ == "__main__":
     main()

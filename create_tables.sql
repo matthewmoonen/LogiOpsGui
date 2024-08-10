@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS Devices (
     hires_scroll_support INTEGER NOT NULL DEFAULT 1,
     number_of_sensors INTEGER NOT NULL DEFAULT 1 CHECK (number_of_sensors >=1),
     date_added TEXT,
-    is_activated INTEGER NOT NULL DEFAULT 0,
+    is_activated INTEGER NOT NULL DEFAULT 1,
     last_edited TEXT
 );
 
@@ -74,15 +74,14 @@ FOREIGN KEY (device_id) REFERENCES Devices(device_id) ON DELETE CASCADE
 
 CREATE TABLE IF NOT EXISTS ScrollActions (
     scroll_action_id INTEGER PRIMARY KEY,
-    configuration_id INTEGER NOT NULL,
-    scroll_direction TEXT NOT NULL CHECK (scroll_direction IN ('Up', 'Down', 'Left', 'Right')),
+    scroll_action_property_id INTEGER NOT NULL,
+    configuration_id INTEGER,
     action_type TEXT NOT NULL CHECK (action_type IN ('Default', 'NoPress', 'ToggleSmartShift', 'ToggleHiresScroll', 'Keypress', 'Axis', 'CycleDPI', 'ChangeDPI', 'ChangeHost')),
     is_selected INTEGER NOT NULL DEFAULT 0 CHECK (is_selected IN (0, 1)),
     date_added TEXT,
     last_edited TEXT,
 
-
-FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DELETE CASCADE
+FOREIGN KEY (scroll_action_property_id) REFERENCES ScrollActionProperties(scroll_action_property_id) ON DELETE CASCADE
 );
 
 -- ### QUERY_SEPARATOR ###
@@ -103,7 +102,7 @@ CREATE TABLE IF NOT EXISTS ScrollActionProperties (
 CREATE TABLE IF NOT EXISTS TouchTapProxy (
     touch_tap_proxy_id INTEGER PRIMARY KEY,
     configuration_id INTEGER NOT NULL,
-    touch_tap_proxy TEXT CHECK (touch_tap_proxy IN ('Touch', 'Tap', 'Proxy')),
+    touch_tap_proxy TEXT NOT NULL CHECK (touch_tap_proxy IN ('Touch', 'Tap', 'Proxy')),
     action_type TEXT NOT NULL CHECK (action_type IN ('NoPress', 'ToggleSmartShift', 'ToggleHiresScroll', 'Keypress', 'Axis', 'CycleDPI', 'ChangeDPI', 'ChangeHost')),
     -- action_id INTEGER,
     is_selected INTEGER NOT NULL DEFAULT 0 CHECK (is_selected IN (0, 1)),
@@ -143,7 +142,7 @@ CREATE TABLE IF NOT EXISTS Gestures (
     direction TEXT NOT NULL CHECK (direction IN ('Up', 'Down', 'Left', 'Right', 'None')),
     gesture_action TEXT NOT NULL CHECK (gesture_action IN ('NoPress', 'Axis', 'Keypress', 'ToggleSmartShift', 'ToggleHiresScroll', 'CycleDPI', 'ChangeDPI', 'ChangeHost')),
     is_selected INTEGER NOT NULL DEFAULT 0 CHECK (is_selected IN (0,1)),
-
+    date_added TEXT,
     FOREIGN KEY (button_config_id) REFERENCES ButtonConfigs(button_config_id) ON DELETE CASCADE
 );
 
@@ -165,7 +164,7 @@ CREATE TABLE IF NOT EXISTS GestureProperties (
 
 CREATE TABLE IF NOT EXISTS Axes (
     axis_id INTEGER PRIMARY KEY,
-    configuration_id INTEGER NOT NULL,
+    configuration_id INTEGER,
     action_id INTEGER NOT NULL,
     source_table TEXT NOT NULL CHECK (source_table IN ('ButtonConfigs', 'Gestures', 'ScrollActions', 'TouchTapProxy')),
     axis_button TEXT,
@@ -179,7 +178,7 @@ FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DE
 
 CREATE TABLE IF NOT EXISTS CycleDPI (
     cycle_dpi_id INTEGER PRIMARY KEY,
-    configuration_id INTEGER NOT NULL,
+    configuration_id INTEGER,
     action_id INTEGER NOT NULL,
     source_table TEXT NOT NULL CHECK (source_table IN ('ButtonConfigs', 'Gestures', 'ScrollActions', 'TouchTapProxy')),
     dpi_array TEXT,
@@ -193,7 +192,7 @@ FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DE
 
 CREATE TABLE IF NOT EXISTS ChangeDPI (
     change_dpi_id INTEGER PRIMARY KEY,
-    configuration_id INTEGER NOT NULL,
+    configuration_id INTEGER,
     action_id INTEGER NOT NULL,
     source_table TEXT NOT NULL CHECK (source_table IN ('ButtonConfigs', 'Gestures', 'ScrollActions', 'TouchTapProxy')),
     increment INTEGER, 
@@ -206,17 +205,13 @@ FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DE
 
 CREATE TABLE IF NOT EXISTS Keypresses (
     keypress_id INTEGER PRIMARY KEY,
-    configuration_id INTEGER NOT NULL,
+    configuration_id INTEGER,
     action_id INTEGER NOT NULL,
     source_table TEXT NOT NULL CHECK (source_table IN ('ButtonConfigs', 'Gestures', 'ScrollActions', 'TouchTapProxy')),
     keypresses TEXT,
 
 FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DELETE CASCADE
 );
-
-
-
-
 
 -- ### QUERY_SEPARATOR ###
 

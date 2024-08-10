@@ -33,7 +33,8 @@ def get_keymates(key_input, layout=None):
             'UP': '↑',
             'DOWN': '↓',
             'LEFT': '←',
-            'RIGHT': '→'
+            'RIGHT': '→',
+            'FN': 'Fn'
         }
 
     db_keymates_en_us = {
@@ -72,7 +73,8 @@ def get_keymates(key_input, layout=None):
             'Return': 'ENTER',
             'Super_L': 'LEFTMETA',
             'Super_R': 'RIGHTMETA',
-            'Escape': 'ESC'
+            'Escape': 'ESC',
+            'XF86WakeUp': 'FN'
             }
 
     if layout == 'en_US' or layout == None:
