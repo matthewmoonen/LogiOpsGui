@@ -2175,7 +2175,7 @@ def main(start_in_background=None, arg2=None):
 
     root = ctk.CTk()
     import tkinter as tk
-    icon = tk.PhotoImage(file="/home/matthew/LogiOpsGui/images/icon.png")
+    icon = tk.PhotoImage(file="images/icon.png")
     root.iconphoto(True, icon)
 
     window_scaling, widget_scaling, geometry = get_geometry_and_window_and_widget_scaling()
