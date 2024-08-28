@@ -1,6 +1,7 @@
 import execute_db_queries
 import Classes
 import os
+import BackendData
 
 
 
@@ -86,15 +87,6 @@ def write_smartshift(file, settings_object):
 + f"        torque: {str(settings_object.smartshift_torque)};\n"
 + "    };")
 
-def write_hires_scroll(file, settings_object):
-    file.write("""
-    hiresscroll:
-    {
-"""
-+ f"        hires: {str(settings_object.hiresscroll_hires).lower()};\n"
-+ f"        invert: {str(settings_object.hiresscroll_invert).lower()};\n"
-+ f"        target: {str(settings_object.hiresscroll_target).lower()};\n"
-+ "    }; \n")
 
 def write_keypress(file, keypress, spacer_string=''):
     file.write(
@@ -128,6 +120,59 @@ def write_nopress(file):
 f'                      '
     )
 
+
+def write_hires_scroll(file, settings_object):
+    file.write("""
+    hiresscroll:
+    {
+"""
++ f"        hires: {str(settings_object.hiresscroll_hires).lower()};\n"
++ f"        invert: {str(settings_object.hiresscroll_invert).lower()};\n"
++ f"        target: {str(settings_object.hiresscroll_target).lower()};\n")
+
+
+        
+    def write_scrollwheel_directions(direction):
+        selected_action_id = settings_object.scroll_directions[direction].actions.selected_action_id
+        spacer_string = "   "
+        conn, cursor = execute_db_queries.create_db_connection()
+        cursor.execute("""SELECT action_type FROM ScrollActions WHERE scroll_action_id = ?""", (selected_action_id,))
+        selected_action_type = cursor.fetchone()[0]
+        execute_db_queries.close_without_committing_changes(conn)
+        if selected_action_type == "Default":
+            pass
+        else:
+            file.write(f"            {direction.lower()}:\n            " + "{\n")
+
+            file.write(f"                mode: \"{settings_object.scroll_directions[direction].mode}\";\n")
+
+            if settings_object.scroll_directions[direction].mode == "OnInterval":
+                interval_threshold = "interval"
+            else:
+                interval_threshold = "threshold"
+            file.write(f"                {interval_threshold}: {settings_object.scroll_directions[direction].threshold};\n")
+            file.write(f"                action =\n                " + "{" + f"\n                    type: \"{selected_action_type}\";\n")
+
+            if selected_action_type == "Axis":
+                write_axis(file, settings_object.scroll_directions[direction].actions.axes[selected_action_id], spacer_string)
+            elif selected_action_type == "CycleDPI":
+                write_cycle_dpi(file, settings_object.scroll_directions[direction].actions.cycledpi[selected_action_id], spacer_string)
+            elif selected_action_type == "ChangeHost":
+                write_changehost(file, settings_object.scroll_directions[direction].actions.changehost[selected_action_id], spacer_string)
+            elif selected_action_type == "ChangeDPI":
+                write_changedpi(file, settings_object.scroll_directions[direction].actions.changedpi[selected_action_id], spacer_string)
+            elif selected_action_type == "Keypress":
+                write_keypress(file, settings_object.scroll_directions[direction].actions.keypresses[selected_action_id], spacer_string)
+
+            file.write("                };\n")
+            file.write("            };\n")
+
+    for direction in ["Up", "Down"]:
+        write_scrollwheel_directions(direction)
+
+    file.write("    }; \n")
+
+
 def write_gestures(file, gestures):
     spacer_string = '                '
     file.write(
@@ -158,15 +203,15 @@ f'                         mode: "{gestures[gesture].mode}";\n'
 +f'                                 type: "{action_type}";\n'
         )
         if action_type == "Axis":
-            write_axis(file, gestures[gesture].gesture_axes[gestures[gesture].selected_gesture_id], spacer_string=spacer_string)
+            write_axis(file, gestures[gesture].axes[gestures[gesture].selected_action_id], spacer_string=spacer_string)
         elif action_type == "CycleDPI":
-            write_cycle_dpi(file, gestures[gesture].gesture_cycledpi[gestures[gesture].selected_gesture_id], spacer_string=spacer_string)
+            write_cycle_dpi(file, gestures[gesture].cycledpi[gestures[gesture].selected_action_id], spacer_string=spacer_string)
         elif action_type == "ChangeHost":
-            write_changehost(file, gestures[gesture].gesture_changehost[gestures[gesture].selected_gesture_id], spacer_string=spacer_string)
+            write_changehost(file, gestures[gesture].changehost[gestures[gesture].selected_action_id], spacer_string=spacer_string)
         elif action_type == "ChangeDPI":
-            write_changedpi(file, gestures[gesture].gesture_changedpi[gestures[gesture].selected_gesture_id], spacer_string=spacer_string)
+            write_changedpi(file, gestures[gesture].changedpi[gestures[gesture].selected_action_id], spacer_string=spacer_string)
         elif action_type == "Keypress":
-            write_keypress(file, gestures[gesture].gesture_keypresses[gestures[gesture].selected_gesture_id], spacer_string=spacer_string)
+            write_keypress(file, gestures[gesture].keypresses[gestures[gesture].selected_action_id], spacer_string=spacer_string)
 
         if action_type != "NoPress":
             file.write(
@@ -191,23 +236,22 @@ def write_button(file, button):
 + "             {\n"
 +f'                 type: "{action_type}";\n'
 )
-    
+
 
     if action_type == "Axis":
-        write_axis(file, button.button_axes[button.selected_button_config_id])
+        write_axis(file, button.axes[button.selected_action_id])
     elif action_type == "CycleDPI":
-        write_cycle_dpi(file, button.button_cycledpi[button.selected_button_config_id])
+        write_cycle_dpi(file, button.cycledpi[button.selected_action_id])
     elif action_type == "ChangeHost":
-        write_changehost(file, button.button_changehost[button.selected_button_config_id])
+        write_changehost(file, button.hangehost[button.selected_action_id])
     elif action_type == "ChangeDPI":
-        write_changedpi(file, button.button_changedpi[button.selected_button_config_id])
+        write_changedpi(file, button.changedpi[button.selected_action_id])
     elif action_type == "Keypress":
-        write_keypress(file, button.button_keypresses[button.selected_button_config_id])
+        write_keypress(file, button.keypresses[button.selected_action_id])
     elif action_type == "Gestures":
-        write_gestures(file, button.gesture_dict)
+        write_gestures(file, button.gestures)
     file.write("             };\n")
 
-# def start_cfg_file(file, settings_object):
 
 
 def write_outro(file):
@@ -216,8 +260,13 @@ def write_outro(file):
 
 
 def write_device_cfg(file, settings_object):
+
+    conn, cursor = execute_db_queries.create_db_connection()
+    cursor.execute("""SELECT config_file_device_name FROM Devices WHERE device_id = ?""", (settings_object.device_id,))
+    config_file_name = cursor.fetchone()[0]
+    execute_db_queries.close_without_committing_changes(conn)
     file.write("{\n"
-        +f'    name: "{settings_object.config_file_name}";')
+        +f'    name: "{config_file_name}";')
 
     if settings_object.smartshift_support == True:
         write_smartshift(file, settings_object)
@@ -229,16 +278,96 @@ def write_device_cfg(file, settings_object):
             + f"    buttons: (\n")
 
     length = len(settings_object.buttons)
-    for index, button in enumerate(settings_object.buttons):
-        if button.selected_button_config_id != button.button_default:
+
+    for index, button in enumerate(settings_object.buttons.values()):
+        if button.selected_action_id != button.default:
             write_button(file, button)
             if index == length - 1:
                 file.write("        }\n")
             else:
                 file.write("        },\n")
     file.write("    );\n")
+    if settings_object.has_thumbwheel == True:
+        thumbwheel_divert = "true" if settings_object.thumbwheel_divert == True else "false"
+        thumbwheel_invert = "true" if settings_object.thumbwheel_invert == True else "false"
+        file.write("    thumbwheel: \n    {\n        divert: " + thumbwheel_divert + ";\n        invert: " + thumbwheel_invert + ";\n")
+        
+        def write_thumbwheel_directions(direction):
+            selected_action_id = settings_object.scroll_directions[direction].actions.selected_action_id
+            spacer_string = "   "
+            conn, cursor = execute_db_queries.create_db_connection()
+            cursor.execute("""SELECT action_type FROM ScrollActions WHERE scroll_action_id = ?""", (selected_action_id,))
+            selected_action_type = cursor.fetchone()[0]
+            execute_db_queries.close_without_committing_changes(conn)
+            if selected_action_type == "Default":
+                pass
+            else:
+                file.write(f"            {direction.lower()}:\n            " + "{\n")
 
-    
+                file.write(f"                mode: \"{settings_object.scroll_directions[direction].mode}\";\n")
+
+                if settings_object.scroll_directions[direction].mode == "OnInterval":
+                    interval_threshold = "interval"
+                else:
+                    interval_threshold = "threshold"
+                file.write(f"                {interval_threshold}: {settings_object.scroll_directions[direction].threshold};\n")
+                file.write(f"                action =\n                " + "{" + f"\n                    type: \"{selected_action_type}\";\n")
+
+                if selected_action_type == "Axis":
+                    write_axis(file, settings_object.scroll_directions[direction].actions.axes[selected_action_id], spacer_string)
+                elif selected_action_type == "CycleDPI":
+                    write_cycle_dpi(file, settings_object.scroll_directions[direction].actions.cycledpi[selected_action_id], spacer_string)
+                elif selected_action_type == "ChangeHost":
+                    write_changehost(file, settings_object.scroll_directions[direction].actions.changehost[selected_action_id], spacer_string)
+                elif selected_action_type == "ChangeDPI":
+                    write_changedpi(file, settings_object.scroll_directions[direction].actions.changedpi[selected_action_id], spacer_string)
+                elif selected_action_type == "Keypress":
+                    write_keypress(file, settings_object.scroll_directions[direction].actions.keypresses[selected_action_id], spacer_string)
+
+                file.write("                };\n")
+                file.write("            };\n")
+
+
+
+
+        for direction in ["Right", "Left"]:
+            write_thumbwheel_directions(direction)
+        
+        def write_ttp(object):
+            spacer_string = "   "
+            selected_action_id = object.selected_action_id
+            conn, cursor = execute_db_queries.create_db_connection()
+            cursor.execute("""SELECT action_type FROM TouchTapProxy WHERE touch_tap_proxy_id = ?""", (selected_action_id,))
+            selected_action_type = cursor.fetchone()[0]
+            if selected_action_type == "NoPress":
+                pass
+            else:
+                file.write(f"            {object.ttt.lower()}:\n            " + "{\n")
+                file.write(f"\n                    type: \"{selected_action_type}\";\n")
+
+                if selected_action_type == "Axis":
+                    write_axis(file, object.axes[selected_action_id], spacer_string)
+                elif selected_action_type == "CycleDPI":
+                    write_cycle_dpi(file, object.cycledpi[selected_action_id], spacer_string)
+                elif selected_action_type == "ChangeHost":
+                    write_changehost(file, object.changehost[selected_action_id], spacer_string)
+                elif selected_action_type == "ChangeDPI":
+                    write_changedpi(file, object.changedpi[selected_action_id], spacer_string)
+                elif selected_action_type == "Keypress":
+                    write_keypress(file, object.keypresses[selected_action_id], spacer_string)
+                file.write("                };\n")
+
+
+        if settings_object.thumbwheel_touch_support == True:
+            write_ttp(settings_object.touch)
+        if settings_object.thumbwheel_tap_support == True:
+            write_ttp(settings_object.tap)
+        if settings_object.thumbwheel_proxy_support == True:
+            write_ttp(settings_object.proxy)
+
+
+        file.write("    }\n")
+
 
 def set_cfg_location(new_location, new_filename):
     conn, cursor = execute_db_queries.create_db_connection()
@@ -277,18 +406,19 @@ def automatically_generate_in_home_directory(old_location=None):
                 return found_new_location(location_to_check)
 
 def generate_config_file(cfg_dir, previously_tried_location=None):
-    configuration_ids = get_configurations()
     
+    device_data = BackendData.Devices.get_all_devices()
+
     def write_to_file(file):
         write_intro(file)
-        length = len(configuration_ids)
-        for index, configuration_id in enumerate(configuration_ids):
-            settings_object = Classes.CFGConfig.create_from_configuration_id(configuration_id)
+        length = len(device_data.user_devices)
+        for index, (key, device) in enumerate(device_data.user_devices.items()):
+            settings_object = device.configurations[device.selected_config]
             write_device_cfg(file, settings_object)
             if index == length - 1:
                 file.write("}\n")
             else:
-                file.write("},")
+                file.write("},\n")
         write_outro(file)
     
     try:
@@ -307,6 +437,17 @@ def generate_config_file(cfg_dir, previously_tried_location=None):
 class FileGenError(Exception):
     "Raised when the file cannot be created"
     pass
+
+def generate_in_app_data():
+
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+    target_directory = os.path.join(current_directory, 'app_data')
+    log_file_path = os.path.join(target_directory, 'logid.cfg')
+    if os.path.exists(log_file_path):
+        os.remove(log_file_path)
+
+    message = generate_config_file(log_file_path)
+    print(message)
 
 def generate_in_user_chosen_directory():
     directory = get_cfg_location()

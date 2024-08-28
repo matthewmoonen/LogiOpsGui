@@ -9,13 +9,9 @@ from typing import Callable
 def svg_to_image(path, output_width=300, output_height=300):
     with open(path, 'rb') as svg_file:
         svg_content = svg_file.read()
-
     png_data = cairosvg.svg2png(bytestring=svg_content, output_width=output_width, output_height=output_height)
-    
-    # Convert PNG data to PIL Image
     return ctk.CTkImage(Image.open(io.BytesIO(png_data)), size=(output_width, output_height))
-
-
+    
     """
     Some UI elements have rendering issues in CustomTkinter on Linux, radio buttons in particular look blocky.
     
@@ -24,9 +20,6 @@ def svg_to_image(path, output_width=300, output_height=300):
     See here for further information:
     https://github.com/TomSchimansky/CustomTkinter/issues/1384
     """
-# class MatthewsSegmentedButton:
-#     def __init__(self, master, values=[], font=None, command=None, fg_color="transparent")
-
 
 class MatthewsRadioButton:
 
@@ -55,7 +48,6 @@ class MatthewsRadioButton:
                 i.bind('<Enter>', lambda event: self.radio_button_enter(event))
                 i.bind('<Leave>', lambda event: self.radio_button_leave(event))
                 i.bind('<Button-1>', self.radio_button_clicked)
-
 
         self.is_selected = False
 
@@ -90,7 +82,6 @@ class MatthewsRadioButton:
                 i.unbind('<Leave>')
         self.button.configure(image=self.radio_button_selected)
 
-
     def radio_button_clicked(self, event=None):
         if self.is_selected: # If the button is already selected, just return without changing anything
             return
@@ -109,14 +100,11 @@ class MatthewsRadioButton:
     def update_text(self, new_text):
         """Update the text of the radio button."""
         self.button.configure(text=new_text)
-    
-
-
 
 class FloatSpinbox(ctk.CTkFrame):
     def __init__(self, *args, width: int = 100, height: int = 32, step_size: float = 1.0, min_value: float = None, 
                  max_value: float = None, decimal_places: int = 1, command: Callable = None, db_query=None, value=None, **kwargs):
-        super().__init__(*args, width=width, height=height, **kwargs)
+        super().__init__(*args, width=1, height=1, corner_radius=0, fg_color="transparent", **kwargs)
 
         self.step_size = step_size
         self.min_value = min_value
@@ -127,21 +115,26 @@ class FloatSpinbox(ctk.CTkFrame):
         self.value = value if value is not None else (min_value if min_value is not None else 0.0)
 
         self.enabled = True  # Initial state is enabled
-        self.configure(fg_color=("gray78", "gray28"))  # set frame color
 
         self.grid_columnconfigure((0, 2), weight=0)
         self.grid_columnconfigure(1, weight=1)  # entry expands
 
-        self.subtract_button = ctk.CTkButton(self, text="-", width=height-2, height=height-2, command=self.subtract_button_callback)
-        self.subtract_button.grid(row=0, column=0, padx=(3, 0), pady=3)
+
+        self.subtract_button = ctk.CTkButton(self, text="-", width=height+5, height=height, command=self.subtract_button_callback, fg_color="#0071C2", hover_color="#0089EB", font=ctk.CTkFont(size=int(height*0.55)), corner_radius=0)
+        # self.subtract_button = ctk.CTkButton(self, text="-", width=height-2, height=height-2, command=self.subtract_button_callback)
+        # self.subtract_button.grid(row=0, column=0, padx=(3, 0), pady=3)
+        self.subtract_button.grid(row=0, column=0, padx=int(height*0.15), pady=int(height*0.15))
 
         vcmd = self.register(self.validate)
-        self.entry = ctk.CTkEntry(self, validate="key", validatecommand=(vcmd, '%P'), width=width-(2.8*height), height=height-4, border_width=0)
+        self.entry = ctk.CTkEntry(self, validate="key", validatecommand=(vcmd, '%P'), justify="center", width=width-(2.8*height), height=int(height*1.2), border_width=0, font=ctk.CTkFont(size=int(height*0.53)), corner_radius=0)
+        # self.entry = ctk.CTkEntry(self, validate="key", validatecommand=(vcmd, '%P'), width=width-(2.8*height), height=height-4, border_width=0)
         self.entry.grid(row=0, column=1, columnspan=1, padx=3, pady=3, sticky="ew")
         self.entry.insert(0, self.format_value(self.value))
 
-        self.add_button = ctk.CTkButton(self, text="+", width=height-2.5, height=height-2.5, command=self.add_button_callback)
-        self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
+        # self.add_button = ctk.CTkButton(self, text="+", width=height-2.5, height=height-2.5, command=self.add_button_callback)
+        self.add_button = ctk.CTkButton(self, text="+", width=height+5, height=height, command=self.add_button_callback,fg_color="#0071C2",hover_color="#0089EB", font=ctk.CTkFont(size=int(height*0.55)), corner_radius=0)
+        # self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
+        self.add_button.grid(row=0, column=2, padx=int(height*0.15), pady=int(height*0.15))
 
         self.entry.bind("<FocusOut>", self.on_focus_out)
 
@@ -186,7 +179,6 @@ class FloatSpinbox(ctk.CTkFrame):
             self.run_db_query()
             self.run_command()
 
-
     def subtract_button_callback(self):
         try:
             value = float(self.entry.get())
@@ -229,48 +221,28 @@ class FloatSpinbox(ctk.CTkFrame):
         if callable(self.db_query):
             self.db_query(self.value)
 
-
-
-
 class IntSpinbox(ctk.CTkFrame):
-    def __init__(self, *args, width: int = 100, height: int = 32, step_size: int = 1, min_value: int = None, max_value: int = None, 
-                 command: Callable = None, #TODO: Remove
-                 db_query = None, value=None,
-                  **kwargs):
-        super().__init__(*args, width=width, height=height, **kwargs)
-
+    def __init__(self, *args, width: int = 100, height: int = 32, step_size: int = 1, min_value: int = None, max_value: int = None,  command: Callable = None, db_query = None, value=None, **kwargs):
+        super().__init__(*args, width=1, height=1, corner_radius=0, fg_color="transparent", **kwargs)
         self.step_size = step_size
         self.min_value = min_value
         self.max_value = max_value
         self.command = command
         self.db_query = db_query
         self.value = value
-
-
-        self.enabled = True  # TODO: Initial state is enabled
-
-        self.configure(fg_color=("gray78", "gray28"))  # set frame color
-
-        self.grid_columnconfigure((0, 2), weight=0)  # buttons don't expand TODO: Fix repeats here
-        self.grid_columnconfigure(1, weight=1)  # entry expands
-
-        self.subtract_button = ctk.CTkButton(self, text="-", width=height-2, height=height-2, command=self.subtract_button_callback)
-        self.subtract_button.grid(row=0, column=0, padx=(3, 0), pady=3)
-
-        self.default_value = 0 if min_value is None else min_value  # Set default value based on min_value
-
+        self.enabled = True  
+        self.grid_columnconfigure((0, 2), weight=0) 
+        self.grid_columnconfigure(1, weight=1)
+        self.subtract_button = ctk.CTkButton(self, text="-", width=height+5, height=height, command=self.subtract_button_callback, fg_color="#0071C2", hover_color="#0089EB", font=ctk.CTkFont(size=int(height*0.55)), corner_radius=0)
+        self.subtract_button.grid(row=0, column=0, padx=int(height*0.15), pady=int(height*0.15))
+        self.default_value = 0 if min_value is None else min_value 
         vcmd = self.register(self.validate)
-        self.entry = ctk.CTkEntry(self, validate="key", validatecommand=(vcmd, '%P'), width=width-(2.8*height), height=height-4, border_width=0)
-        self.entry.grid(row=0, column=1, columnspan=1, padx=3, pady=3, sticky="ew")
-        
-        self.entry.bind("<FocusOut>", self.on_focus_out)  # Bind the FocusOut event
-
-        self.add_button = ctk.CTkButton(self, text="+", width=height-2.5, height=height-2.5, command=self.add_button_callback)
-        self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
-
+        self.entry = ctk.CTkEntry(self, validate="key", validatecommand=(vcmd, '%P'), justify="center", width=width-(2.8*height), height=int(height*1.2), border_width=0, font=ctk.CTkFont(size=int(height*0.53)), corner_radius=0)
+        self.entry.grid(row=0, column=1, columnspan=1, padx=0, pady=int(height*0.15), sticky="ew")
+        self.entry.bind("<FocusOut>", self.on_focus_out)  
+        self.add_button = ctk.CTkButton(self, text="+", width=height+5, height=height, command=self.add_button_callback,fg_color="#0071C2",hover_color="#0089EB", font=ctk.CTkFont(size=int(height*0.55)), corner_radius=0)
+        self.add_button.grid(row=0, column=2, padx=int(height*0.15), pady=int(height*0.15))
         self.entry.insert(0, ["0" if self.value == None else self.value]) 
-
-
 
     def validate(self, new_text):
         if new_text == "":
@@ -284,8 +256,6 @@ class IntSpinbox(ctk.CTkFrame):
         except ValueError:
             return False
 
-
-
     def on_focus_out(self, event):
         try:
             value = int(self.entry.get())
@@ -294,7 +264,7 @@ class IntSpinbox(ctk.CTkFrame):
             if self.max_value is not None and value > self.max_value:
                 value = self.max_value
         except ValueError:
-            value = self.default_value  # Use default_value if parsing fails
+            value = self.default_value
 
         self.entry.delete(0, "end")
         self.entry.insert(0, value)
@@ -316,21 +286,15 @@ class IntSpinbox(ctk.CTkFrame):
             return
 
     def run_db_query(self):
-
         if callable(self.db_query):
             self.db_query(self.value)
 
-
     def subtract_button_callback(self):
-        # if self.command is not None:
-        #     self.command()
         try:
             def get_nearest_rounded_value(): # Set new value to closest multiple of step size after the current value
                 previous_value = int(self.entry.get())
                 return previous_value // self.step_size * self.step_size - self.step_size if previous_value % self.step_size == 0 else previous_value // self.step_size * self.step_size
-
             value = get_nearest_rounded_value()
-            
             if self.min_value is not None and value < self.min_value:
                 value = self.min_value
             self.entry.delete(0, "end")

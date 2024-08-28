@@ -75,3 +75,9 @@ class MainPageLabel1(ctk.CTkLabel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.configure(font=ctk.CTkFont(family="Noto Sans", weight="bold", size=20))
+
+
+class MainPageLabel2(ctk.CTkLabel):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.configure(font=ctk.CTkFont(family="Noto Sans", weight="bold", size=16))

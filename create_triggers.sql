@@ -340,7 +340,7 @@ AFTER INSERT ON ButtonConfigs
 FOR EACH ROW
 WHEN NEW.action_type = 'Gestures'
 BEGIN
-    INSERT INTO Gestures(button_config_id, direction, gesture_action, is_selected)
+    INSERT INTO Gestures(button_config_id, direction, action_type, is_selected)
     VALUES
     (NEW.button_config_id, 'Up', 'NoPress', 1),
     (NEW.button_config_id, 'Down', 'NoPress', 1),
@@ -363,7 +363,7 @@ AFTER INSERT ON ButtonConfigs
 FOR EACH ROW
 WHEN NEW.action_type = 'Gestures' AND (SELECT smartshift_support FROM Devices WHERE device_id = NEW.device_id) = 1
 BEGIN
-    INSERT INTO Gestures(button_config_id, direction, gesture_action, is_selected)
+    INSERT INTO Gestures(button_config_id, direction, action_type, is_selected)
     VALUES
     (NEW.button_config_id, 'Up', 'ToggleSmartShift', 0),
     (NEW.button_config_id, 'Down', 'ToggleSmartShift', 0),
@@ -378,7 +378,7 @@ AFTER INSERT ON ButtonConfigs
 FOR EACH ROW
 WHEN NEW.action_type = 'Gestures' AND (SELECT hires_scroll_support FROM Devices WHERE device_id = NEW.device_id) = 1
 BEGIN
-    INSERT INTO Gestures(button_config_id, direction, gesture_action, is_selected)
+    INSERT INTO Gestures(button_config_id, direction, action_type, is_selected)
     VALUES
     (NEW.button_config_id, 'Up', 'ToggleHiresScroll', 0),
     (NEW.button_config_id, 'Down', 'ToggleHiresScroll', 0),
@@ -386,6 +386,35 @@ BEGIN
     (NEW.button_config_id, 'Right', 'ToggleHiresScroll', 0),
     (NEW.button_config_id, 'None', 'ToggleHiresScroll', 0);
 END
+
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS gestures_update_selected_after_delete
+AFTER DELETE ON Gestures
+BEGIN
+    UPDATE Gestures
+    SET is_selected = 1
+    WHERE button_config_id = OLD.button_config_id
+    AND direction = OLD.direction
+    AND action_type = "NoPress"
+    AND OLD.is_selected = 1
+    AND EXISTS (SELECT 1 FROM Gestures WHERE button_config_id = OLD.button_config_id AND direction = OLD.direction);
+END;
+
+
+-- ### QUERY_SEPARATOR ###
+
+CREATE TRIGGER IF NOT EXISTS scroll_actions_update_selected_after_delete
+AFTER DELETE ON ScrollActions
+BEGIN
+    UPDATE ScrollActions
+    SET is_selected = 1
+    WHERE scroll_action_property_id = OLD.scroll_action_property_id
+    AND action_type = "Default"
+    AND OLD.is_selected = 1
+    AND EXISTS (SELECT 1 FROM ScrollActions WHERE scroll_action_property_id = OLD.scroll_action_property_id);
+END;
 
 
 
@@ -402,6 +431,8 @@ BEGIN
     AND OLD.is_selected = 1
     AND EXISTS (SELECT 1 FROM ButtonConfigs WHERE configuration_id = OLD.configuration_id AND button_id = OLD.button_id);
 END;
+
+
 
 -- ### QUERY_SEPARATOR ###
 
@@ -584,7 +615,7 @@ END;
 CREATE TRIGGER IF NOT EXISTS insert_axis_from_gestures
 AFTER INSERT ON Gestures
 FOR EACH ROW
-WHEN NEW.gesture_action = 'Axis'
+WHEN NEW.action_type = 'Axis'
 BEGIN
     INSERT INTO Axes (configuration_id, action_id, source_table)
     VALUES ((SELECT configuration_id FROM ButtonConfigs WHERE button_config_id = NEW.button_config_id), NEW.gesture_id, 'Gestures');
@@ -628,7 +659,7 @@ END;
 CREATE TRIGGER IF NOT EXISTS insert_keypress_from_gestures
 AFTER INSERT ON Gestures
 FOR EACH ROW
-WHEN NEW.gesture_action = 'Keypress'
+WHEN NEW.action_type = 'Keypress'
 BEGIN
     INSERT INTO Keypresses (configuration_id, action_id, source_table)
     VALUES ((SELECT configuration_id FROM ButtonConfigs WHERE button_config_id = NEW.button_config_id), NEW.gesture_id, 'Gestures');
@@ -671,7 +702,7 @@ END;
 CREATE TRIGGER IF NOT EXISTS insert_cycledpi_from_gestures
 AFTER INSERT ON Gestures
 FOR EACH ROW
-WHEN NEW.gesture_action = 'CycleDPI'
+WHEN NEW.action_type = 'CycleDPI'
 BEGIN
     INSERT INTO CycleDPI (configuration_id, action_id, source_table)
     VALUES ((SELECT configuration_id FROM ButtonConfigs WHERE button_config_id = NEW.button_config_id), NEW.gesture_id, 'Gestures');
@@ -714,7 +745,7 @@ END;
 CREATE TRIGGER IF NOT EXISTS insert_changedpi_from_gestures
 AFTER INSERT ON Gestures
 FOR EACH ROW
-WHEN NEW.gesture_action = 'ChangeDPI'
+WHEN NEW.action_type = 'ChangeDPI'
 BEGIN
     INSERT INTO ChangeDPI (configuration_id, action_id, source_table)
     VALUES ((SELECT configuration_id FROM ButtonConfigs WHERE button_config_id = NEW.button_config_id), NEW.gesture_id, 'Gestures');
@@ -758,7 +789,7 @@ END;
 CREATE TRIGGER IF NOT EXISTS insert_changehost_from_gestures
 AFTER INSERT ON Gestures
 FOR EACH ROW
-WHEN NEW.gesture_action = 'ChangeHost'
+WHEN NEW.action_type = 'ChangeHost'
 BEGIN
     INSERT INTO ChangeHost (configuration_id, action_id, source_table)
     VALUES ((SELECT configuration_id FROM ButtonConfigs WHERE button_config_id = NEW.button_config_id), NEW.gesture_id, 'Gestures');
@@ -793,7 +824,7 @@ END;
 CREATE TRIGGER IF NOT EXISTS delete_gesture_destination_axis
 AFTER DELETE ON Gestures 
 FOR EACH ROW
-WHEN OLD.gesture_action = 'Axis'
+WHEN OLD.action_type = 'Axis'
 BEGIN
 DELETE FROM Axes WHERE action_id = OLD.gesture_id AND source_table = 'Gestures';
 END;
@@ -804,7 +835,7 @@ END;
 CREATE TRIGGER IF NOT EXISTS delete_gesture_destination_keypress
 AFTER DELETE ON Gestures
 FOR EACH ROW
-WHEN OLD.gesture_action = 'Keypress'
+WHEN OLD.action_type = 'Keypress'
 BEGIN
 DELETE FROM Keypresses WHERE action_id = OLD.gesture_id AND source_table = 'Gestures';
 END;
@@ -815,7 +846,7 @@ END;
 CREATE TRIGGER IF NOT EXISTS delete_gesture_destination_cycledpi
 AFTER DELETE ON Gestures
 FOR EACH ROW
-WHEN OLD.gesture_action = 'CycleDPI'
+WHEN OLD.action_type = 'CycleDPI'
 BEGIN
 DELETE FROM CycleDPI WHERE action_id = OLD.gesture_id AND source_table = 'Gestures';
 END;
@@ -825,7 +856,7 @@ END;
 CREATE TRIGGER IF NOT EXISTS delete_gesture_destination_changedpi
 AFTER DELETE ON Gestures
 FOR EACH ROW
-WHEN OLD.gesture_action = 'ChangeDPI'
+WHEN OLD.action_type = 'ChangeDPI'
 BEGIN
 DELETE FROM ChangeDPI WHERE action_id = OLD.gesture_id AND source_table = 'Gestures';
 END;
@@ -836,7 +867,7 @@ END;
 CREATE TRIGGER IF NOT EXISTS delete_gesture_destination_changehost
 AFTER DELETE ON Gestures
 FOR EACH ROW
-WHEN OLD.gesture_action = 'ChangeHost'
+WHEN OLD.action_type = 'ChangeHost'
 BEGIN
 DELETE FROM ChangeHost WHERE action_id = OLD.gesture_id AND source_table = 'Gestures';
 END;
@@ -1044,7 +1075,7 @@ END;
 CREATE TRIGGER IF NOT EXISTS insert_date_on_gestures
 AFTER INSERT ON Gestures
 FOR EACH ROW
-WHEN NEW.gesture_action IN ('Keypress', 'Axis', 'CycleDPI', 'ChangeDPI', 'ChangeHost')
+WHEN NEW.action_type IN ('Keypress', 'Axis', 'CycleDPI', 'ChangeDPI', 'ChangeHost')
 BEGIN
     UPDATE Gestures
     SET date_added = CURRENT_TIMESTAMP

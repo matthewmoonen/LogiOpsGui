@@ -21,20 +21,15 @@ class ListboxEntry(ctk.CTkButton):
 class FileScroller(ctk.CTkScrollableFrame):
     def __init__(self, master, input_box, current_path, permitted_formats=None, create_back_button=True):
         super().__init__(master)
-
         self.current_path = current_path
         self.permitted_formats = permitted_formats
         self.input_box = input_box
         self.create_controller_frame()
         self.selected_entry = None
         self.buttons = []
-        
         self.bind_all("<Button-4>", self.handle_scroll_up)
         self.bind_all("<Button-5>", self.handle_scroll_down)
-
-
         self.create_back_button()
-
         self.create_entries()
 
     def bind_file_click(self, button_text):
@@ -46,7 +41,6 @@ class FileScroller(ctk.CTkScrollableFrame):
         self.controller_frame.pack(fill="both", expand="true")
 
     def create_button(self, button_text, is_folder=False):
-        
         button = ListboxEntry(master = self.controller_frame, text=button_text, corner_radius=0, height=10, border_width=2, border_color="gray10", font=ctk.CTkFont(family="Noto Sans",size=16 ), fg_color="gray10", text_color=("gray70"), hover_color=("gray15"), anchor="w")
         if is_folder == True:
             button.bind('<Button-1>', lambda event, button_text=button_text: self.clicked_button(button_text))
@@ -190,13 +184,7 @@ class FileScroller(ctk.CTkScrollableFrame):
     def create_entries(self):
         folders = []
         files = []
-        # if self.current_path in ["/bin", "bin", "//bin"]:
-        #     self.current_path = "/"     
-            # self.input_box.delete("0.0", "end")
-            # self.input_box.insert("0.0", "/")
-            # self.selected_entry = "/"
-            # self.folder_selected(selected_folder="/")
-        # else:
+
         if self.current_path.count('/') == 0:
             self.current_path = "/"
         if len(self.current_path) > 1 and self.current_path[1] == "/":
@@ -212,7 +200,6 @@ class FileScroller(ctk.CTkScrollableFrame):
         self.create_folder_buttons(sorted(folders))
         self.create_file_buttons(sorted(files))
 
-
     def folder_selected(self, selected_folder):
         if selected_folder != "/bin":
             self.controller_frame.destroy()
@@ -226,7 +213,6 @@ class FileScroller(ctk.CTkScrollableFrame):
             self.current_path = "/"
             self.selected_entry = None
 
-
     def handle_scroll_up(self, event):
         if self._parent_canvas.winfo_height() < self.winfo_height():
             self._parent_canvas.yview_scroll(-1, "units")
@@ -238,8 +224,6 @@ class FileScroller(ctk.CTkScrollableFrame):
 class BrowserWindow(ctk.CTkToplevel):
     def __init__(self, master, current_path=None, current_filename='', on_select=None, permitted_formats=None):
         super().__init__(master)
-
-        
 
         self.title("CFG File Location")
         self.current_filename = f"/{current_filename}"
@@ -257,7 +241,6 @@ class BrowserWindow(ctk.CTkToplevel):
             self.permitted_formats = permitted_formats
         else:
             self.permitted_formats = None
-
 
         def highlight_open_button(event):
             open_button.focus_set()
@@ -282,7 +265,6 @@ class BrowserWindow(ctk.CTkToplevel):
         self.file_scroller.pack(fill="both", expand="true", padx=10, pady=10)
         self.bind("<Up>", self.file_scroller.navigate_up)    # Bind Up arrow key
         self.bind("<Down>", self.file_scroller.navigate_down)  # Bind Down arrow key
-
 
         self.input_box.pack(fill="x", padx=10, pady=10)
 
@@ -351,8 +333,6 @@ class BrowserWindow(ctk.CTkToplevel):
                     if callable(self.on_select):
                         self.on_select(directory, filename)
                     self.destroy()
-
-
 
 class FrontPage(ctk.CTkFrame):
     def __init__(self, master):

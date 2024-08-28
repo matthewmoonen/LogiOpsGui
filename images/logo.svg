@@ -1,0 +1,21 @@
+<svg width="10600" height="3500" xmlns="http://www.w3.org/2000/svg">
+  <!-- Main letter ტ -->
+  <text x="24.5%" y="77%" dominant-baseline="middle" text-anchor="middle" font-size="3100" font-family="Fira Sans" fill="#0091EA">
+    Logi 
+  </text>
+  
+  <text x="60%" y="59.5%" dominant-baseline="middle" text-anchor="middle" font-size="2930" font-family="BPG Nino Mtavruli" fill="#0091EA">
+    ტ 
+  </text>
+  
+
+<text x="84.9%" y="77%" dominant-baseline="middle" text-anchor="middle" font-size="3100" font-family="BPG Nino Mtavruli" fill="#0091EA">
+    ps 
+  </text>
+  
+
+  <!-- Smaller text inside the main circle -->
+  <text x="60.1%" y="61.75%" dominant-baseline="middle" text-anchor="middle" font-size="900" font-family="BPG Nino Mtavruli" fill="#00497A" dy="10">
+    ექ
+  </text>
+</svg>

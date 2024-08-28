@@ -6,7 +6,7 @@ INSERT INTO UserSettings (key, value) VALUES ('widget_scaling', "1");
 
 -- ### QUERY_SEPARATOR ###
 
-INSERT INTO UserSettings (key, value) VALUES ('geometry', "1920x1080")
+INSERT INTO UserSettings (key, value) VALUES ('geometry', "1820x980")
 
 -- ### QUERY_SEPARATOR ###
 
