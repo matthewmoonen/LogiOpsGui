@@ -1005,11 +1005,6 @@ class ScrollActions:
         self.cycledpi = cycledpi
         self.changedpi = changedpi
 
-    # def update_selected(self, new_selected_id):
-    #     conn, cursor = execute_db_queries.create_db_connection()
-    #     cursor.execute("""UPDATE ScrollActions SET is_selected = 1 WHERE scroll_action_id = ?""")
-    #     execute_db_queries.commit_changes_and_close(conn)
-    #     self.selected_action_id = new_selected_id
 
     @classmethod
     def create_from_scroll_action_property_id(cls, scroll_action_property_id, config_object, conn=None, cursor=None):
