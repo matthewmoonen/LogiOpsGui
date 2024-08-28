@@ -952,7 +952,7 @@ class AddKeypressFrame(ctk.CTkFrame):
         self.action_selection_frame=action_selection_frame
         self.go_back=go_back
 
-        self.bottom_frame = ctk.CTkFrame(master=bottom_button_frame, fg_color=test_colour5, corner_radius=0, height=50)
+        self.bottom_frame = ctk.CTkFrame(master=bottom_button_frame, fg_color="transparent", corner_radius=0, height=50)
 
         # self.keypress_button_frame = ctk.CTkFrame(master=self, fg_color="transparent", height=60)
         # self.keypress_button_frame.pack()
@@ -1081,133 +1081,6 @@ class AddKeypressFrame(ctk.CTkFrame):
 
 
 
-
-# class KeyPressFrame(ctk.CTkFrame):
-#     def __init__(self, master, app_root, settings_object, go_back_function, origin_frame, added_from, **kwargs):
-#         super().__init__(master, **kwargs)
-
-#         self.configure(fg_color="transparent")
-
-#         self.app_root = app_root
-#         self.origin_frame = origin_frame
-#         self.settings_object = settings_object
-#         self.go_back_function = go_back_function
-#         self.added_from = added_from
-
-    
-
-#         self.click_box = ctk.CTkButton(master=self, border_spacing=80)
-
-#         self.initialise_clickbox()
-#         self.click_box.pack(pady=50, padx=50, fill="both", expand=True)
-#         self.app_root.wm_attributes('-type', 'dialog')
-
-#         self.enter_manually_button = ctk.CTkButton(master=self, text="Enter Array Manually", command=self.enter_manually)
-#         # self.enter_manually_button.pack()
-
-
-#     def enter_manually(self):
-        
-            
-#         asdf = KeypressManual(master=self, db_keypress_array=self.db_keypress_array if hasattr(self, "db_keypress_array") else [], click_box=self.click_box)
-
-
-
-
-#     def initialise_clickbox(self):
-#         self.click_box.configure(text="\nCLICK HERE \n to enter keyboard shortcut\n                                                                                    ",
-#                                        command=self.activate_key_listener,
-#                                        fg_color="transparent",
-#                                        hover=False,
-#                                        border_width=10,
-#                                        border_color="#363636",
-#                                        font=ctk.CTkFont(size=14, family="Veranda"),
-#                                        border_spacing=80
-#                                        )
-#         if hasattr(self, "reset_button"):
-#             self.reset_button.destroy()
-#             self.save_button.destroy()
-#         if hasattr(self, "db_keypress_array"):
-#             del self.db_keypress_array
-#             del self.gui_keypress_array
-
-#     def activate_key_listener(self):
-#         self.app_root.bind("<KeyPress>", self.handle_key_press)
-#         self.app_root.bind("<KeyRelease>", self.handle_key_release)
-#         self.stop_recording_button = ctk.CTkButton(self, text="Click here to stop recording",
-#                                             command=self.deactivate_key_listener,
-#                                             height=50,
-#                                             corner_radius=0,
-                                            
-#                                             )
-#         self.stop_recording_button.pack()
-#         self.click_box.configure(border_spacing=97 , text="                                                                              \nStart typing...\n", command=None, border_color="#198754",)
-#         self.click_box.focus_set()
-
-
-
-#     def stop_listening(self):
-#         self.app_root.unbind("<KeyPress>")
-#         self.app_root.unbind("<KeyRelease>")
-
-#     def deactivate_key_listener(self):
-#         self.stop_listening()
-#         self.stop_recording_button.destroy()
-
-#         if not hasattr(self, "db_keypress_array"):
-#             self.initialise_clickbox()
-#         elif hasattr(self, "reset_button") and bool(self.reset_button.winfo_exists()):
-#             pass
-#         else:
-#             self.click_box.configure(border_color="#DC3545")
-#             self.reset_button = ctk.CTkButton(self, text="Reset", command=self.initialise_clickbox)
-#             self.reset_button.pack()
-#             self.save_button = ctk.CTkButton(self, text="Save new keypress shortcut", command=self.save_button_clicked)
-#             self.save_button.pack()
-
-#     def save_button_clicked(self):
-#         new_primary_key = self.settings_object.add_new_keypress_action(keypresses=json.dumps(self.db_keypress_array))
-
-#         if not isinstance(self.added_from, GestureRadioFrame):
-#             self.origin_frame.create_keypress_radio_button_row(i=new_primary_key)
-#             self.origin_frame.keypress_radio_buttons_frame.grid(row=3, column=0)
-#         else:
-#             self.added_from.create_keypress_radio_button_row(i=new_primary_key)
-#             self.added_from.keypress_radio_buttons_frame.grid(row=3, column=0)
-
-#         self.go_back_function()
-
-#     def pack_forget(self, *args, **kwargs):
-#         if hasattr(self, 'stop_recording_button'):
-#             self.deactivate_key_listener()
-#         else:
-#             print("no button")
-#         super().pack_forget(*args, **kwargs)
-
-#     def handle_key_press(self, event):
-
-#         db_keymate, gui_keymate = keymates.get_keymates(event.keysym)
-#         if not hasattr(self, "db_keypress_array"):
-#             self.db_keypress_array = [db_keymate]            
-#             self.gui_keypress_array = [gui_keymate]
-#             self.click_box.configure(text=f"                                                                              \n{gui_keymate}\n")
-            
-#         # elif db_keymate not in self.db_keypress_array:
-#         else:
-#             self.click_box.configure(text=f"{self.click_box._text[:-1]} {gui_keymate}\n")
-#             self.db_keypress_array.append(db_keymate)
-#             self.gui_keypress_array.append(gui_keymate)
-#         if event.keysym == "Super_L":
-#             self.app_root.after(150, lambda: self.app_root.focus_force())  # Try to force focus back after a short delay
-#         return "break"
-
-
-#     def handle_key_release(self, event):
-#         if event.keysym == "Super_L":
-#             self.app_root.after(150, lambda: self.app_root.focus_force())  # Try to force focus back after key is released
-
-
-
 class CycleDPIRemoveButton(ctk.CTkButton):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1226,9 +1099,6 @@ class CycleDPIRemoveButton(ctk.CTkButton):
         self.configure(image=self.button_not_hover)
 
 
-
-
-
 class AddCycleDPI(ctk.CTkFrame):
     def __init__(self, master, settings_object, action_selection_frame, bottom_button_frame, go_back):
         super().__init__(master, fg_color="#292929")
@@ -1236,25 +1106,18 @@ class AddCycleDPI(ctk.CTkFrame):
         self.action_selection_frame = action_selection_frame
         self.go_back = go_back
 
-        self.bottom_frame = ctk.CTkFrame(master=bottom_button_frame, fg_color=test_colour5, corner_radius=0)
-
-        
-
+        self.bottom_frame = ctk.CTkFrame(master=bottom_button_frame, fg_color="transparent", corner_radius=0)
 
         label_spinbox_container = ctk.CTkFrame(master=self, fg_color="transparent", )
         label_spinbox_container.pack(padx=(100,100), pady=(60,0), fill="x")
-        # label_spinbox_frame = ctk.CTkFrame(master=label_spinbox_container, fg_color="transparent", )
-        # label_spinbox_frame.pack(side="left", anchor="w")
         
         self.hidden_frame=ctk.CTkFrame(master=label_spinbox_container, fg_color="transparent", height=4)
 
         label=ctk.CTkLabel(master=label_spinbox_container, text="DPI Value", font=ctk.CTkFont(family="Roboto", size=16,))
-        # label.pack(pady=(0,5))
         label.grid(column=0, row=0, sticky="ew")
         label_spinbox_container.grid_columnconfigure(1, weight=2)
 
         self.spinbox = IntSpinbox(master=label_spinbox_container, height=36, value=1000, width=200, step_size=100, min_value=self.settings_object.config_object.min_dpi, max_value=self.settings_object.config_object.max_dpi )
-        # self.spinbox.pack()            
         self.spinbox.grid(column=0, row=1)
 
         self.add_to_array_button = ctk.CTkButton(master=label_spinbox_container, height=50, width=250, text="Add value to array", command=self.add_value_to_array, corner_radius=0,
@@ -1361,7 +1224,7 @@ class AddAxisFrame(ctk.CTkFrame):
         self.go_back = go_back
         self.settings_object = settings_object
 
-        self.bottom_frame = ctk.CTkFrame(master=bottom_button_frame, fg_color=test_colour5, corner_radius=0)
+        self.bottom_frame = ctk.CTkFrame(master=bottom_button_frame, fg_color="transparent", corner_radius=0)
 
         rel_list = [
             "REL_WHEEL (Scroll Up/Down)", "REL_WHEEL_HI_RES (Hi-res Scroll Up/Down)",
@@ -1440,7 +1303,7 @@ class AddChangeHost(ctk.CTkFrame):
         self.action_selection_frame=action_selection_frame
         self.go_back=go_back
 
-        self.bottom_frame = ctk.CTkFrame(master=bottom_button_frame, fg_color=test_colour5, corner_radius=0)
+        self.bottom_frame = ctk.CTkFrame(master=bottom_button_frame, fg_color="transparent", corner_radius=0)
 
         label_menu_frame = ctk.CTkFrame(master=self, fg_color="transparent", )
         label_menu_frame.pack(anchor="w", padx=100, pady=(80,307))
@@ -1485,7 +1348,7 @@ class AddChangeDPI(ctk.CTkFrame):
         self.action_selection_frame = action_selection_frame
         self.go_back = go_back
 
-        self.bottom_frame = ctk.CTkFrame(master=bottom_button_frame, fg_color=test_colour5, corner_radius=0)
+        self.bottom_frame = ctk.CTkFrame(master=bottom_button_frame, fg_color="transparent", corner_radius=0)
         
 
         label=ctk.CTkLabel(master=self, text="DPI Change", font=ctk.CTkFont(size=26))
@@ -1514,26 +1377,15 @@ class AddChangeDPI(ctk.CTkFrame):
         self.go_back()
 
 
-# test_colour1="green"
-test_colour1="transparent"
-# test_colour2 = "blue"
-test_colour2 = "transparent"
-# test_colour3 = "yellow"
-test_colour3 = "transparent"
-# test_colour4 = test_colour5
-test_colour4 = "transparent"
-# test_colour5 = "red"
-test_colour5 = "transparent"
-
 class NewActionFrame(ctk.CTkFrame):
     def __init__(self, master, root, ecf, origin_frame, action_selection_frame, settings_object):
-        super().__init__(master, corner_radius=0, fg_color=test_colour1)
+        super().__init__(master, corner_radius=0, fg_color="transparent")
 
         self.origin_frame=origin_frame        
 
-        if isinstance(settings_object, BackendData.ButtonSettings1):
+        if isinstance(settings_object, BackendData.ButtonSettings):
             title_text=f"New {settings_object.button_name} Action" if settings_object.button_name[-6:] == "Button" else f"New {settings_object.button_name} Button Action"
-        elif isinstance(settings_object, BackendData.GestureSettings1):
+        elif isinstance(settings_object, BackendData.GestureSettings):
             title_text=f"New Gesture {settings_object.direction} Action ({settings_object.button.button_name})" if settings_object.button.button_name[-6:] == "Button" else f"New Gesture {settings_object.direction} Button Action ({settings_object.button.button_name})"
         elif isinstance(settings_object, BackendData.ScrollProperties):
             title_text=f"New Scroll {settings_object.scroll_direction} Action"
@@ -1552,9 +1404,9 @@ class NewActionFrame(ctk.CTkFrame):
         segment_button_colour = "#0091EA"
 
         options_frame = ctk.CTkFrame(master=self, fg_color="transparent")
-        control_frame = ctk.CTkFrame(master=self, fg_color=test_colour2, corner_radius=0)
-        bottom_button_frame = ctk.CTkFrame(master=control_frame, fg_color=test_colour3, corner_radius=0)
-        cancel_button_frame = ctk.CTkFrame(master=control_frame, fg_color=test_colour4, corner_radius=0)
+        control_frame = ctk.CTkFrame(master=self, fg_color="transparent", corner_radius=0)
+        bottom_button_frame = ctk.CTkFrame(master=control_frame, fg_color="transparent", corner_radius=0)
+        cancel_button_frame = ctk.CTkFrame(master=control_frame, fg_color="transparent", corner_radius=0)
 
         options = {}
         options["Keypress"] = AddKeypressFrame(master=options_frame, settings_object=settings_object, action_selection_frame=action_selection_frame, go_back=self.go_back, bottom_button_frame=bottom_button_frame, root=root)

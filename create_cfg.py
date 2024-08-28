@@ -1,62 +1,6 @@
 import execute_db_queries
-import Classes
 import os
 import BackendData
-
-
-
-def print_object(settings_object):
-
-    print(settings_object._configuration_name)
-    print(settings_object._dpi)
-    print(settings_object._hiresscroll_hires)
-    print(settings_object._hiresscroll_invert)
-    print(settings_object._hiresscroll_target)
-    print(settings_object._smartshift_on)
-    print(settings_object._smartshift_threshold)
-    print(settings_object._smartshift_torque)
-    print(settings_object._thumbwheel_divert)
-    print(settings_object._thumbwheel_invert)
-    print(settings_object.buttons)
-    print(settings_object.config_file_name)
-    print(settings_object.configuration_id)
-    print(settings_object.configuration_name)
-    print(settings_object.create_from_configuration_id)
-    print(settings_object.date_configuration_added)
-    print(settings_object.date_configuration_last_modified)
-    print(settings_object.date_device_added)
-    print(settings_object.date_device_last_edited)
-    print(settings_object.default_dpi)
-    print(settings_object.device_id)
-    print(settings_object.device_name)
-    print(settings_object.dpi)
-    print(settings_object.get_data)
-    print(settings_object.has_scrollwheel)
-    print(settings_object.has_thumbwheel)
-    print(settings_object.hires_scroll_support)
-    print(settings_object.hiresscroll_hires)
-    print(settings_object.hiresscroll_invert)
-    print(settings_object.hiresscroll_target)
-    print(settings_object.is_activated)
-    print(settings_object.is_selected)
-    print(settings_object.is_user_device)
-    print(settings_object.max_dpi)
-    print(settings_object.min_dpi)
-    print(settings_object.number_of_sensors)
-    print(settings_object.scroll_actions)
-    print(settings_object.smartshift_on)
-    print(settings_object.smartshift_support)
-    print(settings_object.smartshift_threshold)
-    print(settings_object.smartshift_torque)
-    print(settings_object.thumbwheel_divert)
-    print(settings_object.thumbwheel_invert)
-    print(settings_object.thumbwheel_proxy_support)
-    print(settings_object.thumbwheel_tap_support)
-    print(settings_object.thumbwheel_timestamp_support)
-    print(settings_object.thumbwheel_touch_support)
-    print(settings_object.update_dpi)
-    print(settings_object.update_smartshift_threshold)
-    print(settings_object.update_smartshift_torque)
 
 
 
