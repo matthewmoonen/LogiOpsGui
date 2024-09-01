@@ -853,6 +853,227 @@ class ButtonSettings:
         execute_db_queries.close_without_committing_changes(conn)
         return selected
 
+class GestureDict(dict):
+    def __init__(self, button, button_config_id, configuration):
+        super().__init__()
+        self.button = button
+        self.configuration = configuration
+        self.button_config_id = button_config_id
+
+    @classmethod
+    def create_object(cls, button, button_config_id, configuration, conn, cursor):
+        instance = cls(button, button_config_id, configuration)
+
+        for direction in ["Up", "Down", "Left", "Right", "None"]:
+            cursor.execute("""
+                SELECT threshold, mode 
+                FROM GestureProperties
+                WHERE button_config_id = ? AND direction = ?
+            """, (button_config_id, direction))
+
+            threshold, mode = cursor.fetchone()
+
+            cursor.execute("""
+                SELECT gesture_id FROM Gestures WHERE button_config_id = ? AND direction = ? AND is_selected = 1
+            """, (button_config_id, direction))
+
+            selected_action_id = cursor.fetchone()[0]
+
+            def select_single_actions(action_type):
+                cursor.execute("""
+                    SELECT gesture_id FROM Gestures WHERE button_config_id = ? AND direction = ? AND action_type = ?
+                """, (button_config_id, direction, action_type))
+                result = cursor.fetchone()
+                return result[0] if result is not None else None
+
+            nopress = select_single_actions("NoPress")
+            togglesmartshift = select_single_actions("ToggleSmartShift")
+            togglehiresscroll = select_single_actions("ToggleHiresScroll")
+
+            def get_multiple_values(action_type):
+                cursor.execute("""
+                    SELECT gesture_id FROM Gestures WHERE button_config_id = ? AND direction = ? AND action_type = ?
+                """, (button_config_id, direction, action_type))
+                return cursor.fetchall()
+
+            keypresses = Keypresses.fetch_all(
+                reference_ids=get_multiple_values("Keypress"),
+                reference_id_type="Gestures",
+                conn=conn, cursor=cursor
+            )
+            cycledpi = CycleDPI.fetch_all(
+                reference_ids=get_multiple_values("CycleDPI"),
+                reference_id_type="Gestures",
+                conn=conn, cursor=cursor
+            )
+            changehost = ChangeHost.fetch_all(
+                reference_ids=get_multiple_values("ChangeHost"),
+                reference_id_type="Gestures",
+                conn=conn, cursor=cursor
+            )
+            changedpi = ChangeDPI.fetch_all(
+                reference_ids=get_multiple_values("ChangeDPI"),
+                reference_id_type="Gestures",
+                conn=conn, cursor=cursor
+            )
+            axes = Axis.fetch_all(
+                reference_ids=get_multiple_values("Axis"),
+                reference_id_type="Gestures",
+                conn=conn, cursor=cursor
+            )
+
+            instance[direction] = GestureSettings(
+                direction, button, configuration, threshold, mode, selected_action_id, nopress,
+                togglesmartshift, togglehiresscroll, keypresses, axes, changehost, cycledpi, changedpi
+            )
+        return instance
+
+class GestureSettings:
+    def __init__(self,
+                direction,
+                button,
+                configuration,
+                threshold,
+                mode,
+                selected_action_id,
+                nopress,
+                togglesmartshift,
+                togglehiresscroll,
+                keypresses,
+                axes,
+                changehost,
+                cycledpi,
+                changedpi,
+                default=None
+                 ):
+        self.direction=direction
+        self.button=button
+        self.configuration=configuration
+        self.config_object = configuration
+        self.threshold=threshold
+        self.mode=mode
+        self.selected_action_id=selected_action_id
+        self.nopress=nopress
+        self.togglesmartshift=togglesmartshift
+        self.togglehiresscroll=togglehiresscroll
+        self.keypresses=keypresses
+        self.axes=axes
+        self.changehost=changehost
+        self.cycledpi=cycledpi
+        self.changedpi=changedpi
+        self.default = None
+
+    def update_selected(self, new_selected_id):
+        conn, cursor = execute_db_queries.create_db_connection()
+        cursor.execute("""UPDATE Gestures SET is_selected = 1 WHERE gesture_id = ?""", (new_selected_id,))
+        execute_db_queries.commit_changes_and_close(conn)
+        self.selected_action_id = new_selected_id
+
+    def update_threshold(self, new_threshold):
+        conn, cursor = execute_db_queries.create_db_connection()
+        cursor.execute("""
+                        UPDATE GestureProperties
+                       SET threshold = ?
+                       WHERE button_config_id = ?
+                       AND direction = ?
+                        """, (new_threshold, self.button.gestures.button_config_id, self.direction))
+        execute_db_queries.commit_changes_and_close(conn)
+        self.threshold = new_threshold
+
+    def update_mode(self, new_mode):
+        conn, cursor = execute_db_queries.create_db_connection()
+        cursor.execute("""
+                        UPDATE GestureProperties
+                       SET mode = ?
+                       WHERE button_config_id = ?
+                       AND direction = ?
+                        """, (new_mode, self.button.gestures.button_config_id, self.direction))
+        execute_db_queries.commit_changes_and_close(conn)
+        self.mode = new_mode
+
+    def get_added_order(self):
+        conn, cursor = execute_db_queries.create_db_connection()
+        cursor.execute("""SELECT gesture_id FROM Gestures WHERE button_config_id = ? AND direction = ? AND date_added IS NOT NULL ORDER BY date_added;""",(self.button.gestures.button_config_id, self.direction))
+        result = cursor.fetchall()
+        execute_db_queries.close_without_committing_changes(conn)
+        return [i[0] for i in result]
+
+    def add_new_keypress_action(self, keypresses):
+        new_gesture_id, conn, cursor = self.add_action("Keypress")
+        cursor.execute("""UPDATE Keypresses SET keypresses = ? WHERE action_id = ? AND source_table = 'Gestures'""", (keypresses, new_gesture_id))
+        execute_db_queries.commit_changes_and_close(conn)
+        self.keypresses[new_gesture_id] = Keypresses(keypresses=keypresses, reference_id=new_gesture_id, reference_id_type="Gestures")
+        return self.keypresses[new_gesture_id]
+    def delete_keypress_action(self, action_id):
+        self.delete_action(action_id)
+        del self.keypresses[action_id]
+
+    def add_new_axis_action(self, axis, axis_multiplier):
+        new_gesture_id, conn, cursor = self.add_action("Axis")
+        cursor.execute("""UPDATE Axes SET axis_button = ?, axis_multiplier = ? WHERE action_id = ? AND source_table = 'Gestures'""", (axis, axis_multiplier, new_gesture_id))
+        execute_db_queries.commit_changes_and_close(conn)
+        self.axes[new_gesture_id] = Axis(axis_button=axis, axis_multiplier=axis_multiplier, reference_id=new_gesture_id, reference_id_type="Gestures")
+        return self.axes[new_gesture_id]
+    def delete_axis_action(self, action_id):
+        self.delete_action(action_id)
+        del self.axes[action_id]
+
+    def add_new_changehost_action(self, host_change):
+        new_gesture_id, conn, cursor = self.add_action("ChangeHost")
+        cursor.execute("""UPDATE ChangeHost Set host_change = ? WHERE action_id = ? AND source_table = 'Gestures'""", (host_change, new_gesture_id))
+        execute_db_queries.commit_changes_and_close(conn)
+        self.changehost[new_gesture_id] = ChangeHost(host_change=host_change, reference_id=new_gesture_id, reference_id_type="Gestures")
+        return self.changehost[new_gesture_id]
+    def delete_changehost_action(self, action_id):
+        self.delete_action(action_id)
+        del self.changehost[action_id]
+
+    def add_new_changedpi_action(self, new_value):
+        new_gesture_id, conn, cursor = self.add_action("ChangeDPI")
+        cursor.execute("""UPDATE ChangeDPI Set increment = ? WHERE action_id = ? AND source_table = 'Gestures'""", (new_value, new_gesture_id))
+        execute_db_queries.commit_changes_and_close(conn)
+        self.changedpi[new_gesture_id] = ChangeDPI(increment=new_value, reference_id=new_gesture_id, reference_id_type="Gestures")
+        return self.changedpi[new_gesture_id]
+    def delete_cycledpi_action(self, action_id):
+        self.delete_action(action_id)
+        del self.cycledpi[action_id]
+
+    def add_new_cycledpi_action(self, dpi_array):
+        new_gesture_id, conn, cursor = self.add_action("CycleDPI")
+        cursor.execute("""UPDATE CycleDPI SET dpi_array = ? WHERE action_id = ? AND source_table = 'Gestures'""", (dpi_array, new_gesture_id))
+        execute_db_queries.commit_changes_and_close(conn)
+        self.cycledpi[new_gesture_id] = CycleDPI(dpi_array=dpi_array, reference_id=new_gesture_id, reference_id_type="Gestures")
+        return self.cycledpi[new_gesture_id]
+    def delete_changedpi_action(self, action_id):
+        self.delete_action(action_id)
+        del self.changedpi[action_id]
+
+    def delete_action(self, action_id):
+        conn, cursor = execute_db_queries.create_db_connection()
+        cursor.execute("""DELETE FROM Gestures WHERE gesture_id = ?""",(action_id,))
+        execute_db_queries.commit_changes_and_close(conn)
+
+    def add_action(self, action_type):
+        conn, cursor = execute_db_queries.create_db_connection()
+        cursor.execute("""INSERT INTO Gestures (button_config_id, direction, action_type) VALUES (?, ?, ?)""",(self.button.gestures.button_config_id, self.direction, action_type))
+        cursor.execute(
+            """
+            SELECT last_insert_rowid();
+            """
+            )
+        return cursor.fetchone()[0], conn, cursor
+
+    def request_selected_type(self):
+        conn, cursor = execute_db_queries.create_db_connection()
+        cursor.execute("""
+            SELECT action_type   
+            FROM Gestures
+            WHERE gesture_id = ?
+""", (self.selected_action_id,))
+        selected = cursor.fetchone()[0]
+        execute_db_queries.close_without_committing_changes(conn)
+        return selected
+
 class ScrollActions:
     def __init__(self, scroll_action_property_id, selected_action_id, config_object=None, default = None, nopress = None, togglesmartshift = None, togglehiresscroll = None, keypresses={}, axes={},  changehost = {}, cycledpi = {}, changedpi = {}):
         self.scroll_action_property_id=scroll_action_property_id
@@ -1134,227 +1355,6 @@ class ChangeDPI:
                 instance = cls(row[0], reference_id[0], reference_id_type)
                 instances[reference_id[0]] = instance
         return instances
-
-class GestureDict(dict):
-    def __init__(self, button, button_config_id, configuration):
-        super().__init__()
-        self.button = button
-        self.configuration = configuration
-        self.button_config_id = button_config_id
-
-    @classmethod
-    def create_object(cls, button, button_config_id, configuration, conn, cursor):
-        instance = cls(button, button_config_id, configuration)
-
-        for direction in ["Up", "Down", "Left", "Right", "None"]:
-            cursor.execute("""
-                SELECT threshold, mode 
-                FROM GestureProperties
-                WHERE button_config_id = ? AND direction = ?
-            """, (button_config_id, direction))
-
-            threshold, mode = cursor.fetchone()
-
-            cursor.execute("""
-                SELECT gesture_id FROM Gestures WHERE button_config_id = ? AND direction = ? AND is_selected = 1
-            """, (button_config_id, direction))
-
-            selected_action_id = cursor.fetchone()[0]
-
-            def select_single_actions(action_type):
-                cursor.execute("""
-                    SELECT gesture_id FROM Gestures WHERE button_config_id = ? AND direction = ? AND action_type = ?
-                """, (button_config_id, direction, action_type))
-                result = cursor.fetchone()
-                return result[0] if result is not None else None
-
-            nopress = select_single_actions("NoPress")
-            togglesmartshift = select_single_actions("ToggleSmartShift")
-            togglehiresscroll = select_single_actions("ToggleHiresScroll")
-
-            def get_multiple_values(action_type):
-                cursor.execute("""
-                    SELECT gesture_id FROM Gestures WHERE button_config_id = ? AND direction = ? AND action_type = ?
-                """, (button_config_id, direction, action_type))
-                return cursor.fetchall()
-
-            keypresses = Keypresses.fetch_all(
-                reference_ids=get_multiple_values("Keypress"),
-                reference_id_type="Gestures",
-                conn=conn, cursor=cursor
-            )
-            cycledpi = CycleDPI.fetch_all(
-                reference_ids=get_multiple_values("CycleDPI"),
-                reference_id_type="Gestures",
-                conn=conn, cursor=cursor
-            )
-            changehost = ChangeHost.fetch_all(
-                reference_ids=get_multiple_values("ChangeHost"),
-                reference_id_type="Gestures",
-                conn=conn, cursor=cursor
-            )
-            changedpi = ChangeDPI.fetch_all(
-                reference_ids=get_multiple_values("ChangeDPI"),
-                reference_id_type="Gestures",
-                conn=conn, cursor=cursor
-            )
-            axes = Axis.fetch_all(
-                reference_ids=get_multiple_values("Axis"),
-                reference_id_type="Gestures",
-                conn=conn, cursor=cursor
-            )
-
-            instance[direction] = GestureSettings(
-                direction, button, configuration, threshold, mode, selected_action_id, nopress,
-                togglesmartshift, togglehiresscroll, keypresses, axes, changehost, cycledpi, changedpi
-            )
-        return instance
-
-class GestureSettings:
-    def __init__(self,
-                direction,
-                button,
-                configuration,
-                threshold,
-                mode,
-                selected_action_id,
-                nopress,
-                togglesmartshift,
-                togglehiresscroll,
-                keypresses,
-                axes,
-                changehost,
-                cycledpi,
-                changedpi,
-                default=None
-                 ):
-        self.direction=direction
-        self.button=button
-        self.configuration=configuration
-        self.config_object = configuration
-        self.threshold=threshold
-        self.mode=mode
-        self.selected_action_id=selected_action_id
-        self.nopress=nopress
-        self.togglesmartshift=togglesmartshift
-        self.togglehiresscroll=togglehiresscroll
-        self.keypresses=keypresses
-        self.axes=axes
-        self.changehost=changehost
-        self.cycledpi=cycledpi
-        self.changedpi=changedpi
-        self.default = None
-
-    def update_selected(self, new_selected_id):
-        conn, cursor = execute_db_queries.create_db_connection()
-        cursor.execute("""UPDATE Gestures SET is_selected = 1 WHERE gesture_id = ?""", (new_selected_id,))
-        execute_db_queries.commit_changes_and_close(conn)
-        self.selected_action_id = new_selected_id
-
-    def update_threshold(self, new_threshold):
-        conn, cursor = execute_db_queries.create_db_connection()
-        cursor.execute("""
-                        UPDATE GestureProperties
-                       SET threshold = ?
-                       WHERE button_config_id = ?
-                       AND direction = ?
-                        """, (new_threshold, self.button.gestures.button_config_id, self.direction))
-        execute_db_queries.commit_changes_and_close(conn)
-        self.threshold = new_threshold
-
-    def update_mode(self, new_mode):
-        conn, cursor = execute_db_queries.create_db_connection()
-        cursor.execute("""
-                        UPDATE GestureProperties
-                       SET mode = ?
-                       WHERE button_config_id = ?
-                       AND direction = ?
-                        """, (new_mode, self.button.gestures.button_config_id, self.direction))
-        execute_db_queries.commit_changes_and_close(conn)
-        self.mode = new_mode
-
-    def get_added_order(self):
-        conn, cursor = execute_db_queries.create_db_connection()
-        cursor.execute("""SELECT gesture_id FROM Gestures WHERE button_config_id = ? AND direction = ? AND date_added IS NOT NULL ORDER BY date_added;""",(self.button.gestures.button_config_id, self.direction))
-        result = cursor.fetchall()
-        execute_db_queries.close_without_committing_changes(conn)
-        return [i[0] for i in result]
-
-    def add_new_keypress_action(self, keypresses):
-        new_gesture_id, conn, cursor = self.add_action("Keypress")
-        cursor.execute("""UPDATE Keypresses SET keypresses = ? WHERE action_id = ? AND source_table = 'Gestures'""", (keypresses, new_gesture_id))
-        execute_db_queries.commit_changes_and_close(conn)
-        self.keypresses[new_gesture_id] = Keypresses(keypresses=keypresses, reference_id=new_gesture_id, reference_id_type="Gestures")
-        return self.keypresses[new_gesture_id]
-    def delete_keypress_action(self, action_id):
-        self.delete_action(action_id)
-        del self.keypresses[action_id]
-
-    def add_new_axis_action(self, axis, axis_multiplier):
-        new_gesture_id, conn, cursor = self.add_action("Axis")
-        cursor.execute("""UPDATE Axes SET axis_button = ?, axis_multiplier = ? WHERE action_id = ? AND source_table = 'Gestures'""", (axis, axis_multiplier, new_gesture_id))
-        execute_db_queries.commit_changes_and_close(conn)
-        self.axes[new_gesture_id] = Axis(axis_button=axis, axis_multiplier=axis_multiplier, reference_id=new_gesture_id, reference_id_type="Gestures")
-        return self.axes[new_gesture_id]
-    def delete_axis_action(self, action_id):
-        self.delete_action(action_id)
-        del self.axes[action_id]
-
-    def add_new_changehost_action(self, host_change):
-        new_gesture_id, conn, cursor = self.add_action("ChangeHost")
-        cursor.execute("""UPDATE ChangeHost Set host_change = ? WHERE action_id = ? AND source_table = 'Gestures'""", (host_change, new_gesture_id))
-        execute_db_queries.commit_changes_and_close(conn)
-        self.changehost[new_gesture_id] = ChangeHost(host_change=host_change, reference_id=new_gesture_id, reference_id_type="Gestures")
-        return self.changehost[new_gesture_id]
-    def delete_changehost_action(self, action_id):
-        self.delete_action(action_id)
-        del self.changehost[action_id]
-
-    def add_new_changedpi_action(self, new_value):
-        new_gesture_id, conn, cursor = self.add_action("ChangeDPI")
-        cursor.execute("""UPDATE ChangeDPI Set increment = ? WHERE action_id = ? AND source_table = 'Gestures'""", (new_value, new_gesture_id))
-        execute_db_queries.commit_changes_and_close(conn)
-        self.changedpi[new_gesture_id] = ChangeDPI(increment=new_value, reference_id=new_gesture_id, reference_id_type="Gestures")
-        return self.changedpi[new_gesture_id]
-    def delete_cycledpi_action(self, action_id):
-        self.delete_action(action_id)
-        del self.cycledpi[action_id]
-
-    def add_new_cycledpi_action(self, dpi_array):
-        new_gesture_id, conn, cursor = self.add_action("CycleDPI")
-        cursor.execute("""UPDATE CycleDPI SET dpi_array = ? WHERE action_id = ? AND source_table = 'Gestures'""", (dpi_array, new_gesture_id))
-        execute_db_queries.commit_changes_and_close(conn)
-        self.cycledpi[new_gesture_id] = CycleDPI(dpi_array=dpi_array, reference_id=new_gesture_id, reference_id_type="Gestures")
-        return self.cycledpi[new_gesture_id]
-    def delete_changedpi_action(self, action_id):
-        self.delete_action(action_id)
-        del self.changedpi[action_id]
-
-    def delete_action(self, action_id):
-        conn, cursor = execute_db_queries.create_db_connection()
-        cursor.execute("""DELETE FROM Gestures WHERE gesture_id = ?""",(action_id,))
-        execute_db_queries.commit_changes_and_close(conn)
-
-    def add_action(self, action_type):
-        conn, cursor = execute_db_queries.create_db_connection()
-        cursor.execute("""INSERT INTO Gestures (button_config_id, direction, action_type) VALUES (?, ?, ?)""",(self.button.gestures.button_config_id, self.direction, action_type))
-        cursor.execute(
-            """
-            SELECT last_insert_rowid();
-            """
-            )
-        return cursor.fetchone()[0], conn, cursor
-
-    def request_selected_type(self):
-        conn, cursor = execute_db_queries.create_db_connection()
-        cursor.execute("""
-            SELECT action_type   
-            FROM Gestures
-            WHERE gesture_id = ?
-""", (self.selected_action_id,))
-        selected = cursor.fetchone()[0]
-        execute_db_queries.close_without_committing_changes(conn)
-        return selected
 
 class Axis():
     def __init__(

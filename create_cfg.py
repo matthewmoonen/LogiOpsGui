@@ -330,9 +330,7 @@ def get_cfg_location():
     execute_db_queries.close_without_committing_changes(conn)
     return cfg_location, cfg_filename
 
-
 def automatically_generate_in_home_directory(old_location=None):
-    # home_dir = "/etc"
     home_dir = os.path.expanduser("~")
     default_location = os.path.join(home_dir, "logid.cfg")
 
@@ -349,7 +347,7 @@ def automatically_generate_in_home_directory(old_location=None):
             elif not os.path.exists(location_to_check):
                 return found_new_location(location_to_check)
 
-def generate_config_file(cfg_dir, previously_tried_location=None):
+def generate_config_file(cfg_dir, previously_tried_location=None, fall_back_to_homedir=False):
     
     device_data = BackendData.Devices.get_all_devices()
 
@@ -371,7 +369,10 @@ def generate_config_file(cfg_dir, previously_tried_location=None):
     except PermissionError:
         if previously_tried_location:
             return f"Something went wrong. Do not have permission to write to {previously_tried_location} or {cfg_dir}"
-        return automatically_generate_in_home_directory(cfg_dir)
+        if fall_back_to_homedir:
+            return automatically_generate_in_home_directory(cfg_dir)
+        else:
+            return f"Do not have permission to write to {cfg_dir}"
 
     return f"Success! Config file saved as {cfg_dir}" if previously_tried_location is None else \
            f"Permission Error: Do not have permission to write to {previously_tried_location}. Saved as {cfg_dir} instead."
@@ -390,12 +391,12 @@ def generate_in_app_data():
     if os.path.exists(log_file_path):
         os.remove(log_file_path)
 
-    message = generate_config_file(log_file_path)
-    print(message)
+    return generate_config_file(log_file_path)
+    
 
 def generate_in_user_chosen_directory():
     directory = get_cfg_location()
-    if directory[0] == "default":
+    if directory[0] == "~":
         home_dir = os.path.expanduser("~")
         directory = os.path.join(home_dir, "logid.cfg")
     else:
@@ -404,17 +405,30 @@ def generate_in_user_chosen_directory():
     if os.path.exists(directory):
         try:
             os.remove(directory)
-        except PermissionError:
-            pass
+        except PermissionError as e:
+            return f"Do not have permission to write to user chosen directory: {e}"
 
     message = generate_config_file(directory)
     return message
 
+def set_overwrite_or_save_as_copy(new_setting):
+    conn, cursor = execute_db_queries.create_db_connection()
+    cursor.execute("""UPDATE UserSettings SET value = ? WHERE key = 'overwrite'""",(new_setting,))
+    execute_db_queries.commit_changes_and_close(conn)
+
+
+def get_overwrite_or_save_as_copy():
+    conn, cursor = execute_db_queries.create_db_connection()
+    cursor.execute("""SELECT value FROM UserSettings WHERE key = 'overwrite'""")
+    overwrite = cursor.fetchone()[0]
+    execute_db_queries.close_without_committing_changes(conn)
+    return True if overwrite == "True" else False if overwrite == "False" else "Error getting overwrite setting"
+
 
 def main():
-    generate_config_file()
-    
 
+    print(get_overwrite_or_save_as_copy())
+    generate_in_app_data()
 
 if __name__ == "__main__":
     main()

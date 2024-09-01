@@ -3,7 +3,7 @@ import logging
 import os
 import execute_db_queries
 import sqlite3
-
+import version
 
 def configure_logging():
 
@@ -19,7 +19,6 @@ def configure_logging():
 
 
 def initialise_database():
-    # TODO: Update this function with more complex logic to handle version control, new devices etc.
     
     database_path = 'app_data/app_records.db'
 
@@ -30,6 +29,7 @@ def initialise_database():
         execute_db_queries.execute_queries(cursor, parse_sql_file_into_array("create_tables.sql")) # Create database tables
         execute_db_queries.execute_queries(cursor, parse_sql_file_into_array("create_triggers.sql")) # Create database triggers
         execute_db_queries.execute_queries(cursor, parse_sql_file_into_array("insert_settings.sql")) # Create database triggers
+        cursor.execute("""INSERT INTO UserSettings(key, value) VALUES ('version', ?)""", (version.__version__,))
         add_devices(cursor)
 
         conn.commit()
@@ -130,13 +130,6 @@ def add_devices(cursor):
     except sqlite3.Error as e:
         logging.error(e)
 
-
-
-# TODO: Create a query for duplicating configs. 
-    # - New ButtonConfigs will automatically propagate with default values, so need to create Python that forces copy of these
-    # - New Gesture IDs will automatically propagate with default values, so as above
-    # - Unique constraints prevent duplicate entries (good), so just need to get the values from the tables and duplicate them
-    # OR COULD this be done somehow through triggers? Specify a way to denote a copy versus a new insertion, and then let 
 
 
 
