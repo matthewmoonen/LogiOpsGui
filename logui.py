@@ -341,43 +341,29 @@ class FrontPage(ctk.CTkFrame):
                                                                                                                  size=16),)
 
         set_logid_path_button = ctk.CTkButton(master=left_frame,text="Save Copy", height=45, width=200,
-
-                                            # border_color="#8847C4",
-                                            # text_color="#8847C4",
-                                            
                                             border_color="gray60",
                                             text_color="gray60",
-
-
-                                            
                                                hover_color="#303030",
-                                            #    hover_color="#282828",
-
-
-                                            border_width=3,
+                                            border_width=2,
                                             corner_radius=0,
-# fg_color="transparent",
 fg_color="#282828",
-
-
-                                            # text_color="#292929",   
                                             font=ctk.CTkFont(size=14, family="Noto Sans"),
                                               command=lambda: FileBrowserWindow.BrowserWindow(self, permitted_extensions="cfg", default_extension="cfg", current_path=self.cfg_location, current_filename=self.cfg_filename, on_select=handle_file_selection))
         restart_label = ctk.CTkLabel(master=cfg_frame, text="LogiOps Service", font=ctk.CTkFont(family="Noto Sans", 
                                                                                                                  size=17),)
         
         restart_logid_button = ctk.CTkButton(master=cfg_frame, 
-                                             fg_color="#262626",
+                                             fg_color="#282828",
 
                                                hover_color="#303030",
 
-                                             height=55, width=320,
+                                             height=40, width=250,
 
-                                            border_color="gray75",
-                                            text_color="gray75",
+                                            border_color="gray60",
+                                            text_color="gray60",
 
-                                             font=ctk.CTkFont(size=14, family="Noto Sans"),
-                                              border_width=3,
+                                             font=ctk.CTkFont(size=12, family="Noto Sans"),
+                                              border_width=1,
                                                text="Apply Changes & Restart", command=update_restart_logid,
                                                corner_radius=0,
                                                )
@@ -405,7 +391,7 @@ fg_color="#282828",
 
         set_logid_path_button.pack()
         restart_label.pack(pady=(40, 5))
-        restart_logid_button.pack(pady=(0,0))
+        restart_logid_button.pack(pady=(5,5))
 
         def create_settings_window():
             settings_window = ctk.CTkToplevel(master)
@@ -2166,7 +2152,7 @@ class SystemMemory:
         return mem.used  # in bytes
 
 
-def setup_gui(root, start_in_background=None, arg2=None):
+def setup_gui(root):
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("dark-blue")
     
@@ -2196,7 +2182,7 @@ def main():
     ctk.set_window_scaling(window_scaling)
     ctk.set_widget_scaling(widget_scaling)
     root.attributes('-alpha', 0.1)
-    # root.geometry(geometry)
+
     root.resizable(True, True)
     root.title("LogiOpsGUI")
 
@@ -2220,14 +2206,11 @@ def main():
 
     root.withdraw() 
 
-
     root.attributes('-alpha', 1.0)    
     root.after(600, root.deiconify)
 
     splash.destroy()
     root.overrideredirect(False)
-
-
 
     def center_window2():
 
@@ -2237,11 +2220,11 @@ def main():
         window_width = root.winfo_reqwidth()
         window_height = root.winfo_reqheight()
 
-        x = (screen_width // 2) - window_width*2
-        y = (screen_height // 2) - window_height*5
+        x = (screen_width // 2) - (int(geometry.split("x")[0]) // 2)
+        y = (screen_height // 2) - (int(geometry.split("x")[1]) // 2) - 20
         
         root.geometry(f"{window_width}x{window_height}+{x}+{y}")
-    
+
     center_window2()  # Re-center the window after restoring the title bar
     
     root.geometry(geometry)
