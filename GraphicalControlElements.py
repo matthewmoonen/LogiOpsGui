@@ -101,6 +101,9 @@ class MatthewsRadioButton:
         """Update the text of the radio button."""
         self.button.configure(text=new_text)
 
+class SettingsButton(ctk.CTkButton):
+    pass
+
 class FloatSpinbox(ctk.CTkFrame):
     def __init__(self, *args, width: int = 100, height: int = 32, step_size: float = 1.0, min_value: float = None, 
                  max_value: float = None, decimal_places: int = 1, command: Callable = None, db_query=None, value=None, **kwargs):

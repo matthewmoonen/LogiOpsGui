@@ -177,51 +177,19 @@ class UserDevice(Device):
 
         next_config_name = self.get_next_sequential_name(self.device_name, similar_names_as_strings)
 
-        cursor.execute("""
-                    SELECT smartshift_support, hires_scroll_support, has_thumbwheel
-                    FROM Devices
-                    WHERE device_id = ?
-    """, (self.device_id,))
+        cursor.execute("""UPDATE Devices SET is_user_device = 2 WHERE device_id = ?""", (self.device_id,))
 
-        smartshift_support, hires_scroll_support, has_thumbwheel = cursor.fetchone()
-
-        if bool(smartshift_support) == True:
-            smartshift_on = 1
-            smartshift_threshold = smartshift_torque = 10
-        else:
-            smartshift_on = smartshift_threshold = smartshift_torque = None
+        cursor.execute(
+            """
+            SELECT MAX(configuration_id)
+            FROM Configurations
+            """
+            )
 
 
-        if bool(hires_scroll_support) == True:
-            hiresscroll_hires = hiresscroll_invert = hiresscroll_target = True
+        newest_configuration_id = cursor.fetchone()[0]
 
-        else:
-            hiresscroll_hires = hiresscroll_invert = hiresscroll_target = None
-
-        if bool(has_thumbwheel) == True:
-            thumbwheel_divert = thumbwheel_invert = True
-
-        else:
-            thumbwheel_divert = thumbwheel_invert = None
-
-        cursor.execute("""
-        INSERT INTO Configurations (
-            device_id,
-            configuration_name,
-            last_modified,
-            is_selected,
-            smartshift_on,
-            smartshift_threshold,
-            smartshift_torque,
-            hiresscroll_hires,
-            hiresscroll_invert,
-            hiresscroll_target,
-            thumbwheel_divert,
-            thumbwheel_invert
-        ) VALUES (?, ?, NULL, 0, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (self.device_id, next_config_name, smartshift_on, smartshift_threshold, smartshift_torque, hiresscroll_hires, hiresscroll_invert, hiresscroll_target, thumbwheel_divert, thumbwheel_invert)) 
-
-        newest_configuration_id = cursor.lastrowid
+        cursor.execute("""UPDATE Configurations SET configuration_name = ? WHERE configuration_id = ?""", (next_config_name, newest_configuration_id))
 
         execute_db_queries.commit_changes_and_close(conn)
         

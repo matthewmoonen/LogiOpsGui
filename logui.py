@@ -2,7 +2,6 @@ import customtkinter as ctk
 import logging
 import create_app_data
 import execute_db_queries
-import Classes
 from CTkMessagebox import CTkMessagebox
 import threading
 import keymates
@@ -10,20 +9,14 @@ import json
 import FileBrowserWindow
 import create_cfg
 import ast
-import needs_super
 import alleventcodes
 import psutil
 import os
-import socket
-import time
 import gui_variables
 from PIL import Image
 import subprocess
 import BackendData
 from GraphicalControlElements import svg_to_image, MatthewsRadioButton, FloatSpinbox, IntSpinbox
-
-
-
 
 
 class DeviceDropdown(ctk.CTkFrame):
@@ -68,36 +61,11 @@ class DeviceDropdown(ctk.CTkFrame):
         self.add_device_button.configure(command=self.add_device_button_clicked) 
 
 
-
-class NewDeviceSplash1(ctk.CTkFrame):
-    def __init__(self, master, text, *args, **kwargs):
-        super().__init__(master, fg_color="transparent", *args, **kwargs)
-
-        self.title_label = ctk.CTkLabel(master=self, text=text, font=ctk.CTkFont(family="Roboto", size=60), text_color="#242424")
-
-        self.colours_array = [  '#242424', '#2C2C2C', '#353535', '#3D3D3D',
-                                '#454545', '#4D4D4D', '#565656', '#5E5E5E',
-                                '#666666', '#6E6E6E', '#777777', '#7F7F7F']
-
-        self.fade_in_index = 0
-        self.fade_in()
-
-    def fade_in(self):
-        self.title_label.pack(expand=True)
-        self.change_colour()
-
-    def change_colour(self):
-        if self.fade_in_index < len(self.colours_array):
-            current_colour = self.colours_array[self.fade_in_index]
-            self.title_label.configure(text_color=current_colour)
-            self.fade_in_index += 1
-            self.after(5, self.change_colour) 
-
-class NewDeviceSplash(ctk.CTkFrame):
+class SplashScreen(ctk.CTkFrame):
     def __init__(self, master, text, text_color="#4D4D4D", *args, **kwargs):
         super().__init__(master, fg_color="transparent", *args, **kwargs)
         
-        label = ctk.CTkLabel(master=self, text=text, font=ctk.CTkFont(family="Roboto", size=60), text_color=text_color)
+        label = ctk.CTkLabel(master=self, text=text, font=ctk.CTkFont(family="Noto Sans", size=60), text_color=text_color)
         label.pack(expand=True)
         
 
@@ -148,8 +116,8 @@ class ConfigurationFrame:
                 try:
                     self.front_page.edit_windows[(self.config.device_id, self.config.configuration_id)].destroy()
                     del self.front_page.edit_windows[(self.config.device_id, self.config.configuration_id)] 
-                except KeyError:
-                    print("key error in configuration frame")
+                except KeyError as e:
+                    logging.error(f"Key error in configuration frame {e}")
             
                 if self.radio_button.is_selected == True:
                     self.device_frame.configuration_frames[self.config.user_device_object.selected_config].radio_button.set_clicked()
@@ -167,7 +135,7 @@ class DeviceFrame(ctk.CTkFrame):
         self.user_device = user_device
         self.configurations = user_device.configurations
 
-        self.frame_title = ctk.CTkLabel(master=self, text=user_device.device_name, font=ctk.CTkFont(family="Roboto", size=60), text_color="gray50")
+        self.frame_title = ctk.CTkLabel(master=self, text=user_device.device_name, font=ctk.CTkFont(family="Noto Sans", size=60), text_color="gray50")
         self.frame_title.pack(fill="x", expand=False, pady=20)
 
         self.device_options_frame = ctk.CTkFrame(master=self, corner_radius=0, fg_color="transparent")
@@ -302,6 +270,7 @@ class LeftButtons(ctk.CTkFrame):
             else:
                 self.front_page.device_frame_dict.pack_a_frame()
 
+
 class FrontPage(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master, fg_color="transparent")
@@ -310,12 +279,9 @@ class FrontPage(ctk.CTkFrame):
         self.edit_windows = {}
 
         left_frame = ctk.CTkFrame(master=self, fg_color=gui_variables.bg_grey7)
-        left_frame.grid(row=0, column=0, sticky="nsew")
+        left_frame.grid(row=0, column=0, sticky="nsew", rowspan=2)
 
-        # app_title_image = ctk.CTkImage(light_image=Image.open(os.path.join("images/logo.png")), size=(392, 132))
         app_title_image = ctk.CTkImage(light_image=Image.open(os.path.join("images/logo.png")), size=(392*1.15, 132*1.15))
-        # app_title_image = ctk.CTkImage(light_image=Image.open(os.path.join("images/logo.png")), size=(470, 158))
-        # app_title_image = ctk.CTkImage(light_image=Image.open(os.path.join("images/logo.png")), size=(490, 165))
         
         app_title = ctk.CTkLabel(master=left_frame, image=app_title_image, text='')
         app_title.pack(padx=(0, 7), pady=(40,40))
@@ -324,27 +290,98 @@ class FrontPage(ctk.CTkFrame):
             self.cfg_location, self.cfg_filename = create_cfg.set_cfg_location(selected_path, selected_filename)
             self.show_cfg_location.configure(text=f"{self.cfg_location}/{self.cfg_filename}")
 
-        def on_create_cfg_button_click():            
-            cfg_message = create_cfg.generate_in_user_chosen_directory()
-            CTkMessagebox(title="Error", message=cfg_message, option_1="OK", width=600, height=300, fade_in_duration=200)
 
         def update_restart_logid():
             create_cfg.generate_in_app_data()
             script_dir = os.path.dirname(os.path.abspath(__file__))
-            bash_script = os.path.join(script_dir, 'restart_sctl.sh')
-            result = subprocess.run(['sudo', '-n', 'bash', bash_script], capture_output=True, text=True)
-            # TODO: create popup.
-            print("Output:", result.stdout)
-            print("Error:", result.stderr)
-            print("Return Code:", result.returncode)
+            
+            bash_script = os.path.join(script_dir, 'save-restart.sh')
+            
+            # logid_installed = not bool(subprocess.run(["which", "logid"]).returncode)
 
-        ignored_devices_label = gui_variables.MainPageLabel1(master=left_frame, text="Ignored Devices",)
-        cfg_file_label = ctk.CTkLabel(master=left_frame, text="Logid Configuration", font=ctk.CTkFont(family="Noto Sans", weight="bold", size=20),)
+            result = subprocess.run(['sudo', '-n', 'bash', bash_script], capture_output=True, text=True)
+
+            def parse_logid_status(result):
+                output_lines = result.stdout.splitlines()
+                active_status = None
+
+                for line in output_lines:
+                    if 'Active:' in line:
+                        active_status = line.split('Active:')[1].strip().split(")")[0] + ")" 
+                        break
+
+                if active_status:
+                    CTkMessagebox(title="Restarted", message=f"Restarted logid.\n\n {active_status}", icon="check", option_1="OK", width=600, height=300, fade_in_duration=200)
+
+
+            if result == 0:
+                parse_logid_status(result)
+
+            if result.returncode == 1:
+                try:
+
+                    result = subprocess.run(['pkexec', 'bash', bash_script], capture_output=True, text=True)
+                except FileNotFoundError:
+                    CTkMessagebox(title="Error", icon="cancel", message="ERROR: Not completed: Could not obtain permissions. \n\nSave a copy of the .cfg file and copy/restart from the terminal, or refer to the documentation. \
+                                   \n\nPython FileNotFoundError: it appears that pkexec is not installed", option_1="OK", width=600, height=300, fade_in_duration=200)
+                else:
+                    if result.returncode == 127:
+                        CTkMessagebox(title="Error", icon="cancel", message="ERROR: Not completed. Could not obtain permissions. \n\nSave a copy of the .cfg file and copy/restart from the terminal, or refer to the documentation. \
+                                   \n\npkexec returncode 127.", option_1="OK", width=600, height=300, fade_in_duration=200)
+                    elif result.returncode == 0:
+                        parse_logid_status(result)
+
+
         self.cfg_location, self.cfg_filename = create_cfg.get_cfg_location()
-        self.show_cfg_location = ctk.CTkLabel(master=left_frame, text=f"{self.cfg_location}/{self.cfg_filename}" if self.cfg_location != "default" else "etc/logid.cfg")
-        create_cfg_button = ctk.CTkButton(master=left_frame, text="Create CFG", command=on_create_cfg_button_click)
-        set_logid_path_button = ctk.CTkButton(master=left_frame,text="Edit CFG Location",command=lambda: FileBrowserWindow.BrowserWindow(self, permitted_formats="cfg", current_path=self.cfg_location, current_filename=self.cfg_filename, on_select=handle_file_selection))
-        restart_logid_button = ctk.CTkButton(master=left_frame, text="Apply Changes and Restart Logid", command=update_restart_logid)
+
+        cfg_frame = ctk.CTkFrame(master=left_frame, fg_color="transparent")
+        
+
+        cfg_file_label = ctk.CTkLabel(master=left_frame, text="Configuration File", font=ctk.CTkFont(family="Noto Sans",
+                                                                                                                 size=16),)
+
+        set_logid_path_button = ctk.CTkButton(master=left_frame,text="Save Copy", height=45, width=200,
+
+                                            # border_color="#8847C4",
+                                            # text_color="#8847C4",
+                                            
+                                            border_color="gray60",
+                                            text_color="gray60",
+
+
+                                            
+                                               hover_color="#303030",
+                                            #    hover_color="#282828",
+
+
+                                            border_width=3,
+                                            corner_radius=0,
+# fg_color="transparent",
+fg_color="#282828",
+
+
+                                            # text_color="#292929",   
+                                            font=ctk.CTkFont(size=14, family="Noto Sans"),
+                                              command=lambda: FileBrowserWindow.BrowserWindow(self, permitted_extensions="cfg", default_extension="cfg", current_path=self.cfg_location, current_filename=self.cfg_filename, on_select=handle_file_selection))
+        restart_label = ctk.CTkLabel(master=cfg_frame, text="LogiOps Service", font=ctk.CTkFont(family="Noto Sans", 
+                                                                                                                 size=17),)
+        
+        restart_logid_button = ctk.CTkButton(master=cfg_frame, 
+                                             fg_color="#262626",
+
+                                               hover_color="#303030",
+
+                                             height=55, width=320,
+
+                                            border_color="gray75",
+                                            text_color="gray75",
+
+                                             font=ctk.CTkFont(size=14, family="Noto Sans"),
+                                              border_width=3,
+                                               text="Apply Changes & Restart", command=update_restart_logid,
+                                               corner_radius=0,
+                                               )
+        
 
         right_frame = ctk.CTkFrame(master=self, corner_radius=0, fg_color="transparent")
         right_frame.grid(row=0, column=1, sticky="nsew")
@@ -362,19 +399,17 @@ class FrontPage(ctk.CTkFrame):
         self.device_frame_dict = DeviceFrameController(master=right_frame, front_page=self,)
         self.left_buttons = LeftButtons(master=left_frame, front_page=self, fg_color="transparent")
         self.left_buttons.pack(anchor="w", fill="x")
-        ignored_devices_label.pack()
-        cfg_file_label.pack()
-        self.show_cfg_location.pack()
-        create_cfg_button.pack()
-        set_logid_path_button.pack()
-        restart_logid_button.pack()
+        
+        cfg_frame.pack(side="bottom", anchor="s", fill="x")
+        cfg_file_label.pack(pady=(30,5))
 
-        bottom_frame = ctk.CTkFrame(master=self, fg_color="transparent")
-        bottom_frame.grid(row=1, column=0, sticky="ew",columnspan=2)
+        set_logid_path_button.pack()
+        restart_label.pack(pady=(40, 5))
+        restart_logid_button.pack(pady=(0,0))
 
         def create_settings_window():
             settings_window = ctk.CTkToplevel(master)
-            settings_window.title = "Settings"
+            settings_window.title("Settings")
             settings_window.geometry("800x800")
 
             def set_widget_scaling(value):
@@ -389,26 +424,30 @@ class FrontPage(ctk.CTkFrame):
                 cursor.execute("""UPDATE UserSettings SET value = ? WHERE key = 'window_scaling'""",(value,))
                 execute_db_queries.commit_changes_and_close(conn)
 
+            sw_label = ctk.CTkLabel(master=settings_window, text="Advanced Settings", font=ctk.CTkFont(size=40), text_color=gui_variables.standard_red6)
+            sw_label.pack(pady=50)
+            sw2 = ctk.CTkFrame(master=settings_window, corner_radius=0, fg_color="#212121")
+            sw2.pack(fill="both", padx=10, pady=10)
             window_scaling, widget_scaling, geometry = get_geometry_and_window_and_widget_scaling()
 
-            widget_scaling_label = ctk.CTkLabel(master=settings_window, text="Widget Scaling")
-            widget_scaling_label.pack()
-            widget_scaling_button = FloatSpinbox(master=settings_window, value=widget_scaling, width=200, step_size=0.05, decimal_places=2, min_value=-1000, max_value=1000, command=lambda: set_widget_scaling(widget_scaling_button.get()))
+            widget_scaling_label = ctk.CTkLabel(master=sw2, text="Widget Scaling")
+            widget_scaling_label.pack(pady=(20,0))
+            widget_scaling_button = FloatSpinbox(master=sw2, value=widget_scaling, width=200, step_size=0.05, decimal_places=2, min_value=-1000, max_value=1000, command=lambda: set_widget_scaling(widget_scaling_button.get()))
             widget_scaling_button.pack()
             
-            window_scaling_label = ctk.CTkLabel(master=settings_window, text="Window Scaling")
-            window_scaling_label.pack()
-            window_scaling_button = FloatSpinbox(master=settings_window, value=window_scaling, width=200, step_size=0.05, decimal_places=2, min_value=-1000, max_value=1000, command=lambda: set_window_scaling(window_scaling_button.get()))
+            window_scaling_label = ctk.CTkLabel(master=sw2, text="Window Scaling")
+            window_scaling_label.pack(pady=(20,0))
+            window_scaling_button = FloatSpinbox(master=sw2, value=window_scaling, width=200, step_size=0.05, decimal_places=2, min_value=-1000, max_value=1000, command=lambda: set_window_scaling(window_scaling_button.get()))
             
             window_scaling_button.pack()
 
             current_dimensions = f"{int(master.winfo_width()/window_scaling_button.get())}x{int(master.winfo_height()/window_scaling_button.get())}"
-            current_dimensions_label = ctk.CTkLabel(master=settings_window, text=f"Current Dimensions: {current_dimensions}")
-            current_dimensions_label.pack()
-            startup_dimensions_label = ctk.CTkLabel(master=settings_window, text=f"Dimensions on Startup: {geometry}")
-            startup_dimensions_label.pack()
+            current_dimensions_label = ctk.CTkLabel(master=sw2, text=f"Current Dimensions: {current_dimensions}")
+            current_dimensions_label.pack(pady=(50,0))
+            startup_dimensions_label = ctk.CTkLabel(master=sw2, text=f"Dimensions on Startup: {geometry}")
+            startup_dimensions_label.pack(pady=(0,20))
 
-            manually_update_label = ctk.CTkLabel(master=settings_window, text="Manually Update Dimensions")
+            manually_update_label = ctk.CTkLabel(master=sw2, text="Manually Update Dimensions")
             manually_update_label.pack()
 
             def manually_update():
@@ -421,22 +460,24 @@ class FrontPage(ctk.CTkFrame):
                 current_dimensions_label.configure(text=f"Current Dimensions: {new_geometry}")
                 startup_dimensions_label.configure(text=f"Startup Dimensions: {new_geometry}")
 
-            width_button = IntSpinbox(master=settings_window, value=int(master.winfo_width()/window_scaling_button.get()), width=200, step_size=10, min_value=100, max_value=7680)
+            width_button = IntSpinbox(master=sw2, value=int(master.winfo_width()/window_scaling_button.get()), width=200, step_size=10, min_value=100, max_value=7680)
             width_button.pack()
-            height_button = IntSpinbox(master=settings_window, value=int(master.winfo_height()/window_scaling_button.get()), width=200, step_size=10, min_value=100, max_value=4320)
+            height_button = IntSpinbox(master=sw2, value=int(master.winfo_height()/window_scaling_button.get()), width=200, step_size=10, min_value=100, max_value=4320)
             height_button.pack()
-            manually_update_button = ctk.CTkButton(master=settings_window, text="Set Dimensions", command=manually_update)
-            manually_update_button.pack()
+            manually_update_button = ctk.CTkButton(master=sw2, text="Set Dimensions", command=manually_update, height=35, width=150)
+            manually_update_button.pack(pady=30)
 
-        settings_window_button = ctk.CTkButton(master=bottom_frame, height=40, width=120, text="App Settings", command=create_settings_window)
-        settings_window_button.grid(pady=30, sticky="w")
+        image_hover = svg_to_image(path="images/settings_icon_hover.svg", output_height=35, output_width=35)
+        image_not_hover = svg_to_image(path="images/settings_icon.svg", output_height=35, output_width=35)
+        settings_window_button = ctk.CTkButton(master=cfg_frame, height=40, width=40, text="", fg_color="transparent", image=image_not_hover, hover=False, command=create_settings_window)
+        settings_window_button.pack(pady=(0,15), padx=15, anchor="w")
 
-        bottom_frame.grid_columnconfigure((0), weight=1)
+        settings_window_button.bind('<Enter>', lambda event: settings_window_button.configure(image=image_hover))
+        settings_window_button.bind('<Leave>', lambda event: settings_window_button.configure(image=image_not_hover))
 
         self.grid_columnconfigure(0, weight=0)  # Do not expand left_frame column
         self.grid_columnconfigure(1, weight=1)  # Allow right_frame column to expand
         self.grid_rowconfigure(0, weight=1)     # Allow right_frame row to expand
-        self.grid_rowconfigure(1, weight=0)     # Keep bottom_frame from expanding vertically
 
         self.master.protocol("WM_DELETE_WINDOW", self.on_close)  # Customize close button behavior
 
@@ -469,7 +510,7 @@ class FrontPage(ctk.CTkFrame):
         self.edit_configuration(configuration_id=new_configuration_id, configuration_object=new_configuration, device_id=new_device_id, radio_button=radio_button)
 
     def make_a_splash(self, text="LogiOpsGUI"):
-        self.splash = NewDeviceSplash(master=self.master, text=text, text_color="#3D3D3D")
+        self.splash = SplashScreen(master=self.master, text=text, text_color="#171717")
         self.splash.pack(fill="both", expand=True)
 
     def take_a_splash(self):
@@ -512,17 +553,18 @@ class FrontPage(ctk.CTkFrame):
                                 radio_button = self.device_frame_dict[i.device_id].configuration_frames[j].radio_button
                                 self.edit_configuration(configuration_id=j, device_id=i.device_id, radio_button=radio_button, add_to_dictionary=True)
                             except KeyError as e:
-                                print(f"KeyError accessing radio_button: {e}")
+                                logging.error(f"KeyError accessing radio_button: {e}")
                         else:
-                            print(f"Error: device_id {i.device_id} not found in device_frame_dict.")
+                            pass
                     else:
-                        print("already there")
+                        pass
                 except Exception as e:
                     print(f"Exception occurred: {e}")
 
         self.stop_event.set()
-        print("windows created")
-        print(SystemMemory.get_memory_usage_mb())
+        
+        # print("windows created")
+        # print(SystemMemory.get_memory_usage_mb())
 
     def edit_configuration(self, configuration_id, radio_button, device_id, configuration_object=None, add_to_dictionary=False ):
         if configuration_object == None:
@@ -569,7 +611,6 @@ class EditConfigFrame(ctk.CTkFrame):
         self.frame00 = ctk.CTkFrame(master=self, fg_color="#343434", corner_radius=0, height=20)
         self.frame00.grid(row=0, column=0, columnspan=2, sticky="nsew", pady=10)
 
-        # device_name_label = ctk.CTkLabel(master=self.frame00, text=configuration.device_name, font=ctk.CTkFont( family="Noto Sans", size=30 if len(configuration.device_name) < 15 else 20, ), text_color=gui_variables.primary_colour, pady=(20), corner_radius=0 )
         device_name_label = ctk.CTkLabel(master=self.frame00, text=configuration.device_name, font=ctk.CTkFont( family="Noto Sans", size=30 if len(configuration.device_name) < 15 else 28, ), text_color=gui_variables.primary_colour, pady=(12), corner_radius=0 )
 
         device_name_label.pack()
@@ -584,7 +625,7 @@ class EditConfigFrame(ctk.CTkFrame):
                                     height=50,
                                     font=ctk.CTkFont(size=20)
                                     )
-        # back_button.grid(row=2, column=0)
+        
         back_button.pack(pady=(30,20))
 
         self.left_buttons_dictionary = {}
@@ -701,9 +742,9 @@ class EditConfigFrame(ctk.CTkFrame):
             spinbox_frame = ctk.CTkFrame(master=smartshift_frame, fg_color="transparent", corner_radius=0)
             spinbox_frame.pack(padx=0, pady=0)
 
-            smartshift_threshold_label = ctk.CTkLabel(master=spinbox_frame, text=("Threshold"), font=ctk.CTkFont(family="Roboto",size=15,), text_color="gray70",)
+            smartshift_threshold_label = ctk.CTkLabel(master=spinbox_frame, text=("Threshold"), font=ctk.CTkFont(family="Noto Sans",size=15,), text_color="gray70",)
             smartshift_threshold_spinbox = IntSpinbox(master=spinbox_frame, db_query=configuration.update_smartshift_threshold, width=150, height=29, step_size=5, min_value=1, max_value=255, value=configuration.smartshift_threshold)            
-            smartshift_torque_label = ctk.CTkLabel(master=spinbox_frame, text=("Torque"), font=ctk.CTkFont(family="Roboto",size=15,), text_color="gray70",)
+            smartshift_torque_label = ctk.CTkLabel(master=spinbox_frame, text=("Torque"), font=ctk.CTkFont(family="Noto Sans",size=15,), text_color="gray70",)
 
             smartshift_torque_spinbox = IntSpinbox(master=spinbox_frame, db_query=configuration.update_smartshift_torque, width=150, height=29, step_size=5, min_value=1, max_value=255, value=configuration.smartshift_torque )
             smartshift_torque_spinbox.set(configuration.smartshift_torque) #TODO: Update
@@ -797,13 +838,11 @@ class EditConfigFrame(ctk.CTkFrame):
 
     def ttp_button_clicked(self, menu):
         if menu not in self.frames.keys():
-            print("creating ttp frame now")
             self.create_ttp_frame(menu)
         self.left_button_clicked(clicked_menu_item=menu)
 
     def scroll_button_clicked(self, direction):
         if direction not in self.frames.keys():
-            print("creating scroll frame now")
             self.create_scroll_frame(direction)
         self.left_button_clicked(clicked_menu_item=direction)
 
@@ -812,7 +851,6 @@ class EditConfigFrame(ctk.CTkFrame):
 
     def show_button_config_frame(self, button_reference):
         if button_reference not in self.frames.keys():
-            print("creating now")
             self.create_button_config_frame(button_reference)
         self.left_button_clicked(clicked_menu_item=button_reference)
 
@@ -849,7 +887,6 @@ class EditConfigFrame(ctk.CTkFrame):
                 del self.front_page.edit_windows[(self.configuration.device_id, self.configuration.configuration_id)]
 
             except KeyError as e:
-                print(e)
                 logging.error(f"EditConfigFrame.go_back KeyError: {e}")
             self.front_page.edit_windows[(self.configuration.device_id,self.configuration.configuration_id)] = self
         if self.add_action_frame is not None:
@@ -954,10 +991,6 @@ class AddKeypressFrame(ctk.CTkFrame):
 
         self.bottom_frame = ctk.CTkFrame(master=bottom_button_frame, fg_color="transparent", corner_radius=0, height=50)
 
-        # self.keypress_button_frame = ctk.CTkFrame(master=self, fg_color="transparent", height=60)
-        # self.keypress_button_frame.pack()
-        # self.keypress_button_frame.pack_propagate(False)
-
 
         self.click_box = ctk.CTkButton(master=self, border_spacing=80, corner_radius=0)
 
@@ -998,7 +1031,7 @@ class AddKeypressFrame(ctk.CTkFrame):
                                             #   text_color="black",
                                               text_color="gray80",
 
-                                            font=ctk.CTkFont(family="Roboto", size=16)
+                                            font=ctk.CTkFont(family="Noto Sans", size=16)
                                             )
         self.stop_recording_button.pack(side="bottom", anchor="e")
 
@@ -1030,12 +1063,12 @@ class AddKeypressFrame(ctk.CTkFrame):
                                              text="Save new shortcut", command=self.save_button_clicked, corner_radius=0,
                                              height=50, width=250,
                                             fg_color=gui_variables.standard_green1, hover_color=gui_variables.standard_green3,
-                                             font=ctk.CTkFont(family="Roboto", size=16), 
+                                             font=ctk.CTkFont(family="Noto Sans", size=16), 
                                             #  text_color="black"
                                              )
             self.save_button.pack(side="right")
             self.reset_button = ctk.CTkButton(master=self.bottom_frame, text="Reset", height=50, width=130, command=self.initialise_clickbox, fg_color=gui_variables.standard_red4, corner_radius=0, hover_color=gui_variables.standard_red6,
-                                              font=ctk.CTkFont(family="Roboto", size=15),
+                                              font=ctk.CTkFont(family="Noto Sans", size=15),
                                               text_color="gray85"
                                               )
             self.reset_button.pack(side="left", padx=(0,40))
@@ -1053,8 +1086,6 @@ class AddKeypressFrame(ctk.CTkFrame):
     def pack_forget(self, *args, **kwargs):
         if hasattr(self, 'stop_recording_button'):
             self.deactivate_key_listener()
-        else:
-            print("no button")
         super().pack_forget(*args, **kwargs)
 
     def handle_key_press(self, event):
@@ -1113,7 +1144,7 @@ class AddCycleDPI(ctk.CTkFrame):
         
         self.hidden_frame=ctk.CTkFrame(master=label_spinbox_container, fg_color="transparent", height=4)
 
-        label=ctk.CTkLabel(master=label_spinbox_container, text="DPI Value", font=ctk.CTkFont(family="Roboto", size=16,))
+        label=ctk.CTkLabel(master=label_spinbox_container, text="DPI Value", font=ctk.CTkFont(family="Noto Sans", size=16,))
         label.grid(column=0, row=0, sticky="ew")
         label_spinbox_container.grid_columnconfigure(1, weight=2)
 
@@ -1135,11 +1166,11 @@ class AddCycleDPI(ctk.CTkFrame):
                                                 #    text_color_disabled=("#9FA5AB"),
                                                 #    text_color_disabled=("red"),
 
-                                                     font=ctk.CTkFont( size=15, family="Roboto"))
+                                                     font=ctk.CTkFont( size=15, family="Noto Sans"))
         # self.add_to_array_button.pack(side="right", anchor="se",)
         self.add_to_array_button.grid(row=0, column=1, rowspan=2, sticky="se")
 
-        self.save_button = ctk.CTkButton(master=self.bottom_frame, height=50, width=250, text="Save CycleDPI Array", state="disabled", command=self.save_button_clicked, text_color="white", text_color_disabled=("#9FA5AB"), fg_color=gui_variables.secondary_colour, hover_color=gui_variables.standard_green3, font=ctk.CTkFont( size=14, family="Roboto"))
+        self.save_button = ctk.CTkButton(master=self.bottom_frame, height=50, width=250, text="Save CycleDPI Array", state="disabled", command=self.save_button_clicked, text_color="white", text_color_disabled=("#9FA5AB"), fg_color=gui_variables.secondary_colour, hover_color=gui_variables.standard_green3, font=ctk.CTkFont( size=14, family="Noto Sans"))
         self.save_button.pack()
 
         self.array_frame_container = ctk.CTkFrame(master=self, fg_color="transparent")
@@ -1215,8 +1246,6 @@ class AddCycleDPI(ctk.CTkFrame):
             self.add_to_array_frame(value=value_to_add)
 
 
-
-# ///
 class AddAxisFrame(ctk.CTkFrame):
     def __init__(self, master, settings_object, action_selection_frame, bottom_button_frame, go_back):
         super().__init__(master, fg_color="#292929")
@@ -1245,12 +1274,15 @@ class AddAxisFrame(ctk.CTkFrame):
             height=40,
             command=self.enable_save_button
         )
-        axis_dropdown.pack(side="top", anchor="n", padx=100, pady=(100, 334))
+        axis_dropdown.pack(side="left", anchor="nw", padx=(40,0), pady=(60, 368))
 
-        multiplier_label=ctk.CTkLabel(master=self, text="Axis Multiplier")
+
+        multiplier_frame = ctk.CTkFrame(master=self, fg_color="transparent")
+        multiplier_frame.pack(side="right", anchor="ne", pady=(30,0), padx=(0,40))
+        multiplier_label=ctk.CTkLabel(master=multiplier_frame, text="Axis Multiplier")
         multiplier_label.pack()
         multiplier_floatspinbox = FloatSpinbox(
-            master=self,
+            master=multiplier_frame,
             value=1,
             width=200,
             step_size=0.1,
@@ -1258,21 +1290,23 @@ class AddAxisFrame(ctk.CTkFrame):
             max_value=9999
         )
         multiplier_floatspinbox.pack()
-
-        self.save_button = ctk.CTkButton(
-            master=self.bottom_frame,
-            text="Save New Action",
-            command=lambda: self.save_button_clicked(
-                axis_dropdown_variable.get().split(" (")[0],
-                multiplier_floatspinbox.get()
-            ), 
-            text_color="white",
-            text_color_disabled="#9FA5AB",
-            fg_color=gui_variables.standard_green1,
-            font=ctk.CTkFont(size=14, family="Veranda"),
-            state="disabled"
-        )
+        self.save_button = ctk.CTkButton(master=self.bottom_frame, height=50, width=250, text="Save Axis", state="disabled", command=self.save_button_clicked, text_color="white", text_color_disabled=("#9FA5AB"), fg_color=gui_variables.secondary_colour, hover_color=gui_variables.standard_green3, font=ctk.CTkFont( size=14, family="Noto Sans"))
         self.save_button.pack()
+
+        # self.save_button = ctk.CTkButton(
+        #     master=self.bottom_frame,
+        #     text="Save New Action",
+        #     command=lambda: self.save_button_clicked(
+        #         axis_dropdown_variable.get().split(" (")[0],
+        #         multiplier_floatspinbox.get()
+        #     ), 
+        #     text_color="white",
+        #     text_color_disabled="#9FA5AB",
+        #     fg_color=gui_variables.standard_green1,
+        #     font=ctk.CTkFont(size=14, family="Veranda"),
+        #     state="disabled"
+        # )
+        # self.save_button.pack()
 
     def enable_save_button(self, selected_menu):
         self.save_button.configure(state="normal", fg_color=gui_variables.standard_green1)
@@ -1308,12 +1342,9 @@ class AddChangeHost(ctk.CTkFrame):
         label_menu_frame = ctk.CTkFrame(master=self, fg_color="transparent", )
         label_menu_frame.pack(anchor="w", padx=100, pady=(80,307))
 
-        label=ctk.CTkLabel(master=label_menu_frame, text="Host to Toggle", font=ctk.CTkFont(family="Roboto", size=16))
-        label.pack(pady=(0, 15), anchor="w")
+        label=ctk.CTkLabel(master=label_menu_frame, text="Host to Toggle", font=ctk.CTkFont(family="Noto Sans", size=15))
+        label.pack(pady=(0, 5), anchor="w")
 
-        def enable_save_button(x):
-            self.save_button.configure(state="normal", fg_color=gui_variables.standard_green1)
-            
 
         self.menu_var = ctk.StringVar(value=" Select Host")
         self.menu = DropdownMenu(master=label_menu_frame,
@@ -1321,12 +1352,13 @@ class AddChangeHost(ctk.CTkFrame):
                                  values=["1", "2", "3", "Previous", "Next"],
                                  width=350,
                                  height=40,
-                                 command=enable_save_button
+                                 command=self.enable_save_button
                                  )
         self.menu.pack()
             
-        self.save_button = ctk.CTkButton(master=self.bottom_frame, width=250, height=50, text="Add New ChangeHost", state="disabled", text_color="white", command=lambda: self.save_button_clicked(), text_color_disabled=("#9FA5AB"), fg_color=gui_variables.secondary_colour, hover_color=gui_variables.standard_green3, font=ctk.CTkFont( size=14, family="Roboto"))
-        self.save_button.pack(side="bottom",)
+        self.save_button = ctk.CTkButton(master=self.bottom_frame, height=50, width=250, text="Save ChangeHost", state="disabled", command=self.save_button_clicked, text_color="white", text_color_disabled=("#9FA5AB"), fg_color=gui_variables.secondary_colour, hover_color=gui_variables.standard_green3, font=ctk.CTkFont( size=14, family="Noto Sans"))
+        self.save_button.pack()
+
 
     def save_button_clicked(self):
         chosen_option = self.menu_var.get()
@@ -1339,6 +1371,8 @@ class AddChangeHost(ctk.CTkFrame):
 
         self.go_back()
 
+    def enable_save_button(self, selected_menu):
+        self.save_button.configure(state="normal", fg_color=gui_variables.standard_green1)
 
 
 class AddChangeDPI(ctk.CTkFrame):
@@ -1351,21 +1385,22 @@ class AddChangeDPI(ctk.CTkFrame):
         self.bottom_frame = ctk.CTkFrame(master=bottom_button_frame, fg_color="transparent", corner_radius=0)
         
 
-        label=ctk.CTkLabel(master=self, text="DPI Change", font=ctk.CTkFont(size=26))
-        label.pack(anchor="center", pady=(80,0))
+        label=ctk.CTkLabel(master=self, text="DPI Change", font=ctk.CTkFont(size=20))
+        label.pack(anchor="center", pady=(80,10))
 
         spinbox = IntSpinbox(master=self,
                                 value=1000,
-                                width=340,
-                                height=45,
+                                width=250,
+                                height=35,
                                 step_size=100,
                                 min_value=-settings_object.config_object.max_dpi,
                                 max_value=settings_object.config_object.max_dpi
                                 )
         spinbox.pack(pady=(0,276))            
 
-        save_button = ctk.CTkButton(master=self.bottom_frame, text="Save ChangeDPI", command=lambda: self.save_button_clicked(spinbox.get()), text_color="white", text_color_disabled=("#9FA5AB"), fg_color=gui_variables.standard_green1, font=ctk.CTkFont( size=14, family="Veranda"))
+        save_button = ctk.CTkButton(master=self.bottom_frame, height=50, width=250, text="Save ChangeDPI", command=self.save_button_clicked, text_color="white", fg_color=gui_variables.standard_green1, hover_color=gui_variables.standard_green3, font=ctk.CTkFont( size=14, family="Noto Sans"))
         save_button.pack()
+
 
     def save_button_clicked(self, dpi_change):      
         new_changedpi_object = self.settings_object.add_new_changedpi_action(dpi_change)
@@ -1395,7 +1430,7 @@ class NewActionFrame(ctk.CTkFrame):
         else:
             title_text=f"New Action"
 
-        title=ctk.CTkLabel(master=self, text=title_text, font=ctk.CTkFont(size=28, family="Roboto"), text_color="gray70")
+        title=ctk.CTkLabel(master=self, text=title_text, font=ctk.CTkFont(size=28, family="Noto Sans"), text_color="gray70")
         title.pack(pady=(0,65))
 
         ecf.add_action_frame=self
@@ -1461,7 +1496,7 @@ class NewActionFrame(ctk.CTkFrame):
                                        fg_color="#0071C2",
                                        hover_color="#0089EB",
                                        text_color="#101010",
-                                       font=ctk.CTkFont(family="Roboto", size=16)
+                                       font=ctk.CTkFont(family="Noto Sans", size=16)
 
                                        )
         go_back_button.pack(side="bottom",
@@ -1485,7 +1520,7 @@ class GestureFrame(ctk.CTkFrame):
                    *args, **kwargs):
         super().__init__(master, fg_color="#212121", *args, **kwargs)
 
-        label = ctk.CTkLabel(master=self, text=f"Gesture {gesture_object.direction}", font=ctk.CTkFont(size=27, family="Roboto"), text_color="#606060")
+        label = ctk.CTkLabel(master=self, text=f"Gesture {gesture_object.direction}", font=ctk.CTkFont(size=27, family="Noto Sans"), text_color="#606060")
         label.pack(pady=(5,12))
         
         mode_threshold_frame = ctk.CTkFrame(master=self, fg_color="transparent")
@@ -1534,7 +1569,7 @@ class ButtonConfigFrame(ctk.CTkFrame):
         action_selection_frame = ActionSelectionFrame(master=left_frame, root=root, actions=button_settings_object, pack_order=button_settings_object.get_added_order(), ecf=ecf, gesture_master_frame=right_frame,controller_frame=self)
 
         title_frame = ctk.CTkFrame(master=left_frame, fg_color="#191919", corner_radius=0)
-        label = ctk.CTkLabel(master=title_frame, text=button_settings_object.button_name, font=ctk.CTkFont(family="Roboto", size=30), text_color="#505050")
+        label = ctk.CTkLabel(master=title_frame, text=button_settings_object.button_name, font=ctk.CTkFont(family="Noto Sans", size=30), text_color="#505050")
         label.pack(fill="x", expand=True, pady=(3,5))
 
         new_action_frame_button = ctk.CTkButton(master=left_frame, text="New Button Action", height=50, width=250, fg_color=gui_variables.standard_green1, hover_color=gui_variables.standard_green3, font=ctk.CTkFont(family="Helvetica Neue",size=15), command=lambda: (self.pack_forget(), NewActionFrame(master=master, root=root, ecf=ecf, action_selection_frame=action_selection_frame, origin_frame=self, settings_object=button_settings_object)), corner_radius=0)
@@ -1560,7 +1595,7 @@ class ScrollFrame(ctk.CTkFrame):
         container= ctk.CTkFrame(master=self, fg_color="#222222")
         container.pack(fill="both", expand=True, padx=10, pady=10)
 
-        title=ctk.CTkLabel(master=container, text=f"Scroll {scroll_settings.scroll_direction}", text_color="#606060", font=ctk.CTkFont(size=40))
+        title=ctk.CTkLabel(master=container, text=f"Scroll {scroll_settings.scroll_direction}", text_color="#606060", font=ctk.CTkFont(size=34))
         title.pack(pady=(8, 15))
 
         # self.selected_action_id = scroll_settings.actions.selected_action_id
@@ -1569,21 +1604,33 @@ class ScrollFrame(ctk.CTkFrame):
         options_frame = ctk.CTkFrame(master=container, fg_color="transparent")
         options_frame.pack(pady=(0,20))
 
-        scroll_mode_dropdown = DropdownMenu(master=options_frame, width=200, height=40, variable=ctk.StringVar(value=scroll_settings.mode), values=["OnInterval", "OnThreshold"], state="normal", command=lambda new_mode = selected_mode_var: scroll_settings.save_new_mode(new_mode))
-        scroll_mode_dropdown.pack(side="left")
+        mode_frame = ctk.CTkFrame(master=options_frame, fg_color="transparent")
+        threshold_frame = ctk.CTkFrame(master=options_frame, fg_color="transparent")
+        threshold_label = ctk.CTkLabel(master=threshold_frame, text="Threshold" if scroll_settings.mode == "OnThreshold" else "Interval", font=ctk.CTkFont(size=14))
+        
+        mode_frame.pack(side="left")
 
-        scrollwheel_threshold_spinbox = IntSpinbox(master=options_frame, width=180, step_size=5, min_value=1, max_value=9999, db_query=scroll_settings.update_threshold)
+        mode_label = ctk.CTkLabel(master=mode_frame, text="Mode", font=ctk.CTkFont(size=14))
+        mode_label.pack()
+
+        scroll_mode_dropdown = DropdownMenu(master=mode_frame, width=200, height=40, variable=ctk.StringVar(value=scroll_settings.mode), values=["OnInterval", "OnThreshold"], state="normal", command=lambda new_mode = selected_mode_var: (scroll_settings.save_new_mode(new_mode), threshold_label.configure(text="Threshold" if new_mode == "OnThreshold" else "Interval")))
+        scroll_mode_dropdown.pack()
+
+        threshold_frame.pack(side="left", padx=70)
+        threshold_label.pack()
+
+        scrollwheel_threshold_spinbox = IntSpinbox(master=threshold_frame, width=180, step_size=5, min_value=1, max_value=9999, db_query=scroll_settings.update_threshold)
         scrollwheel_threshold_spinbox.set(scroll_settings.threshold)
-        scrollwheel_threshold_spinbox.pack(side="left", padx=70)
+        scrollwheel_threshold_spinbox.pack()
 
         action_selection_frame = ActionSelectionFrame(master=container, root=root, actions=scroll_settings.actions, pack_order=scroll_settings.actions.get_added_order())
         new_action_frame_button = ctk.CTkButton(master=options_frame, height=45, width=220, fg_color=gui_variables.standard_green1, hover_color=gui_variables.standard_green3, font=ctk.CTkFont(family="Helvetica Neue",size=15), text="New Scroll Action", command=lambda: (self.pack_forget(), NewActionFrame(master=master, root=root, ecf=ecf, action_selection_frame=action_selection_frame, origin_frame=self, settings_object=scroll_settings)), corner_radius=0)
-        new_action_frame_button.pack(side="right")
+        new_action_frame_button.pack(side="right", anchor="s")
 
         action_selection_frame.pack(padx=(0,200))
         
         scroll_action_label = gui_variables.EditPageLabel1(master=action_selection_frame.top_frame, text="Scroll Actions:")
-        scroll_action_label.pack(anchor="w", pady=(20,0))
+        scroll_action_label.pack(anchor="w", pady=(12,0))
 
 
 
@@ -1615,7 +1662,7 @@ class TouchTapProxyFrame(ctk.CTkFrame):
 
 class Checkbox(ctk.CTkCheckBox):
     def __init__(self, *args, **kwargs):
-        super().__init__(font=("Roboto", 15), corner_radius=0, onvalue=True, offvalue=False, checkbox_width=28, checkbox_height=28,
+        super().__init__(font=("Noto Sans", 15), corner_radius=0, onvalue=True, offvalue=False, checkbox_width=28, checkbox_height=28,
                          text_color="gray45",
                         
                         # hover_color="#0071C2",
@@ -1950,11 +1997,6 @@ class GestureRadioButton(ctk.CTkFrame):
         if self.gesture_frame_toggled == False:
             self.gesture_button_frame.pack(side="bottom", anchor="s", fill="x", expand=True)
         if self.currently_viewed_frame == None:
-            # self.gesture_frame_dict["Up"].pack(fill="both", expand=True)
-            # self.currently_viewed_frame = self.gesture_frame_dict["Up"]
-            # self.pack_gesture_frame()
-            # self.gesture_button_dict["Up"].configure(fg_color="blue")
-            # self.currently_active_button = self.gesture_button_dict["Up"]
             self.gesture_button_clicked("Up")
 
     def another_button_clicked(self):
@@ -2033,8 +2075,9 @@ class ActionSelectionFrame(ctk.CTkFrame):
                 i.pack(side="bottom")
         try:
             self.radio_buttons_dictionary[self.actions.selected_action_id].set_clicked()
-        except:
-            print("error setting clicked button")
+        except Exception as e:
+            logging.error(f"Error setting clicked button {e}")
+
 
     def create_gesture_elements(self, gestures, gesture_master_frame, controller_frame, root):
         self.gesture_button = GestureRadioButton(master=self, gesture_objects=gestures, gesture_master_frame = gesture_master_frame, controller_frame=controller_frame, ecf=self.ecf, root=root, passthrough_command=lambda n=self.actions.gestures.button_config_id: self.select_configuration(n))
@@ -2093,13 +2136,6 @@ def get_geometry_and_window_and_widget_scaling():
 
 
 
-# TODO
-import argparse
-import sys
-import psutil
-import os
-
-
 class SystemMemory:
     @staticmethod
     def get_total_ram_mb():
@@ -2136,9 +2172,8 @@ def setup_gui(root, start_in_background=None, arg2=None):
     
     ctk.DrawEngine.preferred_drawing_method = "font_shapes"
 
-    splash = NewDeviceSplash(root, text="LogiOpsGUI")
+    splash = SplashScreen(root, text="LogiOpsGUI")
     splash.pack(fill="both", expand=True)
-
 
     front_page = FrontPage(root)
 
@@ -2147,7 +2182,7 @@ def setup_gui(root, start_in_background=None, arg2=None):
     return splash
 
 
-def main(start_in_background=None, arg2=None):
+def main():
     create_app_data.configure_logging() 
     create_app_data.initialise_database() 
 
@@ -2181,7 +2216,7 @@ def main(start_in_background=None, arg2=None):
 
     root.overrideredirect(True)
     center_window()  # Center the window initially
-    splash = setup_gui(root, start_in_background=start_in_background, arg2=arg2)  
+    splash = setup_gui(root)  
 
     root.withdraw() 
 
@@ -2216,8 +2251,4 @@ def main(start_in_background=None, arg2=None):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="LogiOpsGUI with command line arguments.")
-    parser.add_argument("--start_in_background", type=str, help="TODO UPDATE")
-    parser.add_argument("--arg2", type=str, help="TODO UPDATE")
-    args = parser.parse_args()
-    main(args.start_in_background, args.arg2)
+    main()

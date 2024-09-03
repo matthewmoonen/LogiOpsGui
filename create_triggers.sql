@@ -1,15 +1,18 @@
--- Add new configuration to the Configurations table automatically when a new device is added.
+-- -- Add new configuration to the Configurations table automatically when a new device is added.
 
 CREATE TRIGGER IF NOT EXISTS add_first_config
-    AFTER INSERT ON Devices
+    AFTER UPDATE ON Devices
     FOR EACH ROW
-    WHEN NEW.is_user_device = 1
+    WHEN OLD.is_user_device = 0 AND NEW.is_user_device = 1 OR OLD.is_user_device = 1 AND NEW.is_user_device = 2
 BEGIN
     INSERT INTO Configurations (
         device_id,
         configuration_name,
+        -- date_added,
         last_modified,
         is_selected,
+
+
         smartshift_on,
         smartshift_threshold,
         smartshift_torque,
@@ -22,21 +25,36 @@ BEGIN
     VALUES (
         NEW.device_id,
         (SELECT device_name FROM Devices WHERE device_id = NEW.device_id),
-        NULL,  -- last_modified can be NULL
-        1,     -- is_selected is 1
+        -- CURRENT_TIMESTAMP,
+        NULL,
+        1,
+
         CASE WHEN NEW.smartshift_support = 1 THEN 1 ELSE NULL END,
-        CASE WHEN NEW.smartshift_support = 1 THEN 0 ELSE NULL END,
-        CASE WHEN NEW.smartshift_support = 1 THEN 0 ELSE NULL END,
+        CASE WHEN NEW.smartshift_support = 1 THEN 10 ELSE NULL END,
+        CASE WHEN NEW.smartshift_support = 1 THEN 10 ELSE NULL END,
         CASE WHEN NEW.hires_scroll_support = 1 THEN 0 ELSE NULL END,
         CASE WHEN NEW.hires_scroll_support = 1 THEN 0 ELSE NULL END,
-        CASE WHEN NEW.hires_scroll_support = 1 THEN 0 ELSE NULL END,
-        CASE WHEN NEW.has_thumbwheel = 1 THEN 0 ELSE NULL END,
+        CASE WHEN NEW.hires_scroll_support = 1 THEN 1 ELSE NULL END,
+        CASE WHEN NEW.has_thumbwheel = 1 THEN 1 ELSE NULL END,
         CASE WHEN NEW.has_thumbwheel = 1 THEN 0 ELSE NULL END
     );
 END;
 
 
+
 -- ### QUERY_SEPARATOR ###
+CREATE TRIGGER IF NOT EXISTS update_user_device
+    AFTER UPDATE ON Devices
+    FOR EACH ROW
+    WHEN OLD.is_user_device = 1 AND NEW.is_user_device = 2
+BEGIN
+    UPDATE Devices
+    SET is_user_device = 1
+    WHERE is_user_device = 2;
+END;
+
+-- ### QUERY_SEPARATOR ###
+
 
 -- Creates a timestamp when a user adds a new device from the dropdown (so the most recently added devices can be displayed at the top)
 
@@ -65,45 +83,6 @@ BEGIN
 	DELETE FROM Configurations WHERE device_id = NEW.device_id;
 END;
 
-
--- ### QUERY_SEPARATOR ###
-
--- Adds the first new configuration to the Configurations table when a user adds a device through the devices dropdown.
-
-CREATE TRIGGER IF NOT EXISTS update_config_on_is_user_device_change
-    AFTER UPDATE ON Devices
-    FOR EACH ROW
-    WHEN OLD.is_user_device = 0 AND NEW.is_user_device = 1
-BEGIN
-    INSERT INTO Configurations (
-        device_id,
-        configuration_name,
-        last_modified,
-        is_selected,
-        smartshift_on,
-        smartshift_threshold,
-        smartshift_torque,
-        hiresscroll_hires,
-        hiresscroll_invert,
-        hiresscroll_target,
-        thumbwheel_divert,
-        thumbwheel_invert
-    )
-    VALUES (
-        NEW.device_id,
-        (SELECT device_name FROM Devices WHERE device_id = NEW.device_id),
-        NULL,  -- last_modified can be NULL
-        1,     -- is_selected is 1
-        CASE WHEN NEW.smartshift_support = 1 THEN 1 ELSE NULL END,
-        CASE WHEN NEW.smartshift_support = 1 THEN 10 ELSE NULL END,
-        CASE WHEN NEW.smartshift_support = 1 THEN 10 ELSE NULL END,
-        CASE WHEN NEW.hires_scroll_support = 1 THEN 0 ELSE NULL END,
-        CASE WHEN NEW.hires_scroll_support = 1 THEN 0 ELSE NULL END,
-        CASE WHEN NEW.hires_scroll_support = 1 THEN 0 ELSE NULL END,
-        CASE WHEN NEW.has_thumbwheel = 1 THEN 0 ELSE NULL END,
-        CASE WHEN NEW.has_thumbwheel = 1 THEN 0 ELSE NULL END
-    );
-END;
 
 
 -- ### QUERY_SEPARATOR ###

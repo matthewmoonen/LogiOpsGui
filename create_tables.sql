@@ -50,7 +50,7 @@ FOREIGN KEY (device_id) REFERENCES Devices(device_id) ON DELETE CASCADE
 -- ### QUERY_SEPARATOR ###
     
 CREATE TABLE IF NOT EXISTS Configurations (
-    configuration_id INTEGER PRIMARY KEY,
+    configuration_id INTEGER PRIMARY KEY AUTOINCREMENT,
     device_id INTEGER NOT NULL,
     configuration_name TEXT NOT NULL,
     date_added TEXT,

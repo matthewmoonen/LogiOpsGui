@@ -286,7 +286,7 @@ def write_device_cfg(file, settings_object):
             if selected_action_type == "NoPress":
                 pass
             else:
-                file.write(f"            {object.ttt.lower()}:\n            " + "{\n")
+                file.write(f"            {object.ttp.lower()}:\n            " + "{\n")
                 file.write(f"\n                    type: \"{selected_action_type}\";\n")
 
                 if selected_action_type == "Axis":
@@ -366,17 +366,21 @@ def generate_config_file(cfg_dir, previously_tried_location=None, fall_back_to_h
     try:
         with open(cfg_dir, 'w') as file:
             write_to_file(file)
-    except PermissionError:
+    except PermissionError as e:
         if previously_tried_location:
             return f"Something went wrong. Do not have permission to write to {previously_tried_location} or {cfg_dir}"
         if fall_back_to_homedir:
             return automatically_generate_in_home_directory(cfg_dir)
         else:
-            return f"Do not have permission to write to {cfg_dir}"
+            return e
 
-    return f"Success! Config file saved as {cfg_dir}" if previously_tried_location is None else \
+    return (Status.SUCCESS, f"Success! Config file saved as {cfg_dir}") if previously_tried_location is None else \
            f"Permission Error: Do not have permission to write to {previously_tried_location}. Saved as {cfg_dir} instead."
 
+from enum import Enum
+class Status(Enum):
+    SUCCESS = "success"
+    FAILURE = "failure"
 
 
 class FileGenError(Exception):
@@ -394,22 +398,33 @@ def generate_in_app_data():
     return generate_config_file(log_file_path)
     
 
-def generate_in_user_chosen_directory():
-    directory = get_cfg_location()
-    if directory[0] == "~":
-        home_dir = os.path.expanduser("~")
-        directory = os.path.join(home_dir, "logid.cfg")
-    else:
-        directory = "/".join(directory)
-
-    if os.path.exists(directory):
+def generate_in_user_chosen_directory(save_directory=None, directory=None, filename=None, overwrite=None):
+    if directory == None:
+        directory, filename = get_cfg_location()
+        if directory == "~":
+            home_dir = os.path.expanduser("~")
+            save_directory = os.path.join(home_dir, "logid.cfg")
+    def join_path():
+        return directory + filename if directory[-1] == "/" else directory + "/" + filename
+    if save_directory is None and filename is not None and directory is not None:
+        save_directory = join_path()
+            
+    if overwrite == True:
         try:
-            os.remove(directory)
+            os.remove(save_directory)
         except PermissionError as e:
-            return f"Do not have permission to write to user chosen directory: {e}"
+            # return f"Do not have permission to write to user chosen directory: {e}"
+            raise e
+            # return
 
-    message = generate_config_file(directory)
-    return message
+    elif os.path.exists(save_directory) and overwrite != True:
+        return f"Error: file exists"
+
+    if save_directory is not None:
+        return generate_config_file(save_directory)
+    
+    else:
+        return "Error, incomplete save directory specified"
 
 def set_overwrite_or_save_as_copy(new_setting):
     conn, cursor = execute_db_queries.create_db_connection()
@@ -426,9 +441,10 @@ def get_overwrite_or_save_as_copy():
 
 
 def main():
+    pass
 
-    print(get_overwrite_or_save_as_copy())
-    generate_in_app_data()
+    # print(get_overwrite_or_save_as_copy())
+    # generate_in_app_data()
 
 if __name__ == "__main__":
     main()

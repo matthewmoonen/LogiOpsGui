@@ -10,9 +10,12 @@ INSERT INTO UserSettings (key, value) VALUES ('geometry', "1820x980")
 
 -- ### QUERY_SEPARATOR ###
 
-INSERT INTO UserSettings (key, value) VALUES ('cfg_directory', "default")
+INSERT INTO UserSettings (key, value) VALUES ('cfg_directory', "~")
 
 -- ### QUERY_SEPARATOR ###
 
 INSERT INTO UserSettings(key, value) VALUES ('cfg_filename', "logid.cfg")
 
+-- ### QUERY_SEPARATOR ###
+
+INSERT INTO UserSettings(key, value) VALUES ('overwrite', "False")
