@@ -1276,7 +1276,7 @@ class AddAxisFrame(ctk.CTkFrame):
             max_value=9999
         )
         multiplier_floatspinbox.pack()
-        self.save_button = ctk.CTkButton(master=self.bottom_frame, height=50, width=250, text="Save Axis", state="disabled", command=self.save_button_clicked, text_color="white", text_color_disabled=("#9FA5AB"), fg_color=gui_variables.secondary_colour, hover_color=gui_variables.standard_green3, font=ctk.CTkFont( size=14, family="Noto Sans"))
+        self.save_button = ctk.CTkButton(master=self.bottom_frame, height=50, width=250, text="Save Axis", state="disabled", command=lambda b=axis_dropdown.get(), m=multiplier_floatspinbox.get(): self.save_button_clicked(b,m), text_color="white", text_color_disabled=("#9FA5AB"), fg_color=gui_variables.secondary_colour, hover_color=gui_variables.standard_green3, font=ctk.CTkFont( size=14, family="Noto Sans"))
         self.save_button.pack()
 
         # self.save_button = ctk.CTkButton(
@@ -1384,7 +1384,7 @@ class AddChangeDPI(ctk.CTkFrame):
                                 )
         spinbox.pack(pady=(0,276))            
 
-        save_button = ctk.CTkButton(master=self.bottom_frame, height=50, width=250, text="Save ChangeDPI", command=self.save_button_clicked, text_color="white", fg_color=gui_variables.standard_green1, hover_color=gui_variables.standard_green3, font=ctk.CTkFont( size=14, family="Noto Sans"))
+        save_button = ctk.CTkButton(master=self.bottom_frame, height=50, width=250, text="Save ChangeDPI", command=lambda d=spinbox.get(): self.save_button_clicked(d), text_color="white", fg_color=gui_variables.standard_green1, hover_color=gui_variables.standard_green3, font=ctk.CTkFont( size=14, family="Noto Sans"))
         save_button.pack()
 
 

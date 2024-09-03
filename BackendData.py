@@ -283,7 +283,7 @@ class Configuration:
         configuration_id=None,
         configuration_name=None,
         date_configuration_added=None,
-        date_configuration_last_modified=None,
+        # date_configuration_last_modified=None,
         is_selected=None,
         dpi=None,
         smartshift_on=None,
@@ -323,7 +323,7 @@ class Configuration:
         self.configuration_id=configuration_id
         self.configuration_name=configuration_name
         self.date_configuration_added=date_configuration_added
-        self.date_configuration_last_modified=date_configuration_last_modified
+        # self.date_configuration_last_modified=date_configuration_last_modified
         self.is_selected=is_selected
         self.dpi=dpi
         self.smartshift_on = smartshift_on
@@ -361,7 +361,7 @@ class Configuration:
 
         config = cls()
         config.user_device_object = user_device_object
-        config.configuration_id, config.device_id, config.configuration_name, config.date_configuration_added, config.date_configuration_last_modified, is_selected, \
+        config.configuration_id, config.device_id, config.configuration_name, is_selected, \
         config.dpi, smartshift_on, config.smartshift_threshold, config.smartshift_torque, hiresscroll_hires, hiresscroll_invert, hiresscroll_target, \
         thumbwheel_divert, thumbwheel_invert, repeat_device_id, config.device_name, is_user_device, config_file_device_name, device_pids, \
         config.min_dpi, config.max_dpi, config.default_dpi, has_scrollwheel, has_thumbwheel, thumbwheel_tap_support, thumbwheel_proxy_support, \
@@ -724,7 +724,7 @@ class ButtonSettings:
 
     def get_added_order(self):
         conn, cursor = execute_db_queries.create_db_connection()
-        cursor.execute("""SELECT button_config_id FROM ButtonConfigs WHERE button_id = ? AND configuration_id = ? AND date_added IS NOT NULL ORDER BY date_added;""",(self.button_id, self.config_object.configuration_id))
+        cursor.execute("""SELECT button_config_id FROM ButtonConfigs WHERE button_id = ? AND configuration_id = ? AND action_type NOT IN ('Default', 'NoPress', 'Gestures', 'ToggleSmartShift', 'ToggleHiresScroll') ORDER BY button_config_id DESC;""",(self.button_id, self.config_object.configuration_id))
         result = cursor.fetchall()
         execute_db_queries.close_without_committing_changes(conn)
         return [i[0] for i in result]
@@ -961,7 +961,7 @@ class GestureSettings:
 
     def get_added_order(self):
         conn, cursor = execute_db_queries.create_db_connection()
-        cursor.execute("""SELECT gesture_id FROM Gestures WHERE button_config_id = ? AND direction = ? AND date_added IS NOT NULL ORDER BY date_added;""",(self.button.gestures.button_config_id, self.direction))
+        cursor.execute("""SELECT gesture_id FROM Gestures WHERE button_config_id = ? AND direction = ? AND action_type NOT IN ('NoPress', 'ToggleHiresScroll', 'ToggleSmartShift') ORDER BY gesture_id DESC;""",(self.button.gestures.button_config_id, self.direction))
         result = cursor.fetchall()
         execute_db_queries.close_without_committing_changes(conn)
         return [i[0] for i in result]
@@ -1106,7 +1106,8 @@ class ScrollActions:
 
     def get_added_order(self):
         conn, cursor = execute_db_queries.create_db_connection()
-        cursor.execute("""SELECT scroll_action_id FROM ScrollActions WHERE scroll_action_property_id = ? AND date_added IS NOT NULL ORDER BY date_added;""",(self.scroll_action_property_id,))
+
+        cursor.execute("""SELECT scroll_action_id FROM ScrollActions WHERE scroll_action_property_id = ? AND action_type NOT IN ('Default', 'NoPress', 'ToggleHiresScroll', 'ToggleSmartShift') ORDER BY scroll_action_id DESC;""",(self.scroll_action_property_id,))
         result = cursor.fetchall()
         execute_db_queries.close_without_committing_changes(conn)
         return [i[0] for i in result]

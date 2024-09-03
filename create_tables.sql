@@ -53,8 +53,6 @@ CREATE TABLE IF NOT EXISTS Configurations (
     configuration_id INTEGER PRIMARY KEY AUTOINCREMENT,
     device_id INTEGER NOT NULL,
     configuration_name TEXT NOT NULL,
-    date_added TEXT,
-    last_modified TEXT,
     is_selected INTEGER NOT NULL CHECK (is_selected IN (0, 1)),
     dpi INTEGER,
     smartshift_on INTEGER CHECK (smartshift_on IN (0, 1) OR smartshift_on IS NULL),
@@ -73,13 +71,11 @@ FOREIGN KEY (device_id) REFERENCES Devices(device_id) ON DELETE CASCADE
 -- ### QUERY_SEPARATOR ###
 
 CREATE TABLE IF NOT EXISTS ScrollActions (
-    scroll_action_id INTEGER PRIMARY KEY,
+    scroll_action_id INTEGER PRIMARY KEY AUTOINCREMENT,
     scroll_action_property_id INTEGER NOT NULL,
     configuration_id INTEGER,
     action_type TEXT NOT NULL CHECK (action_type IN ('Default', 'NoPress', 'ToggleSmartShift', 'ToggleHiresScroll', 'Keypress', 'Axis', 'CycleDPI', 'ChangeDPI', 'ChangeHost')),
     is_selected INTEGER NOT NULL DEFAULT 0 CHECK (is_selected IN (0, 1)),
-    date_added TEXT,
-    last_edited TEXT,
 
 FOREIGN KEY (scroll_action_property_id) REFERENCES ScrollActionProperties(scroll_action_property_id) ON DELETE CASCADE
 );
@@ -100,14 +96,12 @@ CREATE TABLE IF NOT EXISTS ScrollActionProperties (
 -- ### QUERY_SEPARATOR ###
 
 CREATE TABLE IF NOT EXISTS TouchTapProxy (
-    touch_tap_proxy_id INTEGER PRIMARY KEY,
+    touch_tap_proxy_id INTEGER PRIMARY KEY AUTOINCREMENT,
     configuration_id INTEGER NOT NULL,
     touch_tap_proxy TEXT NOT NULL CHECK (touch_tap_proxy IN ('Touch', 'Tap', 'Proxy')),
     action_type TEXT NOT NULL CHECK (action_type IN ('NoPress', 'ToggleSmartShift', 'ToggleHiresScroll', 'Keypress', 'Axis', 'CycleDPI', 'ChangeDPI', 'ChangeHost')),
     -- action_id INTEGER,
     is_selected INTEGER NOT NULL DEFAULT 0 CHECK (is_selected IN (0, 1)),
-    date_added TEXT,
-    last_edited TEXT,
 
 FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DELETE CASCADE
 );
@@ -116,14 +110,12 @@ FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DE
 -- ### QUERY_SEPARATOR ###
 
 CREATE TABLE IF NOT EXISTS ButtonConfigs (
-    button_config_id INTEGER PRIMARY KEY,
+    button_config_id INTEGER PRIMARY KEY AUTOINCREMENT,
     device_id INTEGER,
     button_id INTEGER NOT NULL,
     configuration_id INTEGER NOT NULL,
     action_type TEXT NOT NULL CHECK (action_type IN ('Default', 'NoPress', 'ToggleSmartShift', 'ToggleHiresScroll', 'Gestures', 'Keypress', 'Axis', 'CycleDPI', 'ChangeDPI', 'ChangeHost')),
     is_selected INTEGER NOT NULL DEFAULT 0 CHECK (is_selected IN (0,1)),
-    date_added TEXT,
-    last_edited TEXT,
 
 FOREIGN KEY (device_id) REFERENCES Devices(device_id) ON DELETE CASCADE,
 FOREIGN KEY (button_id) REFERENCES Buttons(button_id) ON DELETE CASCADE,
@@ -133,16 +125,14 @@ FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DE
 
 
 
-
 -- ### QUERY_SEPARATOR ###
 
 CREATE TABLE IF NOT EXISTS Gestures (
-    gesture_id INTEGER PRIMARY KEY,
+    gesture_id INTEGER PRIMARY KEY AUTOINCREMENT,
     button_config_id INTEGER NOT NULL,
     direction TEXT NOT NULL CHECK (direction IN ('Up', 'Down', 'Left', 'Right', 'None')),
     action_type TEXT NOT NULL CHECK (action_type IN ('NoPress', 'Axis', 'Keypress', 'ToggleSmartShift', 'ToggleHiresScroll', 'CycleDPI', 'ChangeDPI', 'ChangeHost')),
     is_selected INTEGER NOT NULL DEFAULT 0 CHECK (is_selected IN (0,1)),
-    date_added TEXT,
     FOREIGN KEY (button_config_id) REFERENCES ButtonConfigs(button_config_id) ON DELETE CASCADE
 );
 
@@ -163,7 +153,7 @@ CREATE TABLE IF NOT EXISTS GestureProperties (
 -- ### QUERY_SEPARATOR ###
 
 CREATE TABLE IF NOT EXISTS Axes (
-    axis_id INTEGER PRIMARY KEY,
+    axis_id INTEGER PRIMARY KEY AUTOINCREMENT,
     configuration_id INTEGER,
     action_id INTEGER NOT NULL,
     source_table TEXT NOT NULL CHECK (source_table IN ('ButtonConfigs', 'Gestures', 'ScrollActions', 'TouchTapProxy')),
@@ -177,7 +167,7 @@ FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DE
 -- ### QUERY_SEPARATOR ###
 
 CREATE TABLE IF NOT EXISTS CycleDPI (
-    cycle_dpi_id INTEGER PRIMARY KEY,
+    cycle_dpi_id INTEGER PRIMARY KEY AUTOINCREMENT,
     configuration_id INTEGER,
     action_id INTEGER NOT NULL,
     source_table TEXT NOT NULL CHECK (source_table IN ('ButtonConfigs', 'Gestures', 'ScrollActions', 'TouchTapProxy')),
@@ -191,7 +181,7 @@ FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DE
 -- ### QUERY_SEPARATOR ###
 
 CREATE TABLE IF NOT EXISTS ChangeDPI (
-    change_dpi_id INTEGER PRIMARY KEY,
+    change_dpi_id INTEGER PRIMARY KEY AUTOINCREMENT,
     configuration_id INTEGER,
     action_id INTEGER NOT NULL,
     source_table TEXT NOT NULL CHECK (source_table IN ('ButtonConfigs', 'Gestures', 'ScrollActions', 'TouchTapProxy')),
@@ -204,7 +194,7 @@ FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DE
 -- ### QUERY_SEPARATOR ###
 
 CREATE TABLE IF NOT EXISTS Keypresses (
-    keypress_id INTEGER PRIMARY KEY,
+    keypress_id INTEGER PRIMARY KEY AUTOINCREMENT,
     configuration_id INTEGER,
     action_id INTEGER NOT NULL,
     source_table TEXT NOT NULL CHECK (source_table IN ('ButtonConfigs', 'Gestures', 'ScrollActions', 'TouchTapProxy')),
@@ -216,7 +206,7 @@ FOREIGN KEY (configuration_id) REFERENCES Configurations(configuration_id) ON DE
 -- ### QUERY_SEPARATOR ###
 
 CREATE TABLE IF NOT EXISTS ChangeHost (
-    host_id INTEGER PRIMARY KEY,
+    host_id INTEGER PRIMARY KEY AUTOINCREMENT,
     configuration_id INTEGER,
     action_id INTEGER,
     source_table TEXT NOT NULL CHECK (source_table IN ('ButtonConfigs', 'Gestures', 'ScrollActions', 'TouchTapProxy')),

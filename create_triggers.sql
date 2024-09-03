@@ -9,7 +9,7 @@ BEGIN
         device_id,
         configuration_name,
         -- date_added,
-        last_modified,
+        -- last_modified,
         is_selected,
 
 
@@ -26,7 +26,7 @@ BEGIN
         NEW.device_id,
         (SELECT device_name FROM Devices WHERE device_id = NEW.device_id),
         -- CURRENT_TIMESTAMP,
-        NULL,
+        -- NULL,
         1,
 
         CASE WHEN NEW.smartshift_support = 1 THEN 1 ELSE NULL END,
@@ -1017,46 +1017,46 @@ BEGIN
 DELETE FROM Axes WHERE action_id = OLD.touch_tap_proxy_id AND source_table = 'TouchTapProxy';
 END;
 
--- ### QUERY_SEPARATOR ###
-CREATE TRIGGER IF NOT EXISTS insert_date_on_scroll_action
-AFTER INSERT ON ScrollActions
-FOR EACH ROW
-WHEN NEW.action_type IN ('Keypress', 'Axis', 'CycleDPI', 'ChangeDPI', 'ChangeHost')
-BEGIN
-    UPDATE ScrollActions
-    SET date_added = CURRENT_TIMESTAMP
-    WHERE scroll_action_id = NEW.scroll_action_id;
-END;
+-- -- ### QUERY_SEPARATOR ###
+-- CREATE TRIGGER IF NOT EXISTS insert_date_on_scroll_action
+-- AFTER INSERT ON ScrollActions
+-- FOR EACH ROW
+-- WHEN NEW.action_type IN ('Keypress', 'Axis', 'CycleDPI', 'ChangeDPI', 'ChangeHost')
+-- BEGIN
+--     UPDATE ScrollActions
+--     SET date_added = CURRENT_TIMESTAMP
+--     WHERE scroll_action_id = NEW.scroll_action_id;
+-- END;
 
--- ### QUERY_SEPARATOR ###
-CREATE TRIGGER IF NOT EXISTS insert_date_on_touch_tap_proxy
-AFTER INSERT ON TouchTapProxy
-FOR EACH ROW
-WHEN NEW.action_type IN ('Keypress', 'Axis', 'CycleDPI', 'ChangeDPI', 'ChangeHost')
-BEGIN
-    UPDATE TouchTapProxy
-    SET date_added = CURRENT_TIMESTAMP
-    WHERE touch_tap_proxy_id = NEW.touch_tap_proxy_id;
-END;
+-- -- ### QUERY_SEPARATOR ###
+-- CREATE TRIGGER IF NOT EXISTS insert_date_on_touch_tap_proxy
+-- AFTER INSERT ON TouchTapProxy
+-- FOR EACH ROW
+-- WHEN NEW.action_type IN ('Keypress', 'Axis', 'CycleDPI', 'ChangeDPI', 'ChangeHost')
+-- BEGIN
+--     UPDATE TouchTapProxy
+--     SET date_added = CURRENT_TIMESTAMP
+--     WHERE touch_tap_proxy_id = NEW.touch_tap_proxy_id;
+-- END;
 
--- ### QUERY_SEPARATOR ###
-CREATE TRIGGER IF NOT EXISTS insert_date_on_button_configs
-AFTER INSERT ON ButtonConfigs
-FOR EACH ROW
-WHEN NEW.action_type IN ('Keypress', 'Axis', 'CycleDPI', 'ChangeDPI', 'ChangeHost')
-BEGIN
-    UPDATE ButtonConfigs
-    SET date_added = CURRENT_TIMESTAMP
-    WHERE button_config_id = NEW.button_config_id;
-END;
+-- -- ### QUERY_SEPARATOR ###
+-- CREATE TRIGGER IF NOT EXISTS insert_date_on_button_configs
+-- AFTER INSERT ON ButtonConfigs
+-- FOR EACH ROW
+-- WHEN NEW.action_type IN ('Keypress', 'Axis', 'CycleDPI', 'ChangeDPI', 'ChangeHost')
+-- BEGIN
+--     UPDATE ButtonConfigs
+--     SET date_added = CURRENT_TIMESTAMP
+--     WHERE button_config_id = NEW.button_config_id;
+-- END;
 
--- ### QUERY_SEPARATOR ###
-CREATE TRIGGER IF NOT EXISTS insert_date_on_gestures
-AFTER INSERT ON Gestures
-FOR EACH ROW
-WHEN NEW.action_type IN ('Keypress', 'Axis', 'CycleDPI', 'ChangeDPI', 'ChangeHost')
-BEGIN
-    UPDATE Gestures
-    SET date_added = CURRENT_TIMESTAMP
-    WHERE gesture_id = NEW.gesture_id;
-END;
+-- -- ### QUERY_SEPARATOR ###
+-- CREATE TRIGGER IF NOT EXISTS insert_date_on_gestures
+-- AFTER INSERT ON Gestures
+-- FOR EACH ROW
+-- WHEN NEW.action_type IN ('Keypress', 'Axis', 'CycleDPI', 'ChangeDPI', 'ChangeHost')
+-- BEGIN
+--     UPDATE Gestures
+--     SET date_added = CURRENT_TIMESTAMP
+--     WHERE gesture_id = NEW.gesture_id;
+-- END;
