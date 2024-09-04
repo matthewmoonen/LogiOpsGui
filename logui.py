@@ -10,13 +10,13 @@ import FileBrowserWindow
 import create_cfg
 import ast
 import alleventcodes
-import psutil
 import os
 import gui_variables
 from PIL import Image
 import subprocess
 import BackendData
 from GraphicalControlElements import svg_to_image, MatthewsRadioButton, FloatSpinbox, IntSpinbox
+import tkinter as tk
 
 
 class DeviceDropdown(ctk.CTkFrame):
@@ -2121,35 +2121,35 @@ def get_geometry_and_window_and_widget_scaling():
     return window_scaling, widget_scaling, geometry
 
 
+# import psutil
+# class SystemMemory:
+#     @staticmethod
+#     def get_total_ram_mb():
+#         return f"{SystemMemory.get_total_ram() / 1024 ** 2:.2f} MB"
 
-class SystemMemory:
-    @staticmethod
-    def get_total_ram_mb():
-        return f"{SystemMemory.get_total_ram() / 1024 ** 2:.2f} MB"
+#     @staticmethod
+#     def get_total_ram():
+#         mem = psutil.virtual_memory()
+#         return mem.total  # in bytes
 
-    @staticmethod
-    def get_total_ram():
-        mem = psutil.virtual_memory()
-        return mem.total  # in bytes
+#     @staticmethod
+#     def get_memory_usage():
+#         process = psutil.Process(os.getpid())
+#         mem_info = process.memory_info()
+#         return mem_info.rss  # in bytes
 
-    @staticmethod
-    def get_memory_usage():
-        process = psutil.Process(os.getpid())
-        mem_info = process.memory_info()
-        return mem_info.rss  # in bytes
+#     @staticmethod
+#     def get_memory_usage_mb():
+#         return f"{SystemMemory.get_memory_usage() / 1024 ** 2:.2f} MB"
 
-    @staticmethod
-    def get_memory_usage_mb():
-        return f"{SystemMemory.get_memory_usage() / 1024 ** 2:.2f} MB"
+#     @staticmethod
+#     def get_ram_in_use_mb():
+#         return f"{SystemMemory.get_ram_in_use() / 1024 ** 2:.2f} MB"
 
-    @staticmethod
-    def get_ram_in_use_mb():
-        return f"{SystemMemory.get_ram_in_use() / 1024 ** 2:.2f} MB"
-
-    @staticmethod
-    def get_ram_in_use():
-        mem = psutil.virtual_memory()
-        return mem.used  # in bytes
+#     @staticmethod
+#     def get_ram_in_use():
+#         mem = psutil.virtual_memory()
+#         return mem.used  # in bytes
 
 
 def setup_gui(root):
@@ -2173,7 +2173,6 @@ def main():
     create_app_data.initialise_database() 
 
     root = ctk.CTk()
-    import tkinter as tk
     icon = tk.PhotoImage(file="images/icon.png")
     root.iconphoto(True, icon)
 
