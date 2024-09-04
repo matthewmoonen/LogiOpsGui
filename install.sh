@@ -59,7 +59,9 @@ Exec=${cwd}/run.sh
 Icon=${cwd}/images/icon.png
 Terminal=false
 Type=Application
-Categories=Utility;"
+StartupWMClass=Tk
+Categories=Utility;
+"
 
     # Define the path to the applications directory
     desktop_path="${HOME}/.local/share/applications"

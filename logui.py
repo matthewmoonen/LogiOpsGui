@@ -2167,7 +2167,6 @@ def setup_gui(root):
 
     return splash
 
-
 def main():
     create_app_data.configure_logging() 
     create_app_data.initialise_database() 
@@ -2182,9 +2181,11 @@ def main():
     ctk.set_widget_scaling(widget_scaling)
     root.attributes('-alpha', 0.1)
 
+
     root.resizable(True, True)
     root.title("LogiOpsGUI")
-
+    root.iconname("LogiOpsGUI")
+    
     def center_window():
 
         screen_width = root.winfo_screenwidth()
