@@ -12,7 +12,7 @@ This app is intended as a companion to [PixlOne's drivers](https://github.com/Pi
 
 ## Installation
 
-Firest install the [Logiops drivers](https://github.com/PixlOne/logiops) following the instructions on that page.
+First install the [Logiops drivers](https://github.com/PixlOne/logiops) following the instructions on that page.
 
 If you're already using Logiops, I recommend backing up your current configuration file.
 

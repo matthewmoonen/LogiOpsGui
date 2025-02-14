@@ -16,6 +16,7 @@ from PIL import Image
 import subprocess
 import BackendData
 from GraphicalControlElements import svg_to_image, MatthewsRadioButton, FloatSpinbox, IntSpinbox
+import OperatingSystemVariables
 import tkinter as tk
 
 
@@ -2167,67 +2168,60 @@ def setup_gui(root):
 
     return splash
 
+
+
 def main():
     create_app_data.configure_logging() 
     create_app_data.initialise_database() 
+
+    os_variables = OperatingSystemVariables.EnvironmentInfo()
+    
+    window_scaling, widget_scaling, geometry = get_geometry_and_window_and_widget_scaling()
+    
+    ctk.set_window_scaling(window_scaling)
+    ctk.set_widget_scaling(widget_scaling)
 
     root = ctk.CTk()
     icon = tk.PhotoImage(file="images/icon.png")
     root.iconphoto(True, icon)
 
-    window_scaling, widget_scaling, geometry = get_geometry_and_window_and_widget_scaling()
-
-    ctk.set_window_scaling(window_scaling)
-    ctk.set_widget_scaling(widget_scaling)
-    root.attributes('-alpha', 0.1)
-
-
     root.resizable(True, True)
     root.title("LogiOpsGUI")
     root.iconname("LogiOpsGUI")
     
-    def center_window():
+    def gnome_setup():
+        scaling_factor = root.tk.call("tk", "scaling")
+        def center_window_gnome():
+            screen_width = root.winfo_screenwidth()
+            screen_height = root.winfo_screenheight()
+            window_width = int(int(geometry.split("x")[0])*scaling_factor)
+            window_height = int(int(geometry.split("x")[1].split("+")[0])*scaling_factor)
 
-        screen_width = root.winfo_screenwidth()
-        screen_height = root.winfo_screenheight()
+            x = (screen_width // 2) - (window_width // 2)
+            y = (screen_height // 2) - (window_height // 2) - 20
 
-        window_width = root.winfo_reqwidth()
-        window_height = root.winfo_reqheight()
+            root.geometry(f"+{x}+{y}")
+        center_window_gnome()
 
-        x = (screen_width // 2) - window_width*2
-        y = (screen_height // 2) - window_height - 100
-
-        root.geometry(f"{window_width}x{window_height}+{x}+{y}")
-
-
-    root.overrideredirect(True)
-    center_window()  # Center the window initially
-    splash = setup_gui(root)  
-
-    root.withdraw() 
-
-    root.attributes('-alpha', 1.0)    
-    root.after(600, root.deiconify)
-
-    splash.destroy()
-    root.overrideredirect(False)
-
-    def center_window2():
-
-        screen_width = root.winfo_screenwidth()
-        screen_height = root.winfo_screenheight()
-
-        window_width = root.winfo_reqwidth()
-        window_height = root.winfo_reqheight()
-
-        x = (screen_width // 2) - (int(geometry.split("x")[0]) // 2)
-        y = (screen_height // 2) - (int(geometry.split("x")[1]) // 2) - 20
+        geometry_parts = geometry.split("x")
         
-        root.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        for i,v in enumerate(geometry_parts):
+            v = float(v)
+            v = int(v*scaling_factor)
+            geometry_parts[i] = str(v)
 
-    center_window2()  # Re-center the window after restoring the title bar
+        return "x".join(geometry_parts)
+    
+    if os_variables.desktop_environment == "GNOME":
+        geometry = gnome_setup()
     
     root.geometry(geometry)
+
+    ctk.set_appearance_mode("dark")
+    ctk.set_default_color_theme("dark-blue")
+    
+    front_page = FrontPage(master=root)
+    front_page.show()
 
     root.mainloop()
 
