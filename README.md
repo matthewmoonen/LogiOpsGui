@@ -1,14 +1,13 @@
 # LogiOpsGui
 
 ## What is this?
-A GUI configuration tool for the Linux Logiops mouse drivers.
+An unofficial, open source GUI configuration tool for the Linux Logiops mouse drivers.
 
 This app allows you to customize the buttons of your Logitech MX Series mouse. You can create, edit, rename, modify, and delete configuration profiles. It supports customisations like keyboard shortcuts, scroll actions, gestures, axes, SmartShift configurations, DPI settings, and more.
 
 It supports multiple configurations and devices. You can load a new configuration and restart the Logiops service directly from within the app.
 
 This app is intended as a companion to [PixlOne's drivers](https://github.com/PixlOne/logiops).
-
 
 ## Installation
 
