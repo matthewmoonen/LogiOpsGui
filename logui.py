@@ -1076,7 +1076,7 @@ class AddKeypressFrame(ctk.CTkFrame):
         super().pack_forget(*args, **kwargs)
 
     def handle_key_press(self, event):
-
+        # print(f"event.keysym = {event.keysym}")
         db_keymate, gui_keymate = keymates.get_keymates(event.keysym)
         if not hasattr(self, "db_keypress_array"):
             self.db_keypress_array = [db_keymate]            

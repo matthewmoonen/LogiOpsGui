@@ -56,7 +56,6 @@ class MatthewsRadioButton:
 
     def radio_button_leave(self, event):
         self.button.configure(image=self.radio_button_deselected)
-        # self.button.configure('<Leave>', text_color="gray65")
 
     def another_button_clicked(self):
         try:
@@ -124,19 +123,13 @@ class FloatSpinbox(ctk.CTkFrame):
 
 
         self.subtract_button = ctk.CTkButton(self, text="-", width=height+5, height=height, command=self.subtract_button_callback, fg_color="#0071C2", hover_color="#0089EB", font=ctk.CTkFont(size=int(height*0.55)), corner_radius=0)
-        # self.subtract_button = ctk.CTkButton(self, text="-", width=height-2, height=height-2, command=self.subtract_button_callback)
-        # self.subtract_button.grid(row=0, column=0, padx=(3, 0), pady=3)
         self.subtract_button.grid(row=0, column=0, padx=int(height*0.15), pady=int(height*0.15))
 
         vcmd = self.register(self.validate)
         self.entry = ctk.CTkEntry(self, validate="key", validatecommand=(vcmd, '%P'), justify="center", width=width-(2.8*height), height=int(height*1.2), border_width=0, font=ctk.CTkFont(size=int(height*0.53)), corner_radius=0)
-        # self.entry = ctk.CTkEntry(self, validate="key", validatecommand=(vcmd, '%P'), width=width-(2.8*height), height=height-4, border_width=0)
         self.entry.grid(row=0, column=1, columnspan=1, padx=3, pady=3, sticky="ew")
         self.entry.insert(0, self.format_value(self.value))
-
-        # self.add_button = ctk.CTkButton(self, text="+", width=height-2.5, height=height-2.5, command=self.add_button_callback)
         self.add_button = ctk.CTkButton(self, text="+", width=height+5, height=height, command=self.add_button_callback,fg_color="#0071C2",hover_color="#0089EB", font=ctk.CTkFont(size=int(height*0.55)), corner_radius=0)
-        # self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
         self.add_button.grid(row=0, column=2, padx=int(height*0.15), pady=int(height*0.15))
 
         self.entry.bind("<FocusOut>", self.on_focus_out)
