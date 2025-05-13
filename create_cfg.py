@@ -224,12 +224,12 @@ def write_device_cfg(file, settings_object):
     length = len(settings_object.buttons)
 
     for index, button in enumerate(settings_object.buttons.values()):
-        if button.selected_action_id != button.default:
-            write_button(file, button)
-            if index == length - 1:
-                file.write("        }\n")
-            else:
-                file.write("        },\n")
+        write_button(file, button)
+        if index == length - 1:
+            file.write("        }\n")
+        else:
+            file.write("        },\n")
+            
     file.write("    );\n")
     if settings_object.has_thumbwheel == True:
         thumbwheel_divert = "true" if settings_object.thumbwheel_divert == True else "false"

@@ -34,8 +34,17 @@ def initialise_database():
 
         conn.commit()
         conn.close()
+    else:
+        conn, cursor = execute_db_queries.create_db_connection()
 
-
+        cursor.execute("""SELECT value FROM UserSettings WHERE key = 'version'""")
+        latest_used_version = cursor.fetchone()[0]
+        if latest_used_version == version.__version__:
+            execute_db_queries.close_without_committing_changes(conn)
+        else:
+            cursor.execute("""INSERT INTO UserSettings (key, value) VALUES (?, 'previous version')""", (latest_used_version,))
+            cursor.execute("""UPDATE UserSettings SET value = ? WHERE key = 'version'""", (version.__version__,))
+            execute_db_queries.commit_changes_and_close(conn)
 
 def parse_sql_file_into_array(sql_file_path):
     with open (sql_file_path , "r") as sql_file:
