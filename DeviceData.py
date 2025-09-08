@@ -413,7 +413,7 @@ device_pids = [
 Classes.DeviceDatabase(
 device_id = 800,
 device_name = "MX Ergo", 
-config_file_device_name = "MX Ergo Multi-Device Trackball",
+config_file_device_name = "MX Ergo Multi-Device Trackball ",
 
 min_dpi =   512, max_dpi = 2048, default_dpi = 1000,
 has_scrollwheel=True,
