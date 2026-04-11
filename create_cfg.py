@@ -75,7 +75,7 @@ def write_hires_scroll(file, settings_object):
 + f"        target: {str(settings_object.hiresscroll_target).lower()};\n")
 
 
-        
+
     def write_scrollwheel_directions(direction):
         selected_action_id = settings_object.scroll_directions[direction].actions.selected_action_id
         spacer_string = "   "
@@ -86,35 +86,49 @@ def write_hires_scroll(file, settings_object):
         if selected_action_type == "Default":
             pass
         else:
-            file.write(f"            {direction.lower()}:\n            " + "{\n")
+            file.write(f"        {direction.lower()}: {{\n")
 
-            file.write(f"                mode: \"{settings_object.scroll_directions[direction].mode}\";\n")
+            # Simple mode types: just write mode with no action wrapper or interval/threshold
+            # These are: Axis, NoPress
+            if selected_action_type in ["Axis", "NoPress"]:
+                file.write(f"            mode: \"{selected_action_type}\"\n")
 
-            if settings_object.scroll_directions[direction].mode == "OnInterval":
-                interval_threshold = "interval"
+                # Axis needs additional parameters
+                if selected_action_type == "Axis":
+                    axis_obj = settings_object.scroll_directions[direction].actions.axes[selected_action_id]
+                    file.write(f"            axis: \"{axis_obj.axis_button}\"\n")
+                    file.write(f"            axis_multiplier: {axis_obj.axis_multiplier}\n")
             else:
-                interval_threshold = "threshold"
-            file.write(f"                {interval_threshold}: {settings_object.scroll_directions[direction].threshold};\n")
-            file.write(f"                action =\n                " + "{" + f"\n                    type: \"{selected_action_type}\";\n")
+                # Complex action types need mode, interval/threshold, and action wrapper
+                # These include: Keypress, CycleDPI, ChangeDPI, ChangeHost, ToggleSmartShift, ToggleHiresScroll
+                file.write(f"            mode: \"{settings_object.scroll_directions[direction].mode}\";\n")
 
-            if selected_action_type == "Axis":
-                write_axis(file, settings_object.scroll_directions[direction].actions.axes[selected_action_id], spacer_string)
-            elif selected_action_type == "CycleDPI":
-                write_cycle_dpi(file, settings_object.scroll_directions[direction].actions.cycledpi[selected_action_id], spacer_string)
-            elif selected_action_type == "ChangeHost":
-                write_changehost(file, settings_object.scroll_directions[direction].actions.changehost[selected_action_id], spacer_string)
-            elif selected_action_type == "ChangeDPI":
-                write_changedpi(file, settings_object.scroll_directions[direction].actions.changedpi[selected_action_id], spacer_string)
-            elif selected_action_type == "Keypress":
-                write_keypress(file, settings_object.scroll_directions[direction].actions.keypresses[selected_action_id], spacer_string)
+                if settings_object.scroll_directions[direction].mode == "OnInterval":
+                    interval_threshold = "interval"
+                else:
+                    interval_threshold = "threshold"
+                file.write(f"            {interval_threshold}: {settings_object.scroll_directions[direction].threshold};\n")
+                file.write(f"            action =\n            " + "{" + f"\n                type: \"{selected_action_type}\";\n")
 
-            file.write("                };\n")
-            file.write("            };\n")
+                if selected_action_type == "CycleDPI":
+                    write_cycle_dpi(file, settings_object.scroll_directions[direction].actions.cycledpi[selected_action_id], spacer_string)
+                elif selected_action_type == "ChangeHost":
+                    write_changehost(file, settings_object.scroll_directions[direction].actions.changehost[selected_action_id], spacer_string)
+                elif selected_action_type == "ChangeDPI":
+                    write_changedpi(file, settings_object.scroll_directions[direction].actions.changedpi[selected_action_id], spacer_string)
+                elif selected_action_type == "Keypress":
+                    write_keypress(file, settings_object.scroll_directions[direction].actions.keypresses[selected_action_id], spacer_string)
+
+                file.write("            }\n")
+
+            file.write("        }\n")
 
     for direction in ["Up", "Down"]:
         write_scrollwheel_directions(direction)
 
     file.write("    }; \n")
+
+
 
 
 def write_gestures(file, gestures):
@@ -218,19 +232,34 @@ def write_device_cfg(file, settings_object):
     if settings_object.hires_scroll_support == True:
         write_hires_scroll(file, settings_object)
 
-    file.write(f"    dpi: {settings_object.dpi};\n \n"
-            + f"    buttons: (\n")
-
+    file.write(f"    dpi: {settings_object.dpi};\n \n")
+    
+    
     length = len(settings_object.buttons)
 
-    for index, button in enumerate(settings_object.buttons.values()):
-        write_button(file, button)
-        if index == length - 1:
-            file.write("        }\n")
-        else:
-            file.write("        },\n")
-            
-    file.write("    );\n")
+    def write_buttons_if_applicable():
+        
+
+        file.write(f"    buttons: (\n")
+        number_written = 0
+        for button in settings_object.buttons.values():
+            if button.request_selected_type() != "Default":
+                write_button(file, button)
+                if number_written < length -1:
+                    number_written +=1
+                    file.write("        },\n")
+                else:
+                    file.write("        }\n")
+
+        file.write("    );\n")
+    
+    for button in settings_object.buttons.values():
+        if button.request_selected_type() == "Default":
+            length -=1
+
+    if length >0:
+        write_buttons_if_applicable()
+
     if settings_object.has_thumbwheel == True:
         thumbwheel_divert = "true" if settings_object.thumbwheel_divert == True else "false"
         thumbwheel_invert = "true" if settings_object.thumbwheel_invert == True else "false"
@@ -246,30 +275,42 @@ def write_device_cfg(file, settings_object):
             if selected_action_type == "Default":
                 pass
             else:
-                file.write(f"            {direction.lower()}:\n            " + "{\n")
+                file.write(f"        {direction.lower()}: {{\n")
 
-                file.write(f"                mode: \"{settings_object.scroll_directions[direction].mode}\";\n")
+                # Simple mode types: just write mode with no action wrapper or interval/threshold
+                # These are: Axis, NoPress
+                if selected_action_type in ["Axis", "NoPress"]:
+                    file.write(f"            mode: \"{selected_action_type}\"\n")
 
-                if settings_object.scroll_directions[direction].mode == "OnInterval":
-                    interval_threshold = "interval"
+                    # Axis needs additional parameters
+                    if selected_action_type == "Axis":
+                        axis_obj = settings_object.scroll_directions[direction].actions.axes[selected_action_id]
+                        file.write(f"            axis: \"{axis_obj.axis_button}\"\n")
+                        file.write(f"            axis_multiplier: {axis_obj.axis_multiplier}\n")
                 else:
-                    interval_threshold = "threshold"
-                file.write(f"                {interval_threshold}: {settings_object.scroll_directions[direction].threshold};\n")
-                file.write(f"                action =\n                " + "{" + f"\n                    type: \"{selected_action_type}\";\n")
+                    # Complex action types need mode, interval/threshold, and action wrapper
+                    # These include: Keypress, CycleDPI, ChangeDPI, ChangeHost, ToggleSmartShift, ToggleHiresScroll
+                    file.write(f"            mode: \"{settings_object.scroll_directions[direction].mode}\";\n")
 
-                if selected_action_type == "Axis":
-                    write_axis(file, settings_object.scroll_directions[direction].actions.axes[selected_action_id], spacer_string)
-                elif selected_action_type == "CycleDPI":
-                    write_cycle_dpi(file, settings_object.scroll_directions[direction].actions.cycledpi[selected_action_id], spacer_string)
-                elif selected_action_type == "ChangeHost":
-                    write_changehost(file, settings_object.scroll_directions[direction].actions.changehost[selected_action_id], spacer_string)
-                elif selected_action_type == "ChangeDPI":
-                    write_changedpi(file, settings_object.scroll_directions[direction].actions.changedpi[selected_action_id], spacer_string)
-                elif selected_action_type == "Keypress":
-                    write_keypress(file, settings_object.scroll_directions[direction].actions.keypresses[selected_action_id], spacer_string)
+                    if settings_object.scroll_directions[direction].mode == "OnInterval":
+                        interval_threshold = "interval"
+                    else:
+                        interval_threshold = "threshold"
+                    file.write(f"            {interval_threshold}: {settings_object.scroll_directions[direction].threshold};\n")
+                    file.write(f"            action =\n            " + "{" + f"\n                type: \"{selected_action_type}\";\n")
 
-                file.write("                };\n")
-                file.write("            };\n")
+                    if selected_action_type == "CycleDPI":
+                        write_cycle_dpi(file, settings_object.scroll_directions[direction].actions.cycledpi[selected_action_id], spacer_string)
+                    elif selected_action_type == "ChangeHost":
+                        write_changehost(file, settings_object.scroll_directions[direction].actions.changehost[selected_action_id], spacer_string)
+                    elif selected_action_type == "ChangeDPI":
+                        write_changedpi(file, settings_object.scroll_directions[direction].actions.changedpi[selected_action_id], spacer_string)
+                    elif selected_action_type == "Keypress":
+                        write_keypress(file, settings_object.scroll_directions[direction].actions.keypresses[selected_action_id], spacer_string)
+
+                    file.write("            };\n")
+
+                file.write("        }\n")
 
 
 
