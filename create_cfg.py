@@ -75,7 +75,7 @@ def write_hires_scroll(file, settings_object):
 + f"        target: {str(settings_object.hiresscroll_target).lower()};\n")
 
 
-        
+
     def write_scrollwheel_directions(direction):
         selected_action_id = settings_object.scroll_directions[direction].actions.selected_action_id
         spacer_string = "   "
@@ -89,8 +89,8 @@ def write_hires_scroll(file, settings_object):
             file.write(f"        {direction.lower()}: {{\n")
 
             # Simple mode types: just write mode with no action wrapper or interval/threshold
-            # These include: Axis, NoPress, ToggleSmartShift, ToggleHiresScroll
-            if selected_action_type in ["Axis", "NoPress", "ToggleSmartShift", "ToggleHiresScroll"]:
+            # These are: Axis, NoPress
+            if selected_action_type in ["Axis", "NoPress"]:
                 file.write(f"            mode: \"{selected_action_type}\"\n")
 
                 # Axis needs additional parameters
@@ -100,7 +100,7 @@ def write_hires_scroll(file, settings_object):
                     file.write(f"            axis_multiplier: {axis_obj.axis_multiplier}\n")
             else:
                 # Complex action types need mode, interval/threshold, and action wrapper
-                # These include: Keypress, CycleDPI, ChangeDPI, ChangeHost
+                # These include: Keypress, CycleDPI, ChangeDPI, ChangeHost, ToggleSmartShift, ToggleHiresScroll
                 file.write(f"            mode: \"{settings_object.scroll_directions[direction].mode}\";\n")
 
                 if settings_object.scroll_directions[direction].mode == "OnInterval":
@@ -119,7 +119,7 @@ def write_hires_scroll(file, settings_object):
                 elif selected_action_type == "Keypress":
                     write_keypress(file, settings_object.scroll_directions[direction].actions.keypresses[selected_action_id], spacer_string)
 
-                file.write("            };\n")
+                file.write("            }\n")
 
             file.write("        }\n")
 
@@ -127,6 +127,8 @@ def write_hires_scroll(file, settings_object):
         write_scrollwheel_directions(direction)
 
     file.write("    }; \n")
+
+
 
 
 def write_gestures(file, gestures):
@@ -230,19 +232,34 @@ def write_device_cfg(file, settings_object):
     if settings_object.hires_scroll_support == True:
         write_hires_scroll(file, settings_object)
 
-    file.write(f"    dpi: {settings_object.dpi};\n \n"
-            + f"    buttons: (\n")
-
+    file.write(f"    dpi: {settings_object.dpi};\n \n")
+    
+    
     length = len(settings_object.buttons)
 
-    for index, button in enumerate(settings_object.buttons.values()):
-        write_button(file, button)
-        if index == length - 1:
-            file.write("        }\n")
-        else:
-            file.write("        },\n")
-            
-    file.write("    );\n")
+    def write_buttons_if_applicable():
+        
+
+        file.write(f"    buttons: (\n")
+        number_written = 0
+        for button in settings_object.buttons.values():
+            if button.request_selected_type() != "Default":
+                write_button(file, button)
+                if number_written < length -1:
+                    number_written +=1
+                    file.write("        },\n")
+                else:
+                    file.write("        }\n")
+
+        file.write("    );\n")
+    
+    for button in settings_object.buttons.values():
+        if button.request_selected_type() == "Default":
+            length -=1
+
+    if length >0:
+        write_buttons_if_applicable()
+
     if settings_object.has_thumbwheel == True:
         thumbwheel_divert = "true" if settings_object.thumbwheel_divert == True else "false"
         thumbwheel_invert = "true" if settings_object.thumbwheel_invert == True else "false"
@@ -261,8 +278,8 @@ def write_device_cfg(file, settings_object):
                 file.write(f"        {direction.lower()}: {{\n")
 
                 # Simple mode types: just write mode with no action wrapper or interval/threshold
-                # These include: Axis, NoPress, ToggleSmartShift, ToggleHiresScroll
-                if selected_action_type in ["Axis", "NoPress", "ToggleSmartShift", "ToggleHiresScroll"]:
+                # These are: Axis, NoPress
+                if selected_action_type in ["Axis", "NoPress"]:
                     file.write(f"            mode: \"{selected_action_type}\"\n")
 
                     # Axis needs additional parameters
@@ -272,7 +289,7 @@ def write_device_cfg(file, settings_object):
                         file.write(f"            axis_multiplier: {axis_obj.axis_multiplier}\n")
                 else:
                     # Complex action types need mode, interval/threshold, and action wrapper
-                    # These include: Keypress, CycleDPI, ChangeDPI, ChangeHost
+                    # These include: Keypress, CycleDPI, ChangeDPI, ChangeHost, ToggleSmartShift, ToggleHiresScroll
                     file.write(f"            mode: \"{settings_object.scroll_directions[direction].mode}\";\n")
 
                     if settings_object.scroll_directions[direction].mode == "OnInterval":

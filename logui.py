@@ -1380,12 +1380,24 @@ class AddChangeDPI(ctk.CTkFrame):
                                 width=250,
                                 height=35,
                                 step_size=100,
-                                min_value=-settings_object.config_object.max_dpi,
+                                min_value=settings_object.config_object.min_dpi,
                                 max_value=settings_object.config_object.max_dpi
                                 )
         spinbox.pack(pady=(0,276))            
 
-        save_button = ctk.CTkButton(master=self.bottom_frame, height=50, width=250, text="Save ChangeDPI", command=lambda d=spinbox.get(): self.save_button_clicked(d), text_color="white", fg_color=gui_variables.standard_green1, hover_color=gui_variables.standard_green3, font=ctk.CTkFont( size=14, family="Noto Sans"))
+
+        save_button = ctk.CTkButton(
+            master=self.bottom_frame,
+            height=50,
+            width=250,
+            text="Save ChangeDPI",
+            command=lambda: self.save_button_clicked(spinbox.get()),
+            text_color="white",
+            fg_color=gui_variables.standard_green1,
+            hover_color=gui_variables.standard_green3,
+            font=ctk.CTkFont(size=14, family="Noto Sans"),
+        )
+
         save_button.pack()
 
 
